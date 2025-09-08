@@ -69,6 +69,7 @@
             height: 100%;
             opacity: 0;
             cursor: pointer;
+            z-index: 10; /* FIX: Ensure the input is on top of other elements */
         }
         #upload-prompt svg {
             margin: 0 auto;
@@ -221,7 +222,6 @@
         <div id="image-drop-area">
             <input type="file" id="image-upload" multiple accept="image/*">
             <div id="upload-prompt">
-                <!-- FIX: Replaced potentially corrupted SVG with a clean, standard one -->
                 <svg stroke="currentColor" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-4-4 4.002 4.002 0 012.75-3.8A5.002 5.002 0 0117 8a5 5 0 01.1 9.9M12 11v6m-3-3l3 3 3-3" /></svg>
                 <p class="mt-2" style="font-size: 14px;"><span style="font-weight: 600; color: #a5b4fc;">点击上传</span>、拖拽文件或粘贴图片</p>
                 <p class="text-xs text-gray-500">支持多张图片批量分析</p>
@@ -267,7 +267,7 @@
         var currentFiles = null; 
         
         // --- 模型配置 ---
-        var modelUrl = './model.onnx';
+        var modelUrl = 'model.onnx';
         
         var session; // ONNX session
         var MODEL_INPUT_SIZE = 512;
@@ -305,7 +305,7 @@
                 .then(function(response) {
                     if (!response.ok) throw new Error('网络响应错误: ' + response.statusText);
                     diagnosisResultsEl.textContent = '开始下载模型 (约 30MB)...';
-                    progressContainer.className = progressContainer.className.replace(' hidden', '');
+                    progressContainer.classList.remove('hidden');
 
                     if (!response.body || !response.headers.get('content-length')) {
                         console.warn("浏览器不支持响应流，无法显示实时进度。");
@@ -350,13 +350,13 @@
                     diagnosisResultsEl.textContent = '模型加载成功！请上传图片进行分析。';
                     runDiagnosisBtn.disabled = false;
                     runBtnText.textContent = '开始分析';
-                    setTimeout(function() { progressContainer.className += ' hidden'; }, 1500);
+                    setTimeout(function() { progressContainer.classList.add('hidden'); }, 1500);
                 })
                 .catch(function(error) {
                     console.error("模型加载失败:", error);
                     diagnosisResultsEl.textContent = '模型加载失败: ' + error.message + '\n请将 model.onnx 文件放在同目录下，或配置有效的CDN链接。';
                     runBtnText.textContent = '加载失败';
-                    progressContainer.className += ' hidden';
+                    progressContainer.classList.add('hidden');
                 });
         }
 
@@ -450,8 +450,8 @@
             if (!files || files.length === 0) return;
             currentFiles = files;
             
-            uploadPrompt.className += ' hidden';
-            imagePreviewContainer.className = imagePreviewContainer.className.replace(' hidden', '');
+            uploadPrompt.classList.add('hidden');
+            imagePreviewContainer.classList.remove('hidden');
             
             if (previewImage.src) {
                 URL.revokeObjectURL(previewImage.src);
@@ -465,23 +465,19 @@
             }
         }
         
-        // FIX: Re-instated click handler to ensure functionality across all browsers
-        imageDropArea.addEventListener('click', function() {
-            imageUploadInput.click();
-        });
+        // FIX: Removed event listener from drop area to prevent conflicts.
+        // The click is now handled by the overlayed file input itself.
 
         imageDropArea.addEventListener('dragover', function(e) {
             e.preventDefault();
-            if (imageDropArea.className.indexOf('drag-over') === -1) {
-                imageDropArea.className += ' drag-over';
-            }
+            imageDropArea.classList.add('drag-over');
         });
         imageDropArea.addEventListener('dragleave', function() {
-            imageDropArea.className = imageDropArea.className.replace(' drag-over', '');
+            imageDropArea.classList.remove('drag-over');
         });
         imageDropArea.addEventListener('drop', function(e) {
             e.preventDefault();
-            imageDropArea.className = imageDropArea.className.replace(' drag-over', '');
+            imageDropArea.classList.remove('drag-over');
             handleFiles(e.dataTransfer.files);
         });
         imageUploadInput.addEventListener('change', function() { 
@@ -518,12 +514,12 @@
             enmHelpModal.innerHTML = helpContent;
             
             var openModal = function() {
-                enmHelpModal.className = 'modal';
-                enmHelpOverlay.className = 'modal-overlay';
+                enmHelpModal.classList.remove('hidden');
+                enmHelpOverlay.classList.remove('hidden');
             };
             var closeModal = function() {
-                enmHelpModal.className = 'modal hidden';
-                enmHelpOverlay.className = 'modal-overlay hidden';
+                enmHelpModal.classList.add('hidden');
+                enmHelpOverlay.classList.add('hidden');
             };
             
             enmHelpBtn.addEventListener('click', openModal);
