@@ -74,7 +74,6 @@
             background-color: #3c424a;
             border-color: var(--accent-color);
         }
-        /* Make the label fill the drop zone */
         #drop-zone label {
             display: block;
             padding: 20px 0;
@@ -126,7 +125,6 @@
     </div>
 </div>
 
-<!-- 这次，我们引用的是完整版的 three.js，因为它包含了必要的加载器和导出器 -->
 <script type="module">
     import * as THREE from 'https://cdn.skypack.dev/three@0.128.0/build/three.module.js';
     import { OBJLoader } from 'https://cdn.skypack.dev/three@0.128.0/examples/jsm/loaders/OBJLoader.js';
@@ -159,24 +157,15 @@
     const export3dsBtn = document.getElementById('export-3ds-btn');
     const exportCmsBtn = document.getElementById('export-cms-btn');
 
-    // The <label> now handles the click natively, so the JS click handler is no longer needed.
-    dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropZone.classList.add('dragover');
-    });
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
     dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
     dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
         dropZone.classList.remove('dragover');
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            handleFile(files[0]);
-        }
+        if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
     });
     fileInput.addEventListener('change', () => {
-        if (fileInput.files.length > 0) {
-            handleFile(fileInput.files[0]);
-        }
+        if (fileInput.files.length > 0) handleFile(fileInput.files[0]);
     });
 
     function handleFile(file) {
@@ -185,48 +174,70 @@
             return;
         }
         modelName = file.name.replace(/\.obj$/i, '');
+        fileInfo.textContent = `正在加载: ${file.name}...`;
+        export3dsBtn.disabled = true;
+        exportCmsBtn.disabled = true;
+
         const reader = new FileReader();
         reader.onload = (event) => {
-            loadObj(event.target.result);
-            fileInfo.textContent = `已加载: ${file.name}`;
-            export3dsBtn.disabled = false;
-            exportCmsBtn.disabled = false;
+            loadObj(event.target.result, file.name);
         };
         reader.readAsText(file);
     }
     
     // --- 3D LOGIC ---
-    function loadObj(objContent) {
+    function loadObj(objContent, fileName) {
         if (activeModel) {
             scene.remove(activeModel);
+            activeModel = null;
         }
-        const loader = new OBJLoader();
-        const object = loader.parse(objContent);
         
-        object.traverse((child) => {
-            if (child.isMesh) {
-                child.material = new THREE.MeshStandardMaterial({
-                    color: 0xaaaaaa,
-                    roughness: 0.7,
-                    metalness: 0.1
-                });
-            }
-        });
-        
-        const box = new THREE.Box3().setFromObject(object);
-        const size = box.getSize(new THREE.Vector3());
-        const center = box.getCenter(new THREE.Vector3());
-        
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = 20 / maxDim;
-        object.scale.set(scale, scale, scale);
-        
-        box.setFromObject(object);
-        box.getCenter(center);
-        object.position.copy(center).multiplyScalar(-1);
+        try {
+            const loader = new OBJLoader();
+            const object = loader.parse(objContent);
 
-        activeModel = object;
-        scene.add(activeModel);
+            if (object.children.length === 0) {
+                throw new Error("OBJ 文件有效，但其中不包含任何可识别的网格。");
+            }
+
+            object.traverse((child) => {
+                if (child.isMesh) {
+                    child.material = new THREE.MeshStandardMaterial({
+                        color: 0xaaaaaa,
+                        roughness: 0.7,
+                        metalness: 0.1
+                    });
+                }
+            });
+            
+            const box = new THREE.Box3().setFromObject(object);
+            const size = box.getSize(new THREE.Vector3());
+            const center = box.getCenter(new THREE.Vector3());
+            
+            const maxDim = Math.max(size.x, size.y, size.z);
+            if (maxDim > 0) {
+                const scale = 20 / maxDim;
+                object.scale.set(scale, scale, scale);
+            }
+            
+            box.setFromObject(object);
+            box.getCenter(center);
+            object.position.copy(center).multiplyScalar(-1);
+
+            activeModel = object;
+            scene.add(activeModel);
+
+            fileInfo.textContent = `加载成功: ${fileName}`;
+            export3dsBtn.disabled = false;
+            exportCmsBtn.disabled = false;
+
+        } catch (error) {
+            console.error("加载OBJ时出错:", error);
+            fileInfo.textContent = "加载失败。请检查文件格式或浏览器控制台。";
+            alert(`加载模型失败: ${error.message}\n\n请确保这是一个有效的 .obj 文件。`);
+            export3dsBtn.disabled = true;
+            exportCmsBtn.disabled = true;
+        }
     }
 
     // --- MOUSE CONTROLS ---
