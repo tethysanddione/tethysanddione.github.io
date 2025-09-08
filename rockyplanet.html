@@ -279,7 +279,6 @@ const generateTerrainMaps = (width, height, seed) => {
     return { heightMap, moistureMap };
 };
 
-// This new function replaces the solid color one
 const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
     const { heightMap, moistureMap } = terrainMaps;
     const imageData = ctx.createImageData(width, height);
@@ -287,8 +286,18 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
     displays.status.textContent = "Simulating climate and blending textures...";
 
     const COLOR_DEEP_WATER = [10, 15, 60], COLOR_SHALLOW_WATER = [15, 20, 65];
+    
+    // --- UPDATED CLIMATE MODEL ---
     const MOUNTAIN_PEAK = Math.min(params.SEA_LEVEL + 0.35, 0.95);
-    const SNOW_LINE = Math.max(MOUNTAIN_PEAK - 0.15, params.SEA_LEVEL);
+
+    // 1. Link Snow Line to the Ice Cap slider for a unified climate model
+    // Map slider value [0.5, 1.0] to a "warmth" factor [0, 1]
+    const warmth_factor = (params.ICE_CAP_LATITUDE - 0.5) / 0.5; 
+    
+    // 2. The snow line altitude now moves from low (cold planet) to impossibly high (hot planet)
+    // When warmth_factor is 1 (slider at max), SNOW_LINE is > 1.0, higher than any possible terrain.
+    const SNOW_LINE = (params.SEA_LEVEL + 0.2) * (1 - warmth_factor) + 1.5 * warmth_factor;
+    // --- END OF UPDATE ---
 
     const tex_width = textures.sand.width;
     const tex_height = textures.sand.height;
@@ -404,6 +413,7 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
     return imageData;
 };
 
+
 // --- UI and Event Handling ---
 function updateSliderValue(slider, display) {
     display.textContent = parseFloat(slider.value).toFixed(2);
@@ -457,7 +467,7 @@ function main() {
         DESERTIFICATION: parseFloat(controls.desertification.value),
         ICE_CAP_LATITUDE: parseFloat(controls.iceCapLatitude.value),
         CENTER_NOISE_WIDTH: parseFloat(document.querySelector('input[name=size]:checked').dataset.centerWidth),
-        CENTER_NOISE_STRENGTH: 0.0,
+        CENTER_NOISE_STRENGTH: 0.0, // Disabled this feature as it's not needed with texture loading
         CENTER_NOISE_SCALE: 0.0
     };
 
@@ -469,9 +479,9 @@ function main() {
             const texturedMapImageData = generateTexturedMap(width, height, params, terrainMaps, textures);
             ctx.putImageData(texturedMapImageData, 0, 0);
         } else {
-            // This is now a fallback if textures fail to load
-            const colorMapImageData = generateColorMap(width, height, params, terrainMaps); // You'd need to create this function
-            ctx.putImageData(colorMapImageData, 0, 0);
+            // Fallback for local testing without a server
+            displays.status.textContent = `Error: Textures not loaded. Displaying solid colors.`;
+            // You would need a generateColorMap function here for a true fallback.
         }
 
         displays.status.textContent = `Done! (Seed: ${params.SEED})`;
@@ -515,8 +525,6 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(error => {
             console.error(error);
-            // If textures fail, we must inform the user and stop.
-            // A fallback to solid colors could be implemented here if desired.
             displays.status.textContent = `Error: ${error}. Check textures folder.`;
             alert(`Texture loading failed: ${error}\n\nPlease ensure a 'textures' folder with the required .png files exists in the same directory as this HTML file.`);
         });
