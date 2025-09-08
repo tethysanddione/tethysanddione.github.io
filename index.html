@@ -29,7 +29,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 1000px;
             width: 100%;
             text-align: center;
         }
@@ -54,7 +54,7 @@
             padding: 0;
             margin: 0;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 20px;
         }
 
@@ -69,6 +69,7 @@
             transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
             height: 100%;
             box-sizing: border-box;
+            text-align: left;
         }
 
         .tool-list li a:hover {
@@ -87,6 +88,7 @@
             margin: 0;
             font-size: 0.95rem;
             opacity: 0.7;
+            line-height: 1.5;
         }
     </style>
 </head>
@@ -124,9 +126,22 @@
                         <p>构建完整的恒星与行星系统，生成符合物理规律的轨道和天体参数代码。</p>
                     </a>
                 </li>
+                <li>
+                    <a href="minor.html">
+                        <h3>小行星模型生成器</h3>
+                        <p>交互式生成随机的3D小行星模型，并将其导出为可在Celestia中使用的.obj文件。</p>
+                    </a>
+                </li>
+                <li>
+                    <a href="atmosphere.html">
+                        <h3>大气颜色测试器</h3>
+                        <p>粘贴大气参数代码，实时预览天空和日落的颜色渲染效果，快速迭代设计。</p>
+                    </a>
+                </li>
             </ul>
         </main>
     </div>
 
 </body>
 </html>
+
