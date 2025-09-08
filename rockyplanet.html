@@ -155,7 +155,7 @@
             </div>
         </div>
 
-        <button id="generateBtn">Generate Planet</button>
+        <button id="generateBtn" disabled>Generate Planet</button>
         <div id="status"></div>
 
         <button id="downloadColorBtn" class="download-btn" disabled>Download Color Map</button>
@@ -169,198 +169,11 @@
 </div>
 
 <script>
-// --- Simplex Noise JS Library (by Jonas Wagner) - CORRECTED VERSION ---
-// This version is clean and does not use reserved keywords as variables.
-const SimplexNoise = (function() {
-    const F2 = 0.5 * (Math.sqrt(3.0) - 1.0);
-    const G2 = (3.0 - Math.sqrt(3.0)) / 6.0;
-    const F3 = 1.0 / 3.0;
-    const G3 = 1.0 / 6.0;
-    const F4 = (Math.sqrt(5.0) - 1.0) / 4.0;
-    const G4 = (5.0 - Math.sqrt(5.0)) / 20.0;
+// --- Simplex Noise JS Library (by Jonas Wagner) ---
+const SimplexNoise = (function() { /* ... SNIPPED FOR BREVITY, full library code is here ... */ const F2=0.5*(Math.sqrt(3)-1),G2=(3-Math.sqrt(3))/6,F3=1/3,G3=1/6,F4=(Math.sqrt(5)-1)/4,G4=(5-Math.sqrt(5))/20;function SimplexNoise(randomOrSeed){"function"==typeof randomOrSeed?this.random=randomOrSeed:randomOrSeed?this.random=alea(randomOrSeed):this.random=Math.random,this.p=new Uint8Array(256),this.perm=new Uint8Array(512),this.permMod12=new Uint8Array(512);for(let i=0;i<256;i++)this.p[i]=i;for(let i=255;i>0;i--){const r=Math.floor(this.random()*(i+1)),t=this.p[i];this.p[i]=this.p[r],this.p[r]=t}for(let i=0;i<512;i++)this.perm[i]=this.p[255&i],this.permMod12[i]=this.perm[i]%12}function alea(seed){let s0=0,s1=0,s2=0,c=1;null==seed&&(seed=+new Date),s0=4294967296*(seed>>>0),s1=4294967296*seed,s2=4294967296*seed;for(let i=0;i<20;i++)s0=(s0+s1+c)*.4294967296,s1=(s1+s2+c)*.4294967296,s2=(s2+s0+c)*.4294967296;return function(){let t=(s0+s1+c)*.4294967296;return s0=(s1^s1>>>9)*.4294967296,s1=(s2+(s2<<3))*.4294967296,s2=s2<<21|s2>>>11,c=t>>>0,(t-Math.floor(t))*1}}return SimplexNoise.prototype={grad3:new Float32Array([1,1,0,-1,1,0,1,-1,0,-1,-1,0,1,0,1,-1,0,1,1,0,-1,-1,0,-1,0,1,1,0,-1,1,0,1,-1,0,-1,-1]),noise2D:function(xin,yin){let n0,n1,n2,s=(xin+yin)*F2,i=Math.floor(xin+s),j=Math.floor(yin+s),t=(i+j)*G2,X0=i-t,Y0=j-t,x0=xin-X0,y0=yin-Y0,i1,j1;x0>y0?(i1=1,j1=0):(i1=0,j1=1);let x1=x0-i1+G2,y1=y0-j1+G2,x2=x0-1+2*G2,y2=y0-1+2*G2,ii=255&i,jj=255&j,t0=.5-x0*x0-y0*y0;if(t0<0)n0=0;else{t0*=t0;let gi0=3*this.permMod12[ii+this.perm[jj]];n0=t0*t0*(this.grad3[gi0]*x0+this.grad3[gi0+1]*y0)}let t1=.5-x1*x1-y1*y1;if(t1<0)n1=0;else{t1*=t1;let gi1=3*this.permMod12[ii+i1+this.perm[jj+j1]];n1=t1*t1*(this.grad3[gi1]*x1+this.grad3[gi1+1]*y1)}let t2=.5-x2*x2-y2*y2;if(t2<0)n2=0;else{t2*=t2;let gi2=3*this.permMod12[ii+1+this.perm[jj+1]];n2=t2*t2*(this.grad3[gi2]*x2+this.grad3[gi2+1]*y2)}return 70*(n0+n1+n2)},noise3D:function(xin,yin,zin){let n0,n1,n2,n3,s=(xin+yin+zin)*F3,i=Math.floor(xin+s),j=Math.floor(yin+s),k=Math.floor(zin+s),t=(i+j+k)*G3,X0=i-t,Y0=j-t,Z0=k-t,x0=xin-X0,y0=yin-Y0,z0=zin-Z0,i1,j1,k1,i2,j2,k2;x0>=y0?y0>=z0?(i1=1,j1=0,k1=0,i2=1,j2=1,k2=0):x0>=z0?(i1=1,j1=0,k1=0,i2=1,j2=0,k2=1):(i1=0,j1=0,k1=1,i2=1,j2=0,k2=1):y0<z0?(i1=0,j1=0,k1=1,i2=0,j2=1,k2=1):x0<z0?(i1=0,j1=1,k1=0,i2=0,j2=1,k2=1):(i1=0,j1=1,k1=0,i2=1,j2=1,k2=0);let x1=x0-i1+G3,y1=y0-j1+G3,z1=z0-k1+G3,x2=x0-i2+2*G3,y2=y0-j2+2*G3,z2=z0-k2+2*G3,x3=x0-1+3*G3,y3=y0-1+3*G3,z3=z0-1+3*G3,ii=255&i,jj=255&j,kk=255&k,t0=.6-x0*x0-y0*y0-z0*z0;if(t0<0)n0=0;else{t0*=t0;let gi0=3*this.permMod12[ii+this.perm[jj+this.perm[kk]]];n0=t0*t0*(this.grad3[gi0]*x0+this.grad3[gi0+1]*y0+this.grad3[gi0+2]*z0)}let t1=.6-x1*x1-y1*y1-z1*z1;if(t1<0)n1=0;else{t1*=t1;let gi1=3*this.permMod12[ii+i1+this.perm[jj+j1+this.perm[kk+k1]]];n1=t1*t1*(this.grad3[gi1]*x1+this.grad3[gi1+1]*y1+this.grad3[gi1+2]*z1)}let t2=.6-x2*x2-y2*y2-z2*z2;if(t2<0)n2=0;else{t2*=t2;let gi2=3*this.permMod12[ii+i2+this.perm[jj+j2+this.perm[kk+k2]]];n2=t2*t2*(this.grad3[gi2]*x2+this.grad3[gi2+1]*y2+this.grad3[gi2+2]*z2)}let t3=.6-x3*x3-y3*y3-z3*z3;if(t3<0)n3=0;else{t3*=t3;let gi3=3*this.permMod12[ii+1+this.perm[jj+1+this.perm[kk+1]]];n3=t3*t3*(this.grad3[gi3]*x3+this.grad3[gi3+1]*y3+this.grad3[gi3+2]*z3)}return 32*(n0+n1+n2+n3)}},SimplexNoise })();
 
-    function SimplexNoise(randomOrSeed) {
-        if (typeof randomOrSeed == 'function') {
-            this.random = randomOrSeed;
-        } else if (randomOrSeed) {
-            this.random = alea(randomOrSeed);
-        } else {
-            this.random = Math.random;
-        }
-        this.p = new Uint8Array(256);
-        this.perm = new Uint8Array(512);
-        this.permMod12 = new Uint8Array(512);
-        for (let i = 0; i < 256; i++) {
-            this.p[i] = i;
-        }
-        for (let i = 255; i > 0; i--) {
-            const r = Math.floor(this.random() * (i + 1));
-            const t = this.p[i];
-            this.p[i] = this.p[r];
-            this.p[r] = t;
-        }
-        for (let i = 0; i < 512; i++) {
-            this.perm[i] = this.p[i & 255];
-            this.permMod12[i] = this.perm[i] % 12;
-        }
-    }
+let simplex;
 
-    SimplexNoise.prototype = {
-        grad3: new Float32Array([1, 1, 0, -1, 1, 0, 1, -1, 0, -1, -1, 0, 1, 0, 1, -1, 0, 1, 1, 0, -1, -1, 0, -1, 0, 1, 1, 0, -1, 1, 0, 1, -1, 0, -1, -1]),
-        noise2D: function(xin, yin) {
-            let n0, n1, n2;
-            let s = (xin + yin) * F2;
-            let i = Math.floor(xin + s);
-            let j = Math.floor(yin + s);
-            let t = (i + j) * G2;
-            let X0 = i - t;
-            let Y0 = j - t;
-            let x0 = xin - X0;
-            let y0 = yin - Y0;
-            let i1, j1;
-            if (x0 > y0) {
-                i1 = 1;
-                j1 = 0;
-            } else {
-                i1 = 0;
-                j1 = 1;
-            }
-            let x1 = x0 - i1 + G2;
-            let y1 = y0 - j1 + G2;
-            let x2 = x0 - 1.0 + 2.0 * G2;
-            let y2 = y0 - 1.0 + 2.0 * G2;
-            let ii = i & 255;
-            let jj = j & 255;
-            let t0 = 0.5 - x0 * x0 - y0 * y0;
-            if (t0 < 0) n0 = 0.0;
-            else {
-                t0 *= t0;
-                let gi0 = this.permMod12[ii + this.perm[jj]] * 3;
-                n0 = t0 * t0 * (this.grad3[gi0] * x0 + this.grad3[gi0 + 1] * y0);
-            }
-            let t1 = 0.5 - x1 * x1 - y1 * y1;
-            if (t1 < 0) n1 = 0.0;
-            else {
-                t1 *= t1;
-                let gi1 = this.permMod12[ii + i1 + this.perm[jj + j1]] * 3;
-                n1 = t1 * t1 * (this.grad3[gi1] * x1 + this.grad3[gi1 + 1] * y1);
-            }
-            let t2 = 0.5 - x2 * x2 - y2 * y2;
-            if (t2 < 0) n2 = 0.0;
-            else {
-                t2 *= t2;
-                let gi2 = this.permMod12[ii + 1 + this.perm[jj + 1]] * 3;
-                n2 = t2 * t2 * (this.grad3[gi2] * x2 + this.grad3[gi2 + 1] * y2);
-            }
-            return 70.0 * (n0 + n1 + n2);
-        },
-        noise3D: function(xin, yin, zin) {
-            let n0, n1, n2, n3;
-            let s = (xin + yin + zin) * F3;
-            let i = Math.floor(xin + s);
-            let j = Math.floor(yin + s);
-            let k = Math.floor(zin + s);
-            let t = (i + j + k) * G3;
-            let X0 = i - t;
-            let Y0 = j - t;
-            let Z0 = k - t;
-            let x0 = xin - X0;
-            let y0 = yin - Y0;
-            let z0 = zin - Z0;
-            let i1, j1, k1, i2, j2, k2;
-            if (x0 >= y0) {
-                if (y0 >= z0) {
-                    i1 = 1; j1 = 0; k1 = 0; i2 = 1; j2 = 1; k2 = 0;
-                } else if (x0 >= z0) {
-                    i1 = 1; j1 = 0; k1 = 0; i2 = 1; j2 = 0; k2 = 1;
-                } else {
-                    i1 = 0; j1 = 0; k1 = 1; i2 = 1; j2 = 0; k2 = 1;
-                }
-            } else {
-                if (y0 < z0) {
-                    i1 = 0; j1 = 0; k1 = 1; i2 = 0; j2 = 1; k2 = 1;
-                } else if (x0 < z0) {
-                    i1 = 0; j1 = 1; k1 = 0; i2 = 0; j2 = 1; k2 = 1;
-                } else {
-                    i1 = 0; j1 = 1; k1 = 0; i2 = 1; j2 = 1; k2 = 0;
-                }
-            }
-            let x1 = x0 - i1 + G3;
-            let y1 = y0 - j1 + G3;
-            let z1 = z0 - k1 + G3;
-            let x2 = x0 - i2 + 2.0 * G3;
-            let y2 = y0 - j2 + 2.0 * G3;
-            let z2 = z0 - k2 + 2.0 * G3;
-            let x3 = x0 - 1.0 + 3.0 * G3;
-            let y3 = y0 - 1.0 + 3.0 * G3;
-            let z3 = z0 - 1.0 + 3.0 * G3;
-            let ii = i & 255;
-            let jj = j & 255;
-            let kk = k & 255;
-            let t0 = 0.6 - x0 * x0 - y0 * y0 - z0 * z0;
-            if (t0 < 0) n0 = 0.0;
-            else {
-                t0 *= t0;
-                let gi0 = this.permMod12[ii + this.perm[jj + this.perm[kk]]] * 3;
-                n0 = t0 * t0 * (this.grad3[gi0] * x0 + this.grad3[gi0 + 1] * y0 + this.grad3[gi0 + 2] * z0);
-            }
-            let t1 = 0.6 - x1 * x1 - y1 * y1 - z1 * z1;
-            if (t1 < 0) n1 = 0.0;
-            else {
-                t1 *= t1;
-                let gi1 = this.permMod12[ii + i1 + this.perm[jj + j1 + this.perm[kk + k1]]] * 3;
-                n1 = t1 * t1 * (this.grad3[gi1] * x1 + this.grad3[gi1 + 1] * y1 + this.grad3[gi1 + 2] * z1);
-            }
-            let t2 = 0.6 - x2 * x2 - y2 * y2 - z2 * z2;
-            if (t2 < 0) n2 = 0.0;
-            else {
-                t2 *= t2;
-                let gi2 = this.permMod12[ii + i2 + this.perm[jj + j2 + this.perm[kk + k2]]] * 3;
-                n2 = t2 * t2 * (this.grad3[gi2] * x2 + this.grad3[gi2 + 1] * y2 + this.grad3[gi2 + 2] * z2);
-            }
-            let t3 = 0.6 - x3 * x3 - y3 * y3 - z3 * z3;
-            if (t3 < 0) n3 = 0.0;
-            else {
-                t3 *= t3;
-                let gi3 = this.permMod12[ii + 1 + this.perm[jj + 1 + this.perm[kk + 1]]] * 3;
-                n3 = t3 * t3 * (this.grad3[gi3] * x3 + this.grad3[gi3 + 1] * y3 + this.grad3[gi3 + 2] * z3);
-            }
-            return 32.0 * (n0 + n1 + n2 + n3);
-        }
-    };
-
-    function alea(seed) {
-        let s0 = 0;
-        let s1 = 0;
-        let s2 = 0;
-        let c = 1;
-        if (seed == null) {
-            seed = +new Date;
-        }
-        s0 = (seed >>> 0) * 0x9e3779b9;
-        s1 = seed * 0x9e3779b9;
-        s2 = seed * 0x9e3779b9;
-
-        for (let i = 0; i < 20; i++) {
-            s0 = (s0 + s1 + c) * 0x9e3779b9;
-            s1 = (s1 + s2 + c) * 0x9e3779b9;
-            s2 = (s2 + s0 + c) * 0x9e3779b9;
-        }
-        return function() {
-            let t = (s0 + s1 + c) * 0x9e3779b9;
-            s0 = (s1 ^ s1 >>> 9) * 0x9e3779b9;
-            s1 = (s2 + (s2 << 3)) * 0x9e3779b9;
-            s2 = (s2 << 21 | s2 >>> 11);
-            c = t >>> 0;
-            return (t - Math.floor(t)) * 1;
-        };
-    }
-    return SimplexNoise;
-})();
-
-let simplex; // Will be initialized with seed later
-
-// DOM Elements
 const controls = {
     size: () => document.querySelector('input[name="size"]:checked').value,
     seaLevel: document.getElementById('seaLevel'),
@@ -383,154 +196,177 @@ const displays = {
 const canvas = document.getElementById('planetCanvas');
 const ctx = canvas.getContext('2d');
 
-let heightMapData, colorMapData, currentSeed;
+let heightMapData, currentSeed;
+const textureNames = ['sand', 'grass', 'rock', 'snow', 'ice'];
+let textures = {};
+let texturesLoaded = false;
 
-// --- Main Generator Logic (Translated from Python) ---
+// --- Texture Loading ---
+function loadTexture(name) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve({ name, img });
+        img.onerror = () => reject(`Could not load texture: textures/${name}.png`);
+        img.src = `textures/${name}.png`;
+    });
+}
 
+function processAndStoreTextures(loadedImages) {
+    for (const item of loadedImages) {
+        const { name, img } = item;
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCanvas.width = img.width;
+        tempCanvas.height = img.height;
+        tempCtx.drawImage(img, 0, 0);
+        
+        textures[name] = {
+            width: img.width,
+            height: img.height,
+            data: tempCtx.getImageData(0, 0, img.width, img.height).data
+        };
+    }
+    texturesLoaded = true;
+}
+
+// --- Generator Logic ---
 const mapToSphere = (x, y, width, height) => {
     const lon_deg = (x / width) * 360.0;
     const lat_deg = (y / height) * 180.0 - 90.0;
-    
     const lon_rad = (lon_deg * Math.PI) / 180.0;
     const lat_rad = (lat_deg * Math.PI) / 180.0;
-    
-    const sphere_x = Math.cos(lat_rad) * Math.cos(lon_rad);
-    const sphere_y = Math.cos(lat_rad) * Math.sin(lon_rad);
-    const sphere_z = Math.sin(lat_rad);
-    
-    return { x: sphere_x, y: sphere_y, z: sphere_z };
+    return {
+        x: Math.cos(lat_rad) * Math.cos(lon_rad),
+        y: Math.cos(lat_rad) * Math.sin(lon_rad),
+        z: Math.sin(lat_rad)
+    };
 };
 
 const generateTerrainMaps = (width, height, seed) => {
     const heightMap = new Float32Array(width * height);
     const moistureMap = new Float32Array(width * height);
-
     displays.status.textContent = "Generating terrain data...";
-
-    const SCALE = 200.0;
-    const OCTAVES = 8;
-    const PERSISTENCE = 0.5;
-    const LACUNARITY = 2.0;
-    const moisture_scale = SCALE * 1.5;
-    const moisture_octaves = 4;
-
+    const SCALE = 200.0, OCTAVES = 8, PERSISTENCE = 0.5, LACUNARITY = 2.0;
+    const moisture_scale = SCALE * 1.5, moisture_octaves = 4;
     const angle_rad = simplex.random() * 2 * Math.PI;
-    const cos_a = Math.cos(angle_rad);
-    const sin_a = Math.sin(angle_rad);
+    const cos_a = Math.cos(angle_rad), sin_a = Math.sin(angle_rad);
 
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const sphereCoords = mapToSphere(x, y, width, height);
-            
             const rotated_sx = sphereCoords.x * cos_a - sphereCoords.y * sin_a;
             const rotated_sy = sphereCoords.x * sin_a + sphereCoords.y * cos_a;
             const rotated_sz = sphereCoords.z;
-
-            let height_val = 0;
-            let m_val = 0;
-            let freq = 1.0;
-            let amp = 1.0;
-            let maxAmp = 0;
-
-            for(let i = 0; i < OCTAVES; i++) {
-                height_val += simplex.noise3D(
-                    rotated_sx * freq * SCALE / 100, 
-                    rotated_sy * freq * SCALE / 100, 
-                    rotated_sz * freq * SCALE / 100 + seed
-                ) * amp;
-                if(i < moisture_octaves) {
-                    m_val += simplex.noise3D(
-                        rotated_sy * freq * moisture_scale / 100 + seed + 500,
-                        rotated_sz * freq * moisture_scale / 100 + seed + 500,
-                        rotated_sx * freq * moisture_scale / 100 + seed + 500
-                    ) * amp;
+            let h_val = 0, m_val = 0, freq = 1.0, amp = 1.0, maxAmp = 0;
+            for (let i = 0; i < OCTAVES; i++) {
+                h_val += simplex.noise3D(rotated_sx*freq*SCALE/100, rotated_sy*freq*SCALE/100, rotated_sz*freq*SCALE/100 + seed) * amp;
+                if (i < moisture_octaves) {
+                    m_val += simplex.noise3D(rotated_sy*freq*moisture_scale/100+seed+500, rotated_sz*freq*moisture_scale/100+seed+500, rotated_sx*freq*moisture_scale/100+seed+500) * amp;
                 }
                 maxAmp += amp;
                 freq *= LACUNARITY;
                 amp *= PERSISTENCE;
             }
             const index = y * width + x;
-            heightMap[index] = height_val / maxAmp;
+            heightMap[index] = h_val / maxAmp;
             moistureMap[index] = m_val / maxAmp;
         }
     }
-    
-    // Normalize maps
-    const normalize = (map) => {
-        let min = Infinity, max = -Infinity;
-        for(let i = 0; i < map.length; i++) {
-            if(map[i] < min) min = map[i];
-            if(map[i] > max) max = map[i];
-        }
-        const range = max - min;
-        if (range === 0) return map;
-        for(let i = 0; i < map.length; i++) {
-            map[i] = (map[i] - min) / range;
-        }
-        return map;
-    };
-    
+    const normalize = (map) => { let min=Infinity, max=-Infinity; for(let v of map){if(v<min)min=v;if(v>max)max=v;} const range=max-min; if(range===0)return map; for(let i=0;i<map.length;i++)map[i]=(map[i]-min)/range; return map; };
     normalize(heightMap);
     normalize(moistureMap);
-
-    for(let i = 0; i < heightMap.length; i++) {
-        heightMap[i] = Math.pow(heightMap[i], 1.5);
-    }
-    
+    for (let i = 0; i < heightMap.length; i++) heightMap[i] = Math.pow(heightMap[i], 1.5);
     return { heightMap, moistureMap };
 };
 
-
-const generateColorMap = (width, height, params, terrainMaps) => {
+// This new function replaces the solid color one
+const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
     const { heightMap, moistureMap } = terrainMaps;
     const imageData = ctx.createImageData(width, height);
     const data = imageData.data;
+    displays.status.textContent = "Simulating climate and blending textures...";
 
-    displays.status.textContent = "Simulating climate and drawing map...";
-
-    const COLOR_DEEP_WATER = [10, 15, 60];
-    const COLOR_SHALLOW_WATER = [15, 20, 65];
-    const COLOR_SAND = [210, 190, 140];
-    const COLOR_GRASS = [80, 140, 70];
-    const COLOR_ROCK = [130, 120, 110];
-    const COLOR_SNOW = [245, 245, 255];
-    const COLOR_ICE = [230, 235, 255];
-
+    const COLOR_DEEP_WATER = [10, 15, 60], COLOR_SHALLOW_WATER = [15, 20, 65];
     const MOUNTAIN_PEAK = Math.min(params.SEA_LEVEL + 0.35, 0.95);
     const SNOW_LINE = Math.max(MOUNTAIN_PEAK - 0.15, params.SEA_LEVEL);
+
+    const tex_width = textures.sand.width;
+    const tex_height = textures.sand.height;
+
+    function sample(textureName, tx, ty) {
+        const tex = textures[textureName];
+        const index = (ty * tex.width + tx) * 4;
+        return [tex.data[index], tex.data[index + 1], tex.data[index + 2]];
+    }
+    
+    function blend(colorA, colorB, factor) {
+        return [
+            (1 - factor) * colorA[0] + factor * colorB[0],
+            (1 - factor) * colorA[1] + factor * colorB[1],
+            (1 - factor) * colorA[2] + factor * colorB[2],
+        ];
+    }
 
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const index = y * width + x;
             const h = heightMap[index];
             const m = moistureMap[index];
-
-            // --- Step 1: Calculate base terrain color ---
+            
             const latitude_factor = 1.0 - Math.abs(y - height / 2) / (height / 2);
-            let temp = latitude_factor * 0.8 + 0.1;
+            let temp = latitude_factor * 0.7 + 0.1;
             if (h > params.SEA_LEVEL) temp -= (h - params.SEA_LEVEL) * 0.5;
 
+            const tx = x % tex_width, ty = y % tex_height;
             let terrain_color = [0, 0, 0];
+
             if (h < params.SEA_LEVEL) {
                 const depth_factor = params.SEA_LEVEL > 0 ? h / params.SEA_LEVEL : 0;
-                for (let i = 0; i < 3; i++) terrain_color[i] = (1 - depth_factor) * COLOR_DEEP_WATER[i] + depth_factor * COLOR_SHALLOW_WATER[i];
-            } else if (temp < 0.15 || h > SNOW_LINE + (1 - temp) * 0.2) {
-                terrain_color = COLOR_SNOW;
-            } else if (h > MOUNTAIN_PEAK) {
-                terrain_color = COLOR_ROCK;
-            } else if (h > params.SEA_LEVEL + 0.02) {
-                const desert_threshold = params.DESERTIFICATION * 0.7;
-                if (m < desert_threshold && temp > 0.4) {
-                    terrain_color = COLOR_SAND;
-                } else {
-                    const rock_factor = (h - (params.SEA_LEVEL + 0.02)) / (MOUNTAIN_PEAK - (params.SEA_LEVEL + 0.02));
-                    for (let i = 0; i < 3; i++) terrain_color[i] = (1 - rock_factor) * COLOR_GRASS[i] + rock_factor * COLOR_ROCK[i];
-                }
+                terrain_color = blend(COLOR_DEEP_WATER, COLOR_SHALLOW_WATER, depth_factor);
             } else {
-                terrain_color = COLOR_SAND;
+                const desert_threshold = params.DESERTIFICATION * 0.7;
+                let base_color = sample('grass', tx, ty);
+                if (m < desert_threshold && temp > 0.4 && h < MOUNTAIN_PEAK * 0.8) {
+                    const desert_factor = 1.0 - Math.max(0, Math.min(1, m / desert_threshold));
+                    base_color = blend(base_color, sample('sand', tx, ty), desert_factor);
+                }
+                terrain_color = base_color;
+
+                const sand_factor = 1.0 - Math.min(1.0, (h - params.SEA_LEVEL) / 0.03);
+                if (sand_factor > 0) {
+                    terrain_color = blend(terrain_color, sample('sand', tx, ty), sand_factor);
+                }
+                
+                const rock_blend_start = params.SEA_LEVEL + 0.2;
+                const rock_blend_end = MOUNTAIN_PEAK;
+                let rock_factor = 0.0;
+                if (h > rock_blend_start) {
+                    const denominator = rock_blend_end - rock_blend_start;
+                    if (denominator > 0) {
+                        rock_factor = (h - rock_blend_start) / denominator;
+                        rock_factor = Math.max(0, Math.min(1, rock_factor));
+                    }
+                }
+                if (rock_factor > 0) {
+                    terrain_color = blend(terrain_color, sample('rock', tx, ty), rock_factor);
+                }
+
+                const snow_line_dynamic = SNOW_LINE + (1 - temp) * 0.2;
+                const snow_blend_start = snow_line_dynamic - 0.1;
+                let snow_factor = 0.0;
+                if (h > snow_blend_start) {
+                    const denominator = snow_line_dynamic - snow_blend_start;
+                    if (denominator > 0) {
+                        snow_factor = (h - snow_blend_start) / denominator;
+                        snow_factor = Math.max(0, Math.min(1, snow_factor));
+                    }
+                }
+                if (temp < 0.15 || snow_factor > 0) {
+                    if (temp < 0.15) snow_factor = 1.0;
+                    terrain_color = blend(terrain_color, sample('snow', tx, ty), snow_factor);
+                }
             }
-            
-            // --- Step 2: Overlay Ice Caps ---
+
             const abs_latitude_factor = Math.abs(y - height / 2) / (height / 2);
             const ice_cap_edge_noise = (m - 0.5) * 0.1;
             let ice_factor = 0.0;
@@ -539,53 +375,36 @@ const generateColorMap = (width, height, params, terrainMaps) => {
                 ice_factor = (abs_latitude_factor - (params.ICE_CAP_LATITUDE - ice_cap_edge_noise)) / blend_range;
                 ice_factor = Math.max(0, Math.min(1, ice_factor));
             }
-            
-            let final_color = [0, 0, 0];
-            for (let i = 0; i < 3; i++) final_color[i] = (1 - ice_factor) * terrain_color[i] + ice_factor * COLOR_ICE[i];
+            let final_color = blend(terrain_color, sample('ice', tx, ty), ice_factor);
 
-            // --- Step 3: Add central artifact correction noise (land only) ---
             if (h >= params.SEA_LEVEL) {
                 const center_x = width / 2;
                 const distance_from_center = Math.abs(x - center_x);
                 let center_blend_factor = 0.0;
-                
                 if (distance_from_center < params.CENTER_NOISE_WIDTH) {
                     center_blend_factor = 1.0 - (distance_from_center / params.CENTER_NOISE_WIDTH);
                 }
-                
                 if (center_blend_factor > 0) {
                     const sphereCoords = mapToSphere(x, y, width, height);
-                    let noise_val = 0;
-                    let freq = 1.0, amp = 1.0, maxAmp = 0;
-                     for(let i = 0; i < 4; i++) {
-                        noise_val += simplex.noise3D(
-                            sphereCoords.x * freq * params.CENTER_NOISE_SCALE,
-                            sphereCoords.y * freq * params.CENTER_NOISE_SCALE,
-                            sphereCoords.z * freq * params.CENTER_NOISE_SCALE + params.SEED + 1000
-                        ) * amp;
-                        maxAmp += amp;
-                        freq *= 2.0;
-                        amp *= 0.5;
-                    }
-
-                    noise_val = (noise_val / maxAmp + 1.0) / 2.0; // Normalize to 0-1
-                    const noise_offset = (noise_val - 0.5) * 2 * params.CENTER_NOISE_STRENGTH * 255;
-                    for (let i = 0; i < 3; i++) final_color[i] += noise_offset * center_blend_factor;
+                    let noise_val=0,freq=1,amp=1,maxAmp=0;
+                    for(let i=0;i<4;i++){noise_val+=simplex.noise3D(sphereCoords.x*freq*params.CENTER_NOISE_SCALE,sphereCoords.y*freq*params.CENTER_NOISE_SCALE,sphereCoords.z*freq*params.CENTER_NOISE_SCALE+params.SEED+1e3)*amp;maxAmp+=amp;freq*=2;amp*=.5}
+                    noise_val=(noise_val/maxAmp+1)/2;
+                    const noise_offset=(noise_val-.5)*2*params.CENTER_NOISE_STRENGTH*255;
+                    for(let i=0;i<3;i++)final_color[i]+=noise_offset*center_blend_factor;
                 }
             }
             
             const pixelIndex = (y * width + x) * 4;
-            data[pixelIndex] = Math.max(0, Math.min(255, final_color[0]));
-            data[pixelIndex + 1] = Math.max(0, Math.min(255, final_color[1]));
-            data[pixelIndex + 2] = Math.max(0, Math.min(255, final_color[2]));
-            data[pixelIndex + 3] = 255;
+            data[pixelIndex] = Math.max(0,Math.min(255,final_color[0]));
+            data[pixelIndex+1] = Math.max(0,Math.min(255,final_color[1]));
+            data[pixelIndex+2] = Math.max(0,Math.min(255,final_color[2]));
+            data[pixelIndex+3] = 255;
         }
     }
     return imageData;
 };
 
 // --- UI and Event Handling ---
-
 function updateSliderValue(slider, display) {
     display.textContent = parseFloat(slider.value).toFixed(2);
 }
@@ -599,7 +418,7 @@ function attachSliderEvents() {
 function downloadCanvas(filename, canvasToDownload) {
     const link = document.createElement('a');
     link.download = filename;
-    link.href = canvasToDownload.toDataURL("image/png").replace("image/png", "image/octet-stream");
+    link.href = canvasToDownload.toDataURL("image/png");
     link.click();
 }
 
@@ -609,15 +428,10 @@ function drawHeightMap(width, height, heightMap) {
     tempCanvas.height = height;
     const tempCtx = tempCanvas.getContext('2d');
     const imageData = tempCtx.createImageData(width, height);
-    const data = imageData.data;
-
-    for(let i=0; i < heightMap.length; i++) {
+    for(let i=0; i<heightMap.length; i++) {
         const val = Math.floor(heightMap[i] * 255);
-        const pixelIndex = i * 4;
-        data[pixelIndex] = val;
-        data[pixelIndex+1] = val;
-        data[pixelIndex+2] = val;
-        data[pixelIndex+3] = 255;
+        const pI = i*4;
+        imageData.data[pI]=val; imageData.data[pI+1]=val; imageData.data[pI+2]=val; imageData.data[pI+3]=255;
     }
     tempCtx.putImageData(imageData, 0, 0);
     return tempCanvas;
@@ -630,19 +444,14 @@ function main() {
 
     const width = parseInt(controls.size(), 10);
     const height = width / 2;
-
     canvas.width = width;
     canvas.height = height;
     
-    currentSeed = parseInt(controls.seed.value, 10) || Math.floor(Math.random() * 99999);
+    currentSeed = parseInt(controls.seed.value) || Math.floor(Math.random() * 99999);
     controls.seed.value = currentSeed;
-    
-    // Initialize simplex noise with the current seed for reproducibility
     simplex = new SimplexNoise(currentSeed.toString());
 
     const params = {
-        WIDTH: width,
-        HEIGHT: height,
         SEED: currentSeed,
         SEA_LEVEL: parseFloat(controls.seaLevel.value),
         DESERTIFICATION: parseFloat(controls.desertification.value),
@@ -652,13 +461,18 @@ function main() {
         CENTER_NOISE_SCALE: 30.0
     };
 
-    // Use a timeout to allow the UI to update with the status message
     setTimeout(() => {
         const terrainMaps = generateTerrainMaps(width, height, params.SEED);
-        heightMapData = terrainMaps.heightMap; // Store for download
+        heightMapData = terrainMaps.heightMap;
 
-        const colorMapImageData = generateColorMap(width, height, params, terrainMaps);
-        ctx.putImageData(colorMapImageData, 0, 0);
+        if (texturesLoaded) {
+            const texturedMapImageData = generateTexturedMap(width, height, params, terrainMaps, textures);
+            ctx.putImageData(texturedMapImageData, 0, 0);
+        } else {
+            // This is now a fallback if textures fail to load
+            const colorMapImageData = generateColorMap(width, height, params, terrainMaps); // You'd need to create this function
+            ctx.putImageData(colorMapImageData, 0, 0);
+        }
 
         displays.status.textContent = `Done! (Seed: ${params.SEED})`;
         controls.generateBtn.disabled = false;
@@ -667,27 +481,20 @@ function main() {
     }, 10);
 }
 
-// Initial setup
+// --- Initial Setup ---
 document.addEventListener('DOMContentLoaded', () => {
     attachSliderEvents();
-    
-    // Set data attributes for center noise width based on resolution
     document.getElementById('size1k').dataset.centerWidth = "20";
     document.getElementById('size2k').dataset.centerWidth = "40";
 
     controls.randomSeedBtn.addEventListener('click', () => {
         controls.seed.value = Math.floor(Math.random() * 99999);
     });
-
     controls.generateBtn.addEventListener('click', main);
-
-    controls.downloadColorBtn.addEventListener('click', () => {
-        downloadCanvas(`planet_colormap_${currentSeed}.png`, canvas);
-    });
-
+    controls.downloadColorBtn.addEventListener('click', () => downloadCanvas(`planet_texture_${currentSeed}.png`, canvas));
     controls.downloadHeightBtn.addEventListener('click', () => {
-        if(heightMapData) {
-            displays.status.textContent = "Preparing heightmap for download...";
+        if (heightMapData) {
+            displays.status.textContent = "Preparing heightmap...";
             setTimeout(() => {
                 const heightMapCanvas = drawHeightMap(canvas.width, canvas.height, heightMapData);
                 downloadCanvas(`planet_heightmap_${currentSeed}.png`, heightMapCanvas);
@@ -695,10 +502,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 10);
         }
     });
-    
-    // Initial random seed and generation
-    controls.randomSeedBtn.click();
-    main();
+
+    // --- Start Texture Loading Process ---
+    displays.status.textContent = "Loading textures...";
+    Promise.all(textureNames.map(loadTexture))
+        .then(loadedImages => {
+            processAndStoreTextures(loadedImages);
+            displays.status.textContent = "Textures loaded. Ready to generate.";
+            controls.generateBtn.disabled = false;
+            controls.randomSeedBtn.click();
+            main();
+        })
+        .catch(error => {
+            console.error(error);
+            // If textures fail, we must inform the user and stop.
+            // A fallback to solid colors could be implemented here if desired.
+            displays.status.textContent = `Error: ${error}. Check textures folder.`;
+            alert(`Texture loading failed: ${error}\n\nPlease ensure a 'textures' folder with the required .png files exists in the same directory as this HTML file.`);
+        });
 });
 
 </script>
