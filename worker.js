@@ -96,22 +96,22 @@ function generateHeightMap(params, noise3D) {
     const { width, height, scale, octaves, crater_scale, crater_strength } = params;
     const heightMap = new Float32Array(width * height);
 
-    let minVal = Infinity, maxVal = -Infinity;
-
+    // 陨石坑 profile
     function craterProfile(r, depth) {
-        // r ∈ [0,1] 归一化半径
-        if (r > 1.0) return 0;
-        const depression = -depth * Math.pow(1 - r * r, 2);       // 中心凹陷
-        const rim = depth * 0.3 * Math.exp(-Math.pow((r - 0.9) * 8, 2)); // 边缘隆起
+        if (r > 1) return 0;
+        const depression = -depth * Math.pow(1 - r, 2); // 中心凹陷
+        const rim = depth * 0.3 * Math.exp(-Math.pow((r - 0.8) * 6, 2)); // 边缘小隆起
         return depression + rim;
     }
+
+    let minVal = Infinity, maxVal = -Infinity;
 
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const i = y * width + x;
             const sp = mapToSphere(x, y, width, height);
 
-            // === 基础噪声地形 ===
+            // --- 基础噪声地形 ---
             let baseNoise = 0;
             let freq = scale / 100;
             let amp = 1;
@@ -121,44 +121,30 @@ function generateHeightMap(params, noise3D) {
                 amp *= 0.5;
             }
 
-            // === 陨石坑分布 ===
-            // 思路：将球面坐标放大到 crater_scale 网格
-            // 在网格中心生成 craterProfile
-            const craterX = sp.x * crater_scale;
-            const craterY = sp.y * crater_scale;
-            const craterZ = sp.z * crater_scale;
+            // --- 陨石坑效果 ---
+            let craterEffect = 0;
 
-            // 用 floor 得到最近的“坑中心”
-            const nearestX = Math.round(craterX);
-            const nearestY = Math.round(craterY);
-            const nearestZ = Math.round(craterZ);
+            // 用低频 noise 来选择坑的中心
+            const n = (noise3D(sp.x * crater_scale, sp.y * crater_scale, sp.z * crater_scale) + 1) / 2;
 
-            // 距离最近坑中心的归一化半径
-            const dx = craterX - nearestX;
-            const dy = craterY - nearestY;
-            const dz = craterZ - nearestZ;
-            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (n > 0.75) { // 只有在噪声值高于阈值时，才放一个坑
+                // 距离坑中心 (用 n 决定半径，避免全是同样大小)
+                const r = (n - 0.75) * 4; // 归一化 0~1
+                craterEffect += craterProfile(r, crater_strength);
+            }
 
-            // 归一化半径（控制坑密度）
-            const normR = dist / 0.5;
-
-            const craterEffect = craterProfile(normR, crater_strength);
-
-            // === 最终高度 ===
             const finalHeight = baseNoise + craterEffect;
             heightMap[i] = finalHeight;
 
-            if (finalHeight < minVal) minVal = finalHeight;
-            if (finalHeight > maxVal) maxVal = finalHeight;
+            minVal = Math.min(minVal, finalHeight);
+            maxVal = Math.max(maxVal, finalHeight);
         }
     }
 
-    // === 归一化到 [0,1] ===
+    // --- 归一化 ---
     const range = maxVal - minVal;
-    if (range > 0) {
-        for (let i = 0; i < heightMap.length; i++) {
-            heightMap[i] = (heightMap[i] - minVal) / range;
-        }
+    for (let i = 0; i < heightMap.length; i++) {
+        heightMap[i] = (heightMap[i] - minVal) / range;
     }
 
     return heightMap;
