@@ -296,9 +296,9 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
     const SNOW_LINE = MIN_SNOW_LINE * (1 - warmth_factor) + MAX_SNOW_LINE * warmth_factor;
     
     const ICE_SHARPNESS = 5.0; 
-    // +++ NEW: Noise parameters for sea ice texture +++
-    const SEA_ICE_NOISE_SCALE = 300.0; // High frequency for detailed noise
-    const SEA_ICE_NOISE_STRENGTH = 0.15; // How much the noise affects the ice edge
+    // +++ NEW: Parameters for latitude-based ice edge noise +++
+    const LATITUDE_NOISE_SCALE = 5.0; // Controls the "wavelength" of the wiggles
+    const LATITUDE_NOISE_STRENGTH = 0.05; // Controls how far the wiggles extend (as a fraction of map height)
 
     const tex_width = textures.sand.width;
     const tex_height = textures.sand.height;
@@ -352,15 +352,13 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
                     ice_factor = Math.pow(Math.max(0, raw_ice_factor), ICE_SHARPNESS);
                 }
                 final_color = blend(base_color, sample('ice', tx, ty), ice_factor);
+
             } else {
                 // --- LAND LOGIC ---
-                // *** CORRECTED: No grass if there is no sea ***
                 let base_color;
                 if (params.SEA_LEVEL === 0) {
-                    // If no sea, the base is always sand/desert, never grass
                     base_color = sample('sand', tx, ty);
                 } else {
-                    // Original logic: default to grass and blend desert on top
                     base_color = sample('grass', tx, ty);
                     const desert_threshold = params.DESERTIFICATION * 0.7;
                     if (m < desert_threshold && temp > 0.4 && h < MOUNTAIN_PEAK * 0.8) {
@@ -368,7 +366,6 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
                         base_color = blend(base_color, sample('sand', tx, ty), desert_factor);
                     }
                 }
-                // *** END CORRECTION ***
 
                 let sand_factor = 0.0;
                 if (params.SEA_LEVEL > 0) { 
@@ -399,8 +396,12 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
                     snow_factor = 1.0; 
                 }
                 if (temp < 0.15) { 
-                    let raw_ice_factor = 1.0 - (temp / 0.15);
-                    snow_factor = Math.max(snow_factor, Math.pow(raw_ice_factor, ICE_SHARPNESS));
+                    // Apply latitude noise here as well for consistency on land borders
+                    const lon_norm = x / width;
+                    const ice_edge_noise = simplex.noise2D(lon_norm * LATITUDE_NOISE_SCALE + params.SEED, params.SEED + 3000) * LATITUDE_NOISE_STRENGTH;
+                    let effective_temp = temp + ice_edge_noise * 0.15;
+                    let raw_ice_factor = 1.0 - (effective_temp / 0.15);
+                    snow_factor = Math.max(snow_factor, Math.pow(Math.max(0, raw_ice_factor), ICE_SHARPNESS));
                 }
                 
                 if (snow_factor > 0) {
