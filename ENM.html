@@ -263,6 +263,10 @@
         var uploadPrompt = document.getElementById('upload-prompt');
         var imagePreviewContainer = document.getElementById('image-preview-container');
         var previewImage = document.getElementById('preview-image');
+        var currentFiles = null; // 用于存储当前已选择的文件
+        
+        // --- 模型配置 ---
+        var modelUrl = 'https://cdn.jsdelivr.net/gh/tethysanddione/tethysanddione.github.io@v1.0.0/model.onnx'; 
         
         var session; // ONNX session
         var MODEL_INPUT_SIZE = 512;
@@ -292,7 +296,6 @@
         function loadModel() {
             var progressContainer = document.getElementById('model-progress-container');
             var progressBar = document.getElementById('model-progress-bar');
-            var modelUrl = './model.onnx';
             
             if (session) return;
             diagnosisResultsEl.textContent = '准备加载模型...';
@@ -399,7 +402,7 @@
 
         // --- 运行分析 (ES5 Promises) ---
         function runAnalysis() {
-            var files = imageUploadInput.files;
+            var files = currentFiles; // FIX: 使用存储的`currentFiles`
             if (!files || files.length === 0) {
                 diagnosisResultsEl.textContent = '请先选择一个或多个图像文件。';
                 return;
@@ -444,10 +447,15 @@
         // --- 事件监听与 UI 控制 ---
         function handleFiles(files) {
             if (!files || files.length === 0) return;
-            imageUploadInput.files = files; 
+            currentFiles = files; // FIX: 将文件存储在`currentFiles`中
             
             uploadPrompt.className += ' hidden';
             imagePreviewContainer.className = imagePreviewContainer.className.replace(' hidden', '');
+            
+            // FIX: 释放旧的预览图URL以防内存泄漏
+            if (previewImage.src) {
+                URL.revokeObjectURL(previewImage.src);
+            }
             previewImage.src = URL.createObjectURL(files[0]);
             
             if (files.length > 1) {
@@ -457,18 +465,24 @@
             }
         }
 
-        imageDropArea.addEventListener('click', function() { imageUploadInput.click(); });
+        // FIX: 移除冗余的点击监听，让CSS处理点击事件，兼容性更好
+        // imageDropArea.addEventListener('click', function() { imageUploadInput.click(); });
+        
         imageDropArea.addEventListener('dragover', function(e) {
             e.preventDefault();
-            imageDropArea.className = 'drag-over';
+            imageDropArea.className += ' drag-over';
         });
-        imageDropArea.addEventListener('dragleave', function() { imageDropArea.className = ''; });
+        imageDropArea.addEventListener('dragleave', function() {
+            imageDropArea.className = imageDropArea.className.replace(' drag-over', '');
+        });
         imageDropArea.addEventListener('drop', function(e) {
             e.preventDefault();
-            imageDropArea.className = '';
+            imageDropArea.className = imageDropArea.className.replace(' drag-over', '');
             handleFiles(e.dataTransfer.files);
         });
-        imageUploadInput.addEventListener('change', function() { handleFiles(imageUploadInput.files); });
+        imageUploadInput.addEventListener('change', function() { 
+            handleFiles(imageUploadInput.files); 
+        });
         window.addEventListener('paste', function(e) {
             if (e.clipboardData && e.clipboardData.files.length > 0) {
                 handleFiles(e.clipboardData.files);
