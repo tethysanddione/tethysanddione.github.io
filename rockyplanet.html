@@ -339,18 +339,18 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
                 
                 let ice_factor = 0.0;
                 if (temp < 0.15) {
-                    // Calculate base ice coverage
-                    let raw_ice_factor = 1.0 - (temp / 0.15);
+                    // +++ MODIFIED: Apply latitude-based noise to the raw ice factor +++
+                    const lon_norm = x / width; // Normalized longitude (0 to 1)
+                    // Generate noise that varies with longitude, subtly shifting the "effective" temperature threshold
+                    const ice_edge_noise = simplex.noise2D(lon_norm * LATITUDE_NOISE_SCALE + params.SEED, params.SEED + 3000) * LATITUDE_NOISE_STRENGTH;
                     
-                    // Add subtle noise to the ice edge and surface
-                    const sphereCoords = mapToSphere(x, y, width, height);
-                    const ice_noise = (simplex.noise3D(sphereCoords.x * SEA_ICE_NOISE_SCALE, sphereCoords.y * SEA_ICE_NOISE_SCALE, sphereCoords.z * SEA_ICE_NOISE_SCALE + params.SEED + 2000) + 1) / 2;
-                    raw_ice_factor += (ice_noise - 0.5) * SEA_ICE_NOISE_STRENGTH;
-
+                    // Adjust the temperature slightly based on noise
+                    let effective_temp = temp + ice_edge_noise * 0.15; // Noise influences how "cold" a spot feels
+                    let raw_ice_factor = 1.0 - (effective_temp / 0.15);
+                    
                     // Sharpen the final transition curve
                     ice_factor = Math.pow(Math.max(0, raw_ice_factor), ICE_SHARPNESS);
                 }
-                final_color = blend(base_color, sample('ice', tx, ty), ice_factor);
 
             } else {
                 // --- LAND LOGIC ---
