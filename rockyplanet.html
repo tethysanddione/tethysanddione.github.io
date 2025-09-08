@@ -288,16 +288,12 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
     const COLOR_DEEP_WATER = [10, 15, 60], COLOR_SHALLOW_WATER = [15, 20, 65];
     const MOUNTAIN_PEAK = Math.min(params.SEA_LEVEL + 0.35, 0.95);
     
-    // --- FINAL UNIFIED CLIMATE MODEL ---
-    // Create a global temperature modifier based on the ice cap slider.
     const warmth_factor = Math.max(0, Math.min(1, (params.ICE_CAP_LATITUDE - 0.5) / 0.5));
-    const global_temp_mod = (warmth_factor - 0.5) * 0.5; // Ranges from -0.25 to +0.25
+    const global_temp_mod = (warmth_factor - 0.5) * 0.5;
 
-    // CORRECTED: Snow line is now an absolute altitude, independent of sea level.
-    const MIN_SNOW_LINE = 0.2; // Snow line altitude on the coldest planets
-    const MAX_SNOW_LINE = 1.5; // Snow line altitude on the hottest planets (effectively no snow)
+    const MIN_SNOW_LINE = 0.2;
+    const MAX_SNOW_LINE = 1.5;
     const SNOW_LINE = MIN_SNOW_LINE * (1 - warmth_factor) + MAX_SNOW_LINE * warmth_factor;
-    // --- END CORRECTION ---
 
     const tex_width = textures.sand.width;
     const tex_height = textures.sand.height;
@@ -309,6 +305,7 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
     }
     
     function blend(colorA, colorB, factor) {
+        factor = Math.max(0, Math.min(1, factor));
         return [
             (1 - factor) * colorA[0] + factor * colorB[0],
             (1 - factor) * colorA[1] + factor * colorB[1],
@@ -323,30 +320,40 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
             const m = moistureMap[index];
             
             const latitude_factor = 1.0 - Math.abs(y - height / 2) / (height / 2);
-            let temp = latitude_factor * 0.7 + 0.1 + global_temp_mod; // Apply global temperature
-            if (h > params.SEA_LEVEL) temp -= (h - params.SEA_LEVEL) * 0.5; // Apply altitude cooling
+            let temp = latitude_factor * 0.7 + 0.1 + global_temp_mod;
+            if (h > params.SEA_LEVEL) temp -= (h - params.SEA_LEVEL) * 0.5;
 
             const tx = x % tex_width, ty = y % tex_height;
-            let final_color = [0, 0, 0];
+            let base_color = [0, 0, 0];
+            let final_color;
 
             if (h < params.SEA_LEVEL) {
+                // --- OCEAN LOGIC ---
                 const depth_factor = params.SEA_LEVEL > 0 ? h / params.SEA_LEVEL : 0;
-                final_color = blend(COLOR_DEEP_WATER, COLOR_SHALLOW_WATER, depth_factor);
+                base_color = blend(COLOR_DEEP_WATER, COLOR_SHALLOW_WATER, depth_factor);
+                
+                // Check for sea ice based on temperature
+                let ice_factor = 0.0;
+                if (temp < 0.15) {
+                    ice_factor = 1.0 - (temp / 0.15);
+                }
+                final_color = blend(base_color, sample('ice', tx, ty), ice_factor);
+
             } else {
+                // --- LAND LOGIC ---
                 const desert_threshold = params.DESERTIFICATION * 0.7;
-                let base_color = sample('grass', tx, ty);
+                base_color = sample('grass', tx, ty);
                 if (m < desert_threshold && temp > 0.4 && h < MOUNTAIN_PEAK * 0.8) {
                     const desert_factor = 1.0 - Math.max(0, Math.min(1, m / desert_threshold));
                     base_color = blend(base_color, sample('sand', tx, ty), desert_factor);
                 }
-                final_color = base_color;
 
                 let sand_factor = 0.0;
                 if (params.SEA_LEVEL > 0) { 
                     sand_factor = 1.0 - Math.min(1.0, (h - params.SEA_LEVEL) / 0.03);
                 }
                 if (sand_factor > 0) {
-                    final_color = blend(final_color, sample('sand', tx, ty), sand_factor);
+                    base_color = blend(base_color, sample('sand', tx, ty), sand_factor);
                 }
                 
                 const rock_blend_start = params.SEA_LEVEL + 0.2;
@@ -356,14 +363,14 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
                     const denominator = rock_blend_end - rock_blend_start;
                     if (denominator > 0) {
                         rock_factor = (h - rock_blend_start) / denominator;
-                        rock_factor = Math.max(0, Math.min(1, rock_factor));
                     }
                 }
                 if (rock_factor > 0) {
-                    final_color = blend(final_color, sample('rock', tx, ty), rock_factor);
+                    base_color = blend(base_color, sample('rock', tx, ty), rock_factor);
                 }
+                final_color = base_color;
 
-                // Simplified, unified snow/ice logic.
+                // Land snow/ice logic (applied on top of other land textures)
                 const snow_line_dynamic = SNOW_LINE + (1 - temp) * 0.2;
                 let snow_factor = 0.0;
                 if (h > snow_line_dynamic) { 
@@ -378,7 +385,7 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
                 }
             }
 
-            // Center noise (if active)
+            // Center noise (applied only to land after all color calculations)
             if (h >= params.SEA_LEVEL) {
                 const center_x = width / 2;
                 const distance_from_center = Math.abs(x - center_x);
