@@ -221,7 +221,7 @@
         <div id="image-drop-area">
             <input type="file" id="image-upload" multiple accept="image/*">
             <div id="upload-prompt">
-                <!-- FIX: Replaced corrupted SVG path with a valid one -->
+                <!-- FIX: Replaced potentially corrupted SVG with a clean, standard one -->
                 <svg stroke="currentColor" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-4-4 4.002 4.002 0 012.75-3.8A5.002 5.002 0 0117 8a5 5 0 01.1 9.9M12 11v6m-3-3l3 3 3-3" /></svg>
                 <p class="mt-2" style="font-size: 14px;"><span style="font-weight: 600; color: #a5b4fc;">点击上传</span>、拖拽文件或粘贴图片</p>
                 <p class="text-xs text-gray-500">支持多张图片批量分析</p>
@@ -465,25 +465,22 @@
             }
         }
         
-        // FIX: Restored click handler to trigger file input
+        // FIX: Re-instated click handler to ensure functionality across all browsers
         imageDropArea.addEventListener('click', function() {
             imageUploadInput.click();
         });
 
         imageDropArea.addEventListener('dragover', function(e) {
             e.preventDefault();
-            // FIX: Robustly add class
             if (imageDropArea.className.indexOf('drag-over') === -1) {
                 imageDropArea.className += ' drag-over';
             }
         });
         imageDropArea.addEventListener('dragleave', function() {
-            // FIX: Robustly remove class
             imageDropArea.className = imageDropArea.className.replace(' drag-over', '');
         });
         imageDropArea.addEventListener('drop', function(e) {
             e.preventDefault();
-            // FIX: Robustly remove class
             imageDropArea.className = imageDropArea.className.replace(' drag-over', '');
             handleFiles(e.dataTransfer.files);
         });
