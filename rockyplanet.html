@@ -351,7 +351,7 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
                     // Sharpen the final transition curve
                     ice_factor = Math.pow(Math.max(0, raw_ice_factor), ICE_SHARPNESS);
                 }
-
+                final_color = blend(base_color, sample('ice', tx, ty), ice_factor);
             } else {
                 // --- LAND LOGIC ---
                 // *** CORRECTED: No grass if there is no sea ***
