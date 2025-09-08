@@ -1,1 +1,132 @@
-nothing here
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>行星系统全套生成工具</title>
+    <style>
+        :root {
+            --bg-color: #1a1e23;
+            --panel-bg: #2a2f36;
+            --text-color: #e0e6ec;
+            --header-color: #ffffff;
+            --border-color: #404853;
+            --accent-color: #00aaff;
+            --accent-hover: #0088cc;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            color: var(--header-color);
+            margin: 0;
+            text-shadow: 0 0 10px rgba(0, 170, 255, 0.5);
+        }
+
+        header h2 {
+            font-size: 1.2rem;
+            font-weight: 400;
+            color: var(--text-color);
+            margin: 10px 0 40px 0;
+            opacity: 0.8;
+        }
+
+        .tool-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .tool-list li a {
+            display: block;
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 25px 20px;
+            text-decoration: none;
+            color: var(--text-color);
+            transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .tool-list li a:hover {
+            transform: translateY(-5px);
+            background-color: #343a42;
+            border-color: var(--accent-color);
+        }
+
+        .tool-list h3 {
+            margin: 0 0 10px 0;
+            color: var(--header-color);
+            font-size: 1.4rem;
+        }
+
+        .tool-list p {
+            margin: 0;
+            font-size: 0.95rem;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>行星系统全套生成工具</h1>
+            <h2>将CELESTIA插件的耗时下降到分钟级别</h2>
+        </header>
+
+        <main>
+            <ul class="tool-list">
+                <li>
+                    <a href="gasgiant.html">
+                        <h3>气态行星地图生成器</h3>
+                        <p>创建多样化的气态巨行星地表贴图，从经典的木星条纹到奇特的外星风格。</p>
+                    </a>
+                </li>
+                <li>
+                    <a href="rings.html">
+                        <h3>行星环贴图生成器</h3>
+                        <p>设计并生成具有真实感细节的行星环系统，自定义密度、颜色和结构。</p>
+                    </a>
+                </li>
+                <li>
+                    <a href="rockyplanets.html">
+                        <h3>类地行星地图生成器</h3>
+                        <p>从荒芜的沙漠到生机盎然的类地世界，程序化生成岩石行星的地表和云图。</p>
+                    </a>
+                </li>
+                <li>
+                    <a href="system.html">
+                        <h3>行星系代码生成器</h3>
+                        <p>构建完整的恒星与行星系统，生成符合物理规律的轨道和天体参数代码。</p>
+                    </a>
+                </li>
+            </ul>
+        </main>
+    </div>
+
+</body>
+</html>
