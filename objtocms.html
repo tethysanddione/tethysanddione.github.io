@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D 模型转换器 (OBJ -&gt; 3DS + CMS)</title>
+    <title>3D 模型转换器 (OBJ -> 3DS + CMS)</title>
     <style>
         :root {
             --bg-color: #1a1e23;
@@ -77,6 +77,8 @@
         #drop-zone label {
             display: block;
             padding: 20px 0;
+            /* Clicks on label text are handled by the parent div, so make it non-interactive */
+            pointer-events: none;
         }
         button {
             width: 100%;
@@ -157,6 +159,13 @@
     const export3dsBtn = document.getElementById('export-3ds-btn');
     const exportCmsBtn = document.getElementById('export-cms-btn');
 
+    // --- FIX STARTS HERE ---
+    // Make the entire drop zone clickable to open the file dialog
+    dropZone.addEventListener('click', () => {
+        fileInput.click();
+    });
+    // --- FIX ENDS HERE ---
+
     dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
     dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
     dropZone.addEventListener('drop', (e) => {
@@ -180,7 +189,16 @@
 
         const reader = new FileReader();
         reader.onload = (event) => {
-            loadObj(event.target.result, file.name);
+            // Use a timeout to allow the browser to repaint the "Loading..." message
+            // before the potentially blocking/long-running loadObj call.
+            setTimeout(() => {
+                loadObj(event.target.result, file.name);
+            }, 50);
+        };
+        // Add an error handler for the file reading process itself
+        reader.onerror = () => {
+            fileInfo.textContent = `读取文件时出错。`;
+            alert("读取本地文件时发生错误。");
         };
         reader.readAsText(file);
     }
@@ -296,4 +314,3 @@
 </script>
 </body>
 </html>
-
