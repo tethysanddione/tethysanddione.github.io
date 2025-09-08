@@ -65,7 +65,7 @@
         #drop-zone {
             border: 2px dashed var(--border-color);
             border-radius: 8px;
-            padding: 40px 20px;
+            padding: 20px;
             text-align: center;
             cursor: pointer;
             transition: background-color 0.2s, border-color 0.2s;
@@ -73,6 +73,11 @@
         #drop-zone.dragover {
             background-color: #3c424a;
             border-color: var(--accent-color);
+        }
+        /* Make the label fill the drop zone */
+        #drop-zone label {
+            display: block;
+            padding: 20px 0;
         }
         button {
             width: 100%;
@@ -103,7 +108,9 @@
         <p class="info-text">将 .obj 文件转换为 Celestia 兼容的 .3ds 和 .cms 文件。</p>
         
         <div id="drop-zone">
-            <p>将 .obj 文件拖放到此处<br>或点击选择文件</p>
+            <label for="file-input">
+                <p>将 .obj 文件拖放到此处<br>或点击选择文件</p>
+            </label>
             <input type="file" id="file-input" accept=".obj" style="display: none;">
         </div>
 
@@ -152,7 +159,7 @@
     const export3dsBtn = document.getElementById('export-3ds-btn');
     const exportCmsBtn = document.getElementById('export-cms-btn');
 
-    dropZone.addEventListener('click', () => fileInput.click());
+    // The <label> now handles the click natively, so the JS click handler is no longer needed.
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
         dropZone.classList.add('dragover');
@@ -196,7 +203,6 @@
         const loader = new OBJLoader();
         const object = loader.parse(objContent);
         
-        // 为所有子网格应用一个简单的灰色材质
         object.traverse((child) => {
             if (child.isMesh) {
                 child.material = new THREE.MeshStandardMaterial({
@@ -207,13 +213,12 @@
             }
         });
         
-        // 自动缩放和居中模型
         const box = new THREE.Box3().setFromObject(object);
         const size = box.getSize(new THREE.Vector3());
         const center = box.getCenter(new THREE.Vector3());
         
         const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = 20 / maxDim; // 将最大尺寸缩放到20个单位
+        const scale = 20 / maxDim;
         object.scale.set(scale, scale, scale);
         
         box.setFromObject(object);
@@ -280,3 +285,4 @@
 </script>
 </body>
 </html>
+
