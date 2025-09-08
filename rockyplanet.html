@@ -289,14 +289,16 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
     const MOUNTAIN_PEAK = Math.min(params.SEA_LEVEL + 0.35, 0.95);
     
     const warmth_factor = Math.max(0, Math.min(1, (params.ICE_CAP_LATITUDE - 0.5) / 0.5));
-    const global_temp_mod = (warmth_factor - 0.5) * 0.6;
+    const global_temp_mod = (warmth_factor*2 - 1) * 0.5;
 
     const MIN_SNOW_LINE = 0.2;
     const MAX_SNOW_LINE = 1.5;
     const SNOW_LINE = MIN_SNOW_LINE * (1 - warmth_factor) + MAX_SNOW_LINE * warmth_factor;
     
-    // +++ NEW: Controls the sharpness of the ice edge +++
-    const ICE_SHARPNESS = 5.0; // Higher value = sharper edge
+    const ICE_SHARPNESS = 5.0; 
+    // +++ NEW: Noise parameters for sea ice texture +++
+    const SEA_ICE_NOISE_SCALE = 300.0; // High frequency for detailed noise
+    const SEA_ICE_NOISE_STRENGTH = 0.15; // How much the noise affects the ice edge
 
     const tex_width = textures.sand.width;
     const tex_height = textures.sand.height;
@@ -335,23 +337,38 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
                 const depth_factor = params.SEA_LEVEL > 0 ? h / params.SEA_LEVEL : 0;
                 base_color = blend(COLOR_DEEP_WATER, COLOR_SHALLOW_WATER, depth_factor);
                 
-                // Check for sea ice based on temperature
                 let ice_factor = 0.0;
                 if (temp < 0.15) {
+                    // Calculate base ice coverage
                     let raw_ice_factor = 1.0 - (temp / 0.15);
-                    // Sharpen the transition curve to create a hard edge
-                    ice_factor = Math.pow(raw_ice_factor, ICE_SHARPNESS);
+                    
+                    // Add subtle noise to the ice edge and surface
+                    const sphereCoords = mapToSphere(x, y, width, height);
+                    const ice_noise = (simplex.noise3D(sphereCoords.x * SEA_ICE_NOISE_SCALE, sphereCoords.y * SEA_ICE_NOISE_SCALE, sphereCoords.z * SEA_ICE_NOISE_SCALE + params.SEED + 2000) + 1) / 2;
+                    raw_ice_factor += (ice_noise - 0.5) * SEA_ICE_NOISE_STRENGTH;
+
+                    // Sharpen the final transition curve
+                    ice_factor = Math.pow(Math.max(0, raw_ice_factor), ICE_SHARPNESS);
                 }
                 final_color = blend(base_color, sample('ice', tx, ty), ice_factor);
 
             } else {
                 // --- LAND LOGIC ---
-                const desert_threshold = params.DESERTIFICATION * 0.7;
-                base_color = sample('grass', tx, ty);
-                if (m < desert_threshold && temp > 0.4 && h < MOUNTAIN_PEAK * 0.8) {
-                    const desert_factor = 1.0 - Math.max(0, Math.min(1, m / desert_threshold));
-                    base_color = blend(base_color, sample('sand', tx, ty), desert_factor);
+                // *** CORRECTED: No grass if there is no sea ***
+                let base_color;
+                if (params.SEA_LEVEL === 0) {
+                    // If no sea, the base is always sand/desert, never grass
+                    base_color = sample('sand', tx, ty);
+                } else {
+                    // Original logic: default to grass and blend desert on top
+                    base_color = sample('grass', tx, ty);
+                    const desert_threshold = params.DESERTIFICATION * 0.7;
+                    if (m < desert_threshold && temp > 0.4 && h < MOUNTAIN_PEAK * 0.8) {
+                        const desert_factor = 1.0 - Math.max(0, Math.min(1, m / desert_threshold));
+                        base_color = blend(base_color, sample('sand', tx, ty), desert_factor);
+                    }
                 }
+                // *** END CORRECTION ***
 
                 let sand_factor = 0.0;
                 if (params.SEA_LEVEL > 0) { 
@@ -383,7 +400,6 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
                 }
                 if (temp < 0.15) { 
                     let raw_ice_factor = 1.0 - (temp / 0.15);
-                    // Apply the same sharpness to polar land ice for consistency
                     snow_factor = Math.max(snow_factor, Math.pow(raw_ice_factor, ICE_SHARPNESS));
                 }
                 
@@ -393,7 +409,7 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
             }
 
             // Center noise (applied only to land after all color calculations)
-            if (h >= params.SEA_LEVEL) {
+            if (h >= params.SEA_LEVEL && params.CENTER_NOISE_STRENGTH > 0) {
                 const center_x = width / 2;
                 const distance_from_center = Math.abs(x - center_x);
                 let center_blend_factor = 0.0;
