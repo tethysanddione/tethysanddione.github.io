@@ -85,6 +85,7 @@
             <select id="texture-select">
                 <option value="rock">岩石 (Marble)</option>
                 <option value="ice">坚冰 (Sheet)</option>
+                <option value="dune">土丘 (Dune)</option>
                 <option value="custom">自定义...</option>
             </select>
             <input type="file" id="texture-file" style="display: none; margin-top: 5px;" accept="image/*">
@@ -190,7 +191,8 @@
                  // **重要改动**：现在我们使用相对路径指向本地文件夹
                  const textureUrls = {
                     rock: 'textures/marble.png',
-                    ice: 'textures/sheet.png'
+                    ice: 'textures/sheet.png',
+                    dune: 'textures/dune.png'
                 };
                 const img = new Image();
                 img.onload = () => {
