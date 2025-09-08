@@ -287,17 +287,10 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
 
     const COLOR_DEEP_WATER = [10, 15, 60], COLOR_SHALLOW_WATER = [15, 20, 65];
     
-    // --- UPDATED CLIMATE MODEL ---
     const MOUNTAIN_PEAK = Math.min(params.SEA_LEVEL + 0.35, 0.95);
 
-    // 1. Link Snow Line to the Ice Cap slider for a unified climate model
-    // Map slider value [0.5, 1.0] to a "warmth" factor [0, 1]
-    const warmth_factor = (params.ICE_CAP_LATITUDE - 0.5) / 0.5; 
-    
-    // 2. The snow line altitude now moves from low (cold planet) to impossibly high (hot planet)
-    // When warmth_factor is 1 (slider at max), SNOW_LINE is > 1.0, higher than any possible terrain.
+    const warmth_factor = (params.ICE_CAP_LATITUDE - 0.5) / 0.5;
     const SNOW_LINE = (params.SEA_LEVEL + 0.2) * (1 - warmth_factor) + 1.5 * warmth_factor;
-    // --- END OF UPDATE ---
 
     const tex_width = textures.sand.width;
     const tex_height = textures.sand.height;
@@ -330,22 +323,33 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
             let terrain_color = [0, 0, 0];
 
             if (h < params.SEA_LEVEL) {
+                // Below sea level (water)
                 const depth_factor = params.SEA_LEVEL > 0 ? h / params.SEA_LEVEL : 0;
                 terrain_color = blend(COLOR_DEEP_WATER, COLOR_SHALLOW_WATER, depth_factor);
             } else {
+                // Above sea level (land)
                 const desert_threshold = params.DESERTIFICATION * 0.7;
                 let base_color = sample('grass', tx, ty);
+
+                // Desert blending
                 if (m < desert_threshold && temp > 0.4 && h < MOUNTAIN_PEAK * 0.8) {
                     const desert_factor = 1.0 - Math.max(0, Math.min(1, m / desert_threshold));
                     base_color = blend(base_color, sample('sand', tx, ty), desert_factor);
                 }
                 terrain_color = base_color;
 
-                const sand_factor = 1.0 - Math.min(1.0, (h - params.SEA_LEVEL) / 0.03);
+                // --- MODIFIED SAND GENERATION LOGIC ---
+                let sand_factor = 0.0;
+                if (params.SEA_LEVEL > 0) { // Only generate sand near sea level if sea level exists
+                    sand_factor = 1.0 - Math.min(1.0, (h - params.SEA_LEVEL) / 0.03);
+                }
+                
                 if (sand_factor > 0) {
                     terrain_color = blend(terrain_color, sample('sand', tx, ty), sand_factor);
                 }
+                // --- END MODIFICATION ---
                 
+                // Rock blending
                 const rock_blend_start = params.SEA_LEVEL + 0.2;
                 const rock_blend_end = MOUNTAIN_PEAK;
                 let rock_factor = 0.0;
@@ -360,6 +364,7 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
                     terrain_color = blend(terrain_color, sample('rock', tx, ty), rock_factor);
                 }
 
+                // Snow blending
                 const snow_line_dynamic = SNOW_LINE + (1 - temp) * 0.2;
                 const snow_blend_start = snow_line_dynamic - 0.1;
                 let snow_factor = 0.0;
@@ -376,17 +381,20 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
                 }
             }
 
+            // Ice cap blending
             const abs_latitude_factor = Math.abs(y - height / 2) / (height / 2);
             const ice_cap_edge_noise = (m - 0.5) * 0.1;
             let ice_factor = 0.0;
-            if (abs_latitude_factor > params.ICE_CAP_LATITUDE - ice_cap_edge_noise) {
+            // Only apply ice if the iceCapLatitude is not at its max (1.0), which signifies a completely warm planet
+            if (params.ICE_CAP_LATITUDE < 1.0 && abs_latitude_factor > params.ICE_CAP_LATITUDE - ice_cap_edge_noise) {
                 const blend_range = 0.01;
                 ice_factor = (abs_latitude_factor - (params.ICE_CAP_LATITUDE - ice_cap_edge_noise)) / blend_range;
                 ice_factor = Math.max(0, Math.min(1, ice_factor));
             }
             let final_color = blend(terrain_color, sample('ice', tx, ty), ice_factor);
 
-            if (h >= params.SEA_LEVEL) {
+            // Center noise (if active)
+            if (h >= params.SEA_LEVEL) { // Only apply to land
                 const center_x = width / 2;
                 const distance_from_center = Math.abs(x - center_x);
                 let center_blend_factor = 0.0;
