@@ -92,17 +92,26 @@ function mapToSphere(x, y, width, height) {
     return { x: sphereX, y: sphereY, z: sphereZ };
 }
 
-function generateHeightMap(params, noise3D) { // 4. 将 simplex 替换为 noise3D
+function generateHeightMap(params, noise3D) {
     const { width, height, scale, octaves, crater_scale, crater_strength } = params;
     const heightMap = new Float32Array(width * height);
-    
+
     let minVal = Infinity, maxVal = -Infinity;
+
+    function craterProfile(r, depth) {
+        // r ∈ [0,1] 归一化半径
+        if (r > 1.0) return 0;
+        const depression = -depth * Math.pow(1 - r * r, 2);       // 中心凹陷
+        const rim = depth * 0.3 * Math.exp(-Math.pow((r - 0.9) * 8, 2)); // 边缘隆起
+        return depression + rim;
+    }
 
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const i = y * width + x;
             const sp = mapToSphere(x, y, width, height);
-            
+
+            // === 基础噪声地形 ===
             let baseNoise = 0;
             let freq = scale / 100;
             let amp = 1;
@@ -112,15 +121,31 @@ function generateHeightMap(params, noise3D) { // 4. 将 simplex 替换为 noise3
                 amp *= 0.5;
             }
 
-            const craterNoiseRaw = noise3D(
-                sp.x * crater_scale / 100 + 100,
-                sp.y * crater_scale / 100 + 100,
-                sp.z * crater_scale / 100 + 100
-            );
-            let craterNoise = 1.0 - (craterNoiseRaw + 1.0) / 2.0;
-            craterNoise = Math.pow(craterNoise, 4) * crater_strength;
+            // === 陨石坑分布 ===
+            // 思路：将球面坐标放大到 crater_scale 网格
+            // 在网格中心生成 craterProfile
+            const craterX = sp.x * crater_scale;
+            const craterY = sp.y * crater_scale;
+            const craterZ = sp.z * crater_scale;
 
-            const finalHeight = baseNoise - craterNoise;
+            // 用 floor 得到最近的“坑中心”
+            const nearestX = Math.round(craterX);
+            const nearestY = Math.round(craterY);
+            const nearestZ = Math.round(craterZ);
+
+            // 距离最近坑中心的归一化半径
+            const dx = craterX - nearestX;
+            const dy = craterY - nearestY;
+            const dz = craterZ - nearestZ;
+            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+            // 归一化半径（控制坑密度）
+            const normR = dist / 0.5;
+
+            const craterEffect = craterProfile(normR, crater_strength);
+
+            // === 最终高度 ===
+            const finalHeight = baseNoise + craterEffect;
             heightMap[i] = finalHeight;
 
             if (finalHeight < minVal) minVal = finalHeight;
@@ -128,13 +153,14 @@ function generateHeightMap(params, noise3D) { // 4. 将 simplex 替换为 noise3
         }
     }
 
+    // === 归一化到 [0,1] ===
     const range = maxVal - minVal;
     if (range > 0) {
         for (let i = 0; i < heightMap.length; i++) {
             heightMap[i] = (heightMap[i] - minVal) / range;
         }
     }
-    
+
     return heightMap;
 }
 
