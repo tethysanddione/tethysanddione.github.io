@@ -169,11 +169,196 @@
 </div>
 
 <script>
-// --- Simplex Noise JS Library (by Jonas Wagner) ---
-// Included directly to make this a single, self-contained file.
-(function(){function r(r){var t,n,e,o,i,a,s,f,u,c,l,h,p,d,g,m,v,y,w,b,A,_,S,M,x,C,F,L,E,T,N,O,R,D,z,I,P,q,U,W,B,V,G,X,Y,J,K,Q,Z,$,rr,tr,nr,er,or,ir,ar,sr,fr,ur,cr,lr,hr,pr,dr,gr,mr,vr,yr,wr,br,Ar,_r,Sr,Mr,xr,Cr,Fr,Lr,Er,Tr,Nr,Or,Rr,Dr,zr,Ir,Pr,qr,Ur,Wr,Br,Vr,Gr,Xr,Yr,Jr,Kr,Qr,Zr,$r,rt,tt,nt,et,ot,it,at,st,ft,ut,ct,lt,ht,pt,dt,gt,mt,vt,yt,wt,bt,At,_t,St,Mt,xt,Ct,Ft,Lt,Et,Tt,Nt,Ot,Rt,Dt,zt,It,Pt,qt,Ut,Wt,Bt,Vt,Gt,Xt,Yt,Jt,Kt,Qt,Zt,$t,rn,tn,nn,en,on,an,sn,fn,un,cn,ln,hn,pn,dn,gn,mn,vn,yn,wn,bn,An,_n,Sn,Mn,xn,Cn,Fn,Ln,En,Tn,Nn,On,Rn,Dn,zn,In,Pn,qn,Un,Wn,Bn,Vn,Gn,Xn,Yn,Jn,Kn,Qn,Zn,$n,re,te,ne,ee,oe,ie,ae,se,fe,ue,ce,le,he,pe,de,ge,me,ve,ye,we,be,Ae,_e,Se,Me,xe,Ce,Fe,Le,Ee,Te,Ne,Oe,Re,De,ze,Ie,Pe,qe,Ue,We,Be,Ve,Ge,Xe,Ye,Je,Ke,Qe,Ze,$e,ro,to,no,eo,oo,io,ao,so,fo,uo,co,lo,ho,po,do,go,mo,vo,yo,wo,bo,Ao,_o,So,Mo,xo,Co,Fo,Lo,Eo,To,No,Oo,Ro,Do,zo,Io,Po,qo,Uo,Wo,Bo,Vo,Go,Xo,Yo,Jo,Ko,Qo,Zo,$o,ri,ti,ni,ei,oi,ii,ai,si,fi,ui,ci,li,hi,pi,di,gi,mi,vi,yi,wi,bi,Ai,_i,Si,Mi,xi,Ci,Fi,Li,Ei,Ti,Ni,Oi,Ri,Di,zi,Ii,Pi,qi,Ui,Wi,Bi,Vi,Gi,Xi,Yi,Ji,Ki,Qi,Zi,$i,ra,ta,na,ea,oa,ia,aa,sa,fa,ua,ca,la,ha,pa,da,ga,ma,va,ya,wa,ba,Aa,_a,Sa,Ma,xa,Ca,Fa,La,Ea,Ta,Na,Oa,Ra,Da,za,Ia,Pa,qa,Ua,Wa,Ba,Va,Ga,Xa,Ya,Ja,Ka,Qa,Za,$a,rs,ts,ns,es,os,is,as,ss,fs,us,cs,ls,hs,ps,ds,gs,ms,vs,ys,ws,bs,As,_s,Ss,Ms,xs,Cs,Fs,Ls,Es,Ts,Ns,Os,Rs,Ds,zs,Is,Ps,qs,Us,Ws,Bs,Vs,Gs,Xs,Ys,Js,Ks,Qs,Zs,$s,rf,tf,nf,ef,of,if,af,sf,ff,uf,cf,lf,hf,pf,df,gf,mf,vf,yf,wf,bf,Af,_f,Sf,Mf,xf,Cf,Ff,Lf,Ef,Tf,Nf,Of,Rf,Df,zf,If,Pf,qf,Uf,Wf,Bf,Vf,Gf,Xf,Yf,Jf,Kf,Qf,Zf,$f,ru,tu,nu,eu,ou,iu,au,su,fu,uu,cu,lu,hu,pu,du,gu,mu,vu,yu,wu,bu,Au,_u,Su,Mu,xu,Cu,Fu,Lu,Eu,Tu,Nu,Ou,Ru,Du,zu,Iu,Pu,qu,Uu,Wu,Bu,Vu,Gu,Xu,Yu,Ju,Ku,Qu,Zu,$u,rc,tc,nc,ec,oc,ic,ac,sc,fc,uc,cc,lc,hc,pc,dc,gc,mc,vc,yc,wc,bc,Ac,_c,Sc,Mc,xc,Cc,Fc,Lc,Ec,Tc,Nc,Oc,Rc,Dc,zc,Ic,Pc,qc,Uc,Wc,Bc,Vc,Gc,Xc,Yc,Jc,Kc,Qc,Zc,$c,rl,tl,nl,el,ol,il,al,sl,fl,ul,cl,ll,hl,pl,dl,gl,ml,vl,yl,wl,bl,Al,_l,Sl,Ml,xl,Cl,Fl,Ll,El,Tl,Nl,Ol,Rl,Dl,zl,Il,Pl,ql,Ul,Wl,Bl,Vl,Gl,Xl,Yl,Jl,Kl,Ql,Zl,$l,rh,th,nh,eh,oh,ih,ah,sh,fh,uh,ch,lh,hh,ph,dh,gh,mh,vh,yh,wh,bh,Ah,_h,Sh,Mh,xh,Ch,Fh,Lh,Eh,Th,Nh,Oh,Rh,Dh,zh,Ih,Ph,qh,Uh,Wh,Bh,Vh,Gh,Xh,Yh,Jh,Kh,Qh,Zh,$h,rp,tp,np,ep,op,ip,ap,sp,fp,up,cp,lp,hp,pp,dp,gp,mp,vp,yp,wp,bp,Ap,_p,Sp,Mp,xp,Cp,Fp,Lp,Ep,Tp,Np,Op,Rp,Dp,zp,Ip,Pp,qp,Up,Wp,Bp,Vp,Gp,Xp,Yp,Jp,Kp,Qp,Zp,$p,rd,td,nd,ed,od,id,ad,sd,fd,ud,cd,ld,hd,pd,dd,gd,md,vd,yd,wd,bd,Ad,_d,Sd,Md,xd,Cd,Fd,Ld,Ed,Td,Nd,Od,Rd,Dd,zd,Id,Pd,qd,Ud,Wd,Bd,Vd,Gd,Xd,Yd,Jd,Kd,Qd,Zd,$d,rg,tg,ng,eg,og,ig,ag,sg,fg,ug,cg,lg,hg,pg,dg,gg,mg,vg,yg,wg,bg,Ag,_g,Sg,Mg,xg,Cg,Fg,Lg,Eg,Tg,Ng,Og,Rg,Dg,zg,Ig,Pg,qg,Ug,Wg,Bg,Vg,Gg,Xg,Yg,Jg,Kg,Qg,Zg,$g,rm,tm,nm,em,om,im,am,sm,fm,um,cm,lm,hm,pm,dm,gm,mm,vm,ym,wm,bm,Am,_m,Sm,Mm,xm,Cm,Fm,Lm,Em,Tm,Nm,Om,Rm,Dm,zm,Im,Pm,qm,Um,Wm,Bm,Vm,Gm,Xm,Ym,Jm,Km,Qm,Zm,$m,rv,tv,nv,ev,ov,iv,av,sv,fv,uv,cv,lv,hv,pv,dv,gv,mv,vv,yv,wv,bv,Av,_v,Sv,Mv,xv,Cv,Fv,Lv,Ev,Tv,Nv,Ov,Rv,Dv,zv,Iv,Pv,qv,Uv,Wv,Bv,Vv,Gv,Xv,Yv,Jv,Kv,Qv,Zv,$v,ry,ty,ny,ey,oy,iy,ay,sy,fy,uy,cy,ly,hy,py,dy,gy,my,vy,yy,wy,by,Ay,_y,Sy,My,xy,Cy,Fy,Ly,Ey,Ty,Ny,Oy,Ry,Dy,zy,Iy,Py,qy,Uy,Wy,By,Vy,Gy,Xy,Yy,Jy,Ky,Qy,Zy,$y;if(t=[2.50000000000000014e-1,3.830648792422345e-1,1.5435061461944535e-1,2.030648792422345e-1,3.072200385388907e-1,1.969351207577655e-1,3.616935120757765e-1,3.456493853805546e-1,4.701969351207577e-1,4.226935120757765e-1,2.1880648792422345e-1,1.2130648792422345e-1,2.5085448938538055e-1,1.2619351207577655e-1,1.2130648792422345e-1,3.786935120757765e-1,1.530648792422345e-1,2.811935120757765e-1,4.991455106146194e-1,1.0635061461944535e-1,4.141935120757765e-1,4.226935120757765e-1,4.141935120757765e-1,2.811935120757765e-1,3.786935120757765e-1,1.0635061461944535e-1,4.991455106146194e-1,1.530648792422345e-1,1.2619351207577655e-1,2.5085448938538055e-1,3.830648792422345e-1,2.030648792422345e-1,1.5435061461944535e-1,2.1880648792422345e-1,4.701969351207577e-1,3.456493853805546e-1,3.616935120757765e-1,1.969351207577655e-1,3.072200385388907e-1,2.5e-1,3.8787756588484926e-1,3.8787756588484926e-1,1.1212243411515074e-1,1.1212243411515074e-1,0,0,0,0,2.5e-1,2.5e-1,1.25e-1,1.25e-1,1.25e-1,1.25e-1,0,0,3.75e-1,3.75e-1,0,0,2.5e-1,2.5e-1,0,0,2.5e-1,2.5e-1,0,0,3.75e-1,3.75e-1,1.25e-1,1.25e-1,2.5e-1,2.5e-1,2.5e-1,2.5e-1,2.5e-1,2.5e-1,2.5e-1,2.5e-1,0,0,1.25e-1,1.25e-1,0,0,3.75e-1,3.75e-1,0,0,1.25e-1,1.25e-1,0,0,1.25e-1,1.25e-1,2.5e-1,2.5e-1,3.75e-1,3.75e-1,1.25e-1,1.25e-1,1.25e-1,1.25e-1,0,0,0,0,2.5e-1,2.5e-1,0,0,3.75e-1,3.75e-1,0,0,1.25e-1,1.25e-1,2.5e-1,2.5e-1,3.75e-1,3.75e-1,3.75e-1,3.75e-1,2.5e-1,2.5e-1,1.25e-1,1.25e-1,0,0,1.25e-1,1.25e-1,2.5e-1,2.5e-1,2.5e-1,2.5e-1,1.25e-1,1.25e-1,1.25e-1,1.25e-1,0,0,0,0,0,0,0,0,2.5e-1,2.5e-1,2.5e-1,2.5e-1,1.25e-1,1.25e-1,1.25e-1,1.25e-1,0,0,2.5e-1,2.5e-1,3.75e-1,3.75e-1,1.25e-1,1.25e-1,3.75e-1,3.75e-1,2.5e-1,2.5e-1,1.25e-1,1.25e-1,0,0,0,0,1.25e-1,1.25e-1,0,0,2.5e-1,2.5e-1,0,0,3.75e-1,3.75e-1,0,0,2.5e-1,2.5e-1,0,0,1.25e-1,1.25e-1,0,0,1.25e-1,1.25e-1,2.5e-1,2.5e-1,2.5e-1,2.5e-1,1.25e-1,1.25e-1,1.25e-1,1.25e-1,3.75e-1,3.75e-1,3.75e-1,3.75e-1,2.5e-1,2.5e-1,3.75e-1,3.75e-1,2.5e-1,2.5e-1,3.75e-1,3.75e-1,1.25e-1,1.25e-1,0,0,2.5e-1,2.5e-1,0,0,2.5e-1,2.5e-1,1.25e-1,1.25e-1,3.75e-1,3.75e-1,1.25e-1,1.25e-1,1.25e-1,1.25e-1,2.5e-1,2.5e-1,0,0,1.25e-1,1.25e-1,0,0,0,0,2.5e-1,2.5e-1,0,0,3.75e-1,3.75e-1,0,0,0,0,0,0,1.25e-1,1.25e-1,0,0,1.25e-1,1.25e-1,2.5e-1,2.5e-1,1.25e-1,1.25e-1,0,0,3.75e-1,3.75e-1,2.5e-1,2.5e-1,0,0,2.5e-1,2.5e-1,0,0,3.75e-1,3.75e-1],n=new(0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,0,0,0,0,0,1,1,1,1,0,0,1,1,1,0,0,1,1,0,1,0,0,1,1,1,0,1,1,0,0,1,1,1,1,0,0,1,0,0,1,1,1,0,0,1,1,1,1,0,0,1,1,0,0,1,1,1,0,1,1,0,0,1,0,1,1,0,0,1,1,0,1,0,1,1,0,0,1,1,0,0,1,0,1,1,1,0,1,0,1,1,0,0,1,0,1,0,1,1,1,0,1,1,0,1,0,0,1,1,1,0,0,1,1,0,1,0,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,0,1,1,0,1,1,0,0,1,1,0,1,0,1,1,1,0,1,0,1,1,1,0,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,0,1,0,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,0,1,1,0,1,1,0,0,1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,0,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,0,1,1,1,0,1,1,0,0,1,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,0,1,1,1,0,1,0,1,1,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,1,0,1,0,1,0,1,1,1,0,1,1,0,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,0,1,0,1,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,0,1,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,0,1,0,1,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,1,0,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,a,e=new Uint8Array(512),o="0123456789abcdef",i=0;i<256;i++)e[i]=n[i];for(i=0;i<256;i++)e[i+256]=e[i];function s(r,t,n){var o=Math.floor(r),i=Math.floor(t),a=Math.floor(n);return e[o&255]+e[(o+1)&255]+e[(i&255)+e[o&255]]+e[(i+1)&255+e[o&255]]+e[(a&255)+e[(i&255)+e[o&255]]]}s.noise2D=function(r,o){var i,a,f,u,c=Math.floor(r),l=Math.floor(o);return(r-=c)>=1&&(c++,r--),(o-=l)>=1&&(l++,o--),i=r*r,a=o*o,f=e[(c&255)+e[l&255]],(u=(u=e[((c+=1-r)&255)+e[l&255]])-f)*r+f+((e[(c-=(1-r))+e[l+=1-o]]-f)*o+f-(e[c+e[l]]-f-u)*r)*o)},s.noise3D=function(r,n,o){var i,a,f,u,c,l,h,p=Math.floor(r),d=Math.floor(n),g=Math.floor(o);return(r-=p)>=1&&(p++,r--),(n-=d)>=1&&(d++,n--),(o-=g)>=1&&(g++,o--),i=r*r*r,a=n*n*n,f=o*o*o,u=e[(p&255)+e[(d&255)+e[g&255]]],l=(c=e[(p&255)+e[(d&255)+e[(g+=(1-o))&255]]])-u,h=(e[(p&255)+e[((d+=1-n)&255)+e[g&255]]]-u-l)*n+u+l*o,((e[(p&255)+e[d+e[g]]]-c)*n+(c-u-l))*o+u+l*o,l=(c=e[((p+=1-r)&255)+e[((d-=1-n)&255)+e[g-=(1-o)]&255]]]-u-l-((h-u-l)*r+u+l*o)-(((e[p+e[d+e[g]]]-c)*n+(c-u-l))*o+u+l*o-((h-u-l)*r+u+l*o)))*r+(h-u-l-(((e[p+e[d+e[g]]]-c)*n+(c-u-l))*o+u+l*o-(h-u-l)*r-u-l))*n+((h-u-l)*r+u+l*o)+(((e[p+e[d+e[g]]]-c)*n+(c-u-l))*o+u+l*o-((h-u-l)*r+u+l*o))*o},this.SimplexNoise=s}("undefined"!=typeof define&&define.amd?define:this,"undefined"!=typeof module?module:"undefined"!=typeof exports?exports:window);
+// --- Simplex Noise JS Library (by Jonas Wagner) - CORRECTED VERSION ---
+// This version is clean and does not use reserved keywords as variables.
+const SimplexNoise = (function() {
+    const F2 = 0.5 * (Math.sqrt(3.0) - 1.0);
+    const G2 = (3.0 - Math.sqrt(3.0)) / 6.0;
+    const F3 = 1.0 / 3.0;
+    const G3 = 1.0 / 6.0;
+    const F4 = (Math.sqrt(5.0) - 1.0) / 4.0;
+    const G4 = (5.0 - Math.sqrt(5.0)) / 20.0;
 
-const simplex = new SimplexNoise();
+    function SimplexNoise(randomOrSeed) {
+        if (typeof randomOrSeed == 'function') {
+            this.random = randomOrSeed;
+        } else if (randomOrSeed) {
+            this.random = alea(randomOrSeed);
+        } else {
+            this.random = Math.random;
+        }
+        this.p = new Uint8Array(256);
+        this.perm = new Uint8Array(512);
+        this.permMod12 = new Uint8Array(512);
+        for (let i = 0; i < 256; i++) {
+            this.p[i] = i;
+        }
+        for (let i = 255; i > 0; i--) {
+            const r = Math.floor(this.random() * (i + 1));
+            const t = this.p[i];
+            this.p[i] = this.p[r];
+            this.p[r] = t;
+        }
+        for (let i = 0; i < 512; i++) {
+            this.perm[i] = this.p[i & 255];
+            this.permMod12[i] = this.perm[i] % 12;
+        }
+    }
+
+    SimplexNoise.prototype = {
+        grad3: new Float32Array([1, 1, 0, -1, 1, 0, 1, -1, 0, -1, -1, 0, 1, 0, 1, -1, 0, 1, 1, 0, -1, -1, 0, -1, 0, 1, 1, 0, -1, 1, 0, 1, -1, 0, -1, -1]),
+        noise2D: function(xin, yin) {
+            let n0, n1, n2;
+            let s = (xin + yin) * F2;
+            let i = Math.floor(xin + s);
+            let j = Math.floor(yin + s);
+            let t = (i + j) * G2;
+            let X0 = i - t;
+            let Y0 = j - t;
+            let x0 = xin - X0;
+            let y0 = yin - Y0;
+            let i1, j1;
+            if (x0 > y0) {
+                i1 = 1;
+                j1 = 0;
+            } else {
+                i1 = 0;
+                j1 = 1;
+            }
+            let x1 = x0 - i1 + G2;
+            let y1 = y0 - j1 + G2;
+            let x2 = x0 - 1.0 + 2.0 * G2;
+            let y2 = y0 - 1.0 + 2.0 * G2;
+            let ii = i & 255;
+            let jj = j & 255;
+            let t0 = 0.5 - x0 * x0 - y0 * y0;
+            if (t0 < 0) n0 = 0.0;
+            else {
+                t0 *= t0;
+                let gi0 = this.permMod12[ii + this.perm[jj]] * 3;
+                n0 = t0 * t0 * (this.grad3[gi0] * x0 + this.grad3[gi0 + 1] * y0);
+            }
+            let t1 = 0.5 - x1 * x1 - y1 * y1;
+            if (t1 < 0) n1 = 0.0;
+            else {
+                t1 *= t1;
+                let gi1 = this.permMod12[ii + i1 + this.perm[jj + j1]] * 3;
+                n1 = t1 * t1 * (this.grad3[gi1] * x1 + this.grad3[gi1 + 1] * y1);
+            }
+            let t2 = 0.5 - x2 * x2 - y2 * y2;
+            if (t2 < 0) n2 = 0.0;
+            else {
+                t2 *= t2;
+                let gi2 = this.permMod12[ii + 1 + this.perm[jj + 1]] * 3;
+                n2 = t2 * t2 * (this.grad3[gi2] * x2 + this.grad3[gi2 + 1] * y2);
+            }
+            return 70.0 * (n0 + n1 + n2);
+        },
+        noise3D: function(xin, yin, zin) {
+            let n0, n1, n2, n3;
+            let s = (xin + yin + zin) * F3;
+            let i = Math.floor(xin + s);
+            let j = Math.floor(yin + s);
+            let k = Math.floor(zin + s);
+            let t = (i + j + k) * G3;
+            let X0 = i - t;
+            let Y0 = j - t;
+            let Z0 = k - t;
+            let x0 = xin - X0;
+            let y0 = yin - Y0;
+            let z0 = zin - Z0;
+            let i1, j1, k1, i2, j2, k2;
+            if (x0 >= y0) {
+                if (y0 >= z0) {
+                    i1 = 1; j1 = 0; k1 = 0; i2 = 1; j2 = 1; k2 = 0;
+                } else if (x0 >= z0) {
+                    i1 = 1; j1 = 0; k1 = 0; i2 = 1; j2 = 0; k2 = 1;
+                } else {
+                    i1 = 0; j1 = 0; k1 = 1; i2 = 1; j2 = 0; k2 = 1;
+                }
+            } else {
+                if (y0 < z0) {
+                    i1 = 0; j1 = 0; k1 = 1; i2 = 0; j2 = 1; k2 = 1;
+                } else if (x0 < z0) {
+                    i1 = 0; j1 = 1; k1 = 0; i2 = 0; j2 = 1; k2 = 1;
+                } else {
+                    i1 = 0; j1 = 1; k1 = 0; i2 = 1; j2 = 1; k2 = 0;
+                }
+            }
+            let x1 = x0 - i1 + G3;
+            let y1 = y0 - j1 + G3;
+            let z1 = z0 - k1 + G3;
+            let x2 = x0 - i2 + 2.0 * G3;
+            let y2 = y0 - j2 + 2.0 * G3;
+            let z2 = z0 - k2 + 2.0 * G3;
+            let x3 = x0 - 1.0 + 3.0 * G3;
+            let y3 = y0 - 1.0 + 3.0 * G3;
+            let z3 = z0 - 1.0 + 3.0 * G3;
+            let ii = i & 255;
+            let jj = j & 255;
+            let kk = k & 255;
+            let t0 = 0.6 - x0 * x0 - y0 * y0 - z0 * z0;
+            if (t0 < 0) n0 = 0.0;
+            else {
+                t0 *= t0;
+                let gi0 = this.permMod12[ii + this.perm[jj + this.perm[kk]]] * 3;
+                n0 = t0 * t0 * (this.grad3[gi0] * x0 + this.grad3[gi0 + 1] * y0 + this.grad3[gi0 + 2] * z0);
+            }
+            let t1 = 0.6 - x1 * x1 - y1 * y1 - z1 * z1;
+            if (t1 < 0) n1 = 0.0;
+            else {
+                t1 *= t1;
+                let gi1 = this.permMod12[ii + i1 + this.perm[jj + j1 + this.perm[kk + k1]]] * 3;
+                n1 = t1 * t1 * (this.grad3[gi1] * x1 + this.grad3[gi1 + 1] * y1 + this.grad3[gi1 + 2] * z1);
+            }
+            let t2 = 0.6 - x2 * x2 - y2 * y2 - z2 * z2;
+            if (t2 < 0) n2 = 0.0;
+            else {
+                t2 *= t2;
+                let gi2 = this.permMod12[ii + i2 + this.perm[jj + j2 + this.perm[kk + k2]]] * 3;
+                n2 = t2 * t2 * (this.grad3[gi2] * x2 + this.grad3[gi2 + 1] * y2 + this.grad3[gi2 + 2] * z2);
+            }
+            let t3 = 0.6 - x3 * x3 - y3 * y3 - z3 * z3;
+            if (t3 < 0) n3 = 0.0;
+            else {
+                t3 *= t3;
+                let gi3 = this.permMod12[ii + 1 + this.perm[jj + 1 + this.perm[kk + 1]]] * 3;
+                n3 = t3 * t3 * (this.grad3[gi3] * x3 + this.grad3[gi3 + 1] * y3 + this.grad3[gi3 + 2] * z3);
+            }
+            return 32.0 * (n0 + n1 + n2 + n3);
+        }
+    };
+
+    function alea(seed) {
+        let s0 = 0;
+        let s1 = 0;
+        let s2 = 0;
+        let c = 1;
+        if (seed == null) {
+            seed = +new Date;
+        }
+        s0 = (seed >>> 0) * 0x9e3779b9;
+        s1 = seed * 0x9e3779b9;
+        s2 = seed * 0x9e3779b9;
+
+        for (let i = 0; i < 20; i++) {
+            s0 = (s0 + s1 + c) * 0x9e3779b9;
+            s1 = (s1 + s2 + c) * 0x9e3779b9;
+            s2 = (s2 + s0 + c) * 0x9e3779b9;
+        }
+        return function() {
+            let t = (s0 + s1 + c) * 0x9e3779b9;
+            s0 = (s1 ^ s1 >>> 9) * 0x9e3779b9;
+            s1 = (s2 + (s2 << 3)) * 0x9e3779b9;
+            s2 = (s2 << 21 | s2 >>> 11);
+            c = t >>> 0;
+            return (t - Math.floor(t)) * 1;
+        };
+    }
+    return SimplexNoise;
+})();
+
+let simplex; // Will be initialized with seed later
 
 // DOM Elements
 const controls = {
@@ -229,16 +414,7 @@ const generateTerrainMaps = (width, height, seed) => {
     const moisture_scale = SCALE * 1.5;
     const moisture_octaves = 4;
 
-    // A seeded random function for reproducible results
-    let seed_prng = (() => {
-        let s = parseInt(seed, 10);
-        return () => {
-            s = Math.sin(s) * 10000;
-            return s - Math.floor(s);
-        };
-    })();
-
-    const angle_rad = seed_prng() * 2 * Math.PI;
+    const angle_rad = simplex.random() * 2 * Math.PI;
     const cos_a = Math.cos(angle_rad);
     const sin_a = Math.sin(angle_rad);
 
@@ -254,6 +430,7 @@ const generateTerrainMaps = (width, height, seed) => {
             let m_val = 0;
             let freq = 1.0;
             let amp = 1.0;
+            let maxAmp = 0;
 
             for(let i = 0; i < OCTAVES; i++) {
                 height_val += simplex.noise3D(
@@ -268,12 +445,13 @@ const generateTerrainMaps = (width, height, seed) => {
                         rotated_sx * freq * moisture_scale / 100 + seed + 500
                     ) * amp;
                 }
+                maxAmp += amp;
                 freq *= LACUNARITY;
                 amp *= PERSISTENCE;
             }
             const index = y * width + x;
-            heightMap[index] = height_val;
-            moistureMap[index] = m_val;
+            heightMap[index] = height_val / maxAmp;
+            moistureMap[index] = m_val / maxAmp;
         }
     }
     
@@ -378,18 +556,19 @@ const generateColorMap = (width, height, params, terrainMaps) => {
                 if (center_blend_factor > 0) {
                     const sphereCoords = mapToSphere(x, y, width, height);
                     let noise_val = 0;
-                    let freq = 1.0, amp = 1.0;
+                    let freq = 1.0, amp = 1.0, maxAmp = 0;
                      for(let i = 0; i < 4; i++) {
                         noise_val += simplex.noise3D(
                             sphereCoords.x * freq * params.CENTER_NOISE_SCALE,
                             sphereCoords.y * freq * params.CENTER_NOISE_SCALE,
                             sphereCoords.z * freq * params.CENTER_NOISE_SCALE + params.SEED + 1000
                         ) * amp;
+                        maxAmp += amp;
                         freq *= 2.0;
                         amp *= 0.5;
                     }
 
-                    noise_val = (noise_val + 1.0) / 2.0; // Normalize to 0-1
+                    noise_val = (noise_val / maxAmp + 1.0) / 2.0; // Normalize to 0-1
                     const noise_offset = (noise_val - 0.5) * 2 * params.CENTER_NOISE_STRENGTH * 255;
                     for (let i = 0; i < 3; i++) final_color[i] += noise_offset * center_blend_factor;
                 }
@@ -455,7 +634,12 @@ function main() {
     canvas.width = width;
     canvas.height = height;
     
-    currentSeed = parseInt(controls.seed.value, 10);
+    currentSeed = parseInt(controls.seed.value, 10) || Math.floor(Math.random() * 99999);
+    controls.seed.value = currentSeed;
+    
+    // Initialize simplex noise with the current seed for reproducibility
+    simplex = new SimplexNoise(currentSeed.toString());
+
     const params = {
         WIDTH: width,
         HEIGHT: height,
