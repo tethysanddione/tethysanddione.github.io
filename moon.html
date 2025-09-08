@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Celestia 卫星生成器</title>
+    <style>
+        :root {
+            --bg-color: #1a1e23;
+            --panel-bg: #2a2f36;
+            --text-color: #e0e6ec;
+            --header-color: #ffffff;
+            --border-color: #404853;
+            --accent-color: #00aaff;
+            --accent-hover: #0088cc;
+            --green-color: #28a745;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+            flex-wrap: wrap;
+        }
+        .panel {
+            background-color: var(--panel-bg);
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            flex: 1;
+            min-width: 350px;
+        }
+        h1, h2 {
+            color: var(--header-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background-color: #3c424a;
+            color: var(--text-color);
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 10px;
+        }
+        .btn-primary { background-color: var(--accent-color); color: white; }
+        .btn-primary:hover { background-color: var(--accent-hover); }
+        .btn-secondary { background-color: var(--green-color); color: white; }
+        .btn-secondary:hover { background-color: #1e7e34; }
+        #output-code {
+            width: 100%;
+            height: 400px;
+            background-color: #111315;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            box-sizing: border-box;
+            white-space: pre;
+            overflow: auto;
+        }
+        #orbit-canvas {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background-color: #000;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="panel">
+            <h1>卫星生成器</h1>
+            <div class="input-group">
+                <label for="planet-name">母行星名称 (例如: DSS-4509/c)</label>
+                <input type="text" id="planet-name" value="DSS-4509/c">
+            </div>
+            <div class="input-group">
+                <label for="planet-mass">母行星质量 (地球质量)</label>
+                <input type="number" id="planet-mass" value="1.0" step="0.1">
+            </div>
+            <div class="input-group">
+                <label for="planet-radius">母行星半径 (km)</label>
+                <input type="number" id="planet-radius" value="6371">
+            </div>
+            <div class="input-group">
+                <label for="moon-name">卫星名称 (例如: c-1)</label>
+                <input type="text" id="moon-name" value="c-1">
+            </div>
+            <button id="generate-btn" class="btn-primary">生成卫星</button>
+        </div>
+        <div class="panel">
+            <h1>输出与预览</h1>
+            <textarea id="output-code" readonly></textarea>
+            <button id="copy-btn" class="btn-secondary">复制</button>
+            <h2>轨道预览</h2>
+            <canvas id="orbit-canvas"></canvas>
+        </div>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const planetNameInput = document.getElementById('planet-name');
+    const planetMassInput = document.getElementById('planet-mass');
+    const planetRadiusInput = document.getElementById('planet-radius');
+    const moonNameInput = document.getElementById('moon-name');
+    const generateBtn = document.getElementById('generate-btn');
+    const copyBtn = document.getElementById('copy-btn');
+    const outputCode = document.getElementById('output-code');
+    const orbitCanvas = document.getElementById('orbit-canvas');
+
+    const G = 6.67430e-11; // Gravitational constant
+    const M_EARTH = 5.972e24; // Mass of Earth in kg
+
+    function generateMoon() {
+        // --- Get Inputs ---
+        const planetName = planetNameInput.value;
+        const planetMass = parseFloat(planetMassInput.value) * M_EARTH; // Convert to kg
+        const planetRadius = parseFloat(planetRadiusInput.value) * 1000; // Convert to meters
+        const moonName = moonNameInput.value;
+
+        // --- Calculate Physical Limits ---
+        // Simplified Roche Limit (for rigid bodies): d = R_p * (2 * M_p / M_m)^(1/3)
+        // We'll use a simpler heuristic: Roche limit is approx 2.5 * planet radius
+        const rocheLimit = planetRadius * 2.5; // in meters
+
+        // --- Generate Moon Parameters ---
+        const moonMass = planetMass * (Math.random()**2 * 0.01 + 0.0000001); // 0.01% to 1% of planet mass
+        const moonDensity = Math.random() * 2500 + 3000; // 3000-5500 kg/m^3 (rocky)
+        const moonRadius = Math.pow((3 * moonMass) / (4 * Math.PI * moonDensity), 1/3); // in meters
+
+        // --- Generate Orbital Parameters ---
+        const semiMajorAxis = rocheLimit + (Math.random() * planetRadius * 50); // meters
+        const periodSeconds = 2 * Math.PI * Math.sqrt(Math.pow(semiMajorAxis, 3) / (G * planetMass));
+        const periodDays = periodSeconds / 86400;
+
+        const moonData = {
+            moonName,
+            planetName,
+            mass: (moonMass / M_EARTH).toFixed(5), // Convert back to Earth masses for display
+            radius: (moonRadius / 1000).toFixed(2), // km for display
+            period: periodDays.toFixed(4),
+            semiMajorAxis: (semiMajorAxis / 1000).toFixed(0), // km for display
+            eccentricity: Math.random() * 0.4,
+            inclination: Math.random() * 90 - 45,
+            ascendingNode: Math.random() * 360,
+            argOfPericenter: Math.random() * 360,
+            meanAnomaly: Math.random() * 360,
+            rotationPeriod: periodDays * 24, // Tidal locking (in hours)
+            hasAtmosphere: Math.random() < 0.2
+        };
+        
+        // --- Format Output ---
+        let atmosphereBlock = '';
+        if (moonData.hasAtmosphere) {
+            atmosphereBlock = `
+    Atmosphere
+    {
+        Height\t${Math.round(moonData.radius / 20)}
+        MieScaleHeight ${Math.round(moonData.radius / 100)}
+        Mie 0.002
+        MieAsymmetry -0.2
+        Rayleigh [ 0.001 0.001 0.004 ]
+    }`;
+        }
+        
+        const code = `"${moonData.moonName}" "${moonData.planetName}"
+{
+    Texture         "${moonData.moonName}.*"
+    Mass            ${moonData.mass}
+    Radius          ${moonData.radius}
+
+    EllipticalOrbit
+    {
+        Period          ${moonData.period}
+        SemiMajorAxis   ${moonData.semiMajorAxis}
+        Eccentricity    ${moonData.eccentricity.toFixed(4)}
+        Inclination     ${moonData.inclination.toFixed(2)}
+        AscendingNode   ${moonData.ascendingNode.toFixed(5)}
+        ArgOfPericenter ${moonData.argOfPericenter.toFixed(5)}
+        MeanAnomaly     ${moonData.meanAnomaly.toFixed(2)}
+    }
+    ${atmosphereBlock}
+    UniformRotation
+    {
+        Period          ${moonData.rotationPeriod.toFixed(4)}
+        Inclination     ${(Math.random() * 5).toFixed(1)}
+        AscendingNode   ${(Math.random() * 360).toFixed(5)}
+    }
+}`;
+        outputCode.value = code.trim();
+        drawOrbit(moonData, {radius: planetRadius});
+    }
+
+    function drawOrbit(moon, planet) {
+        const ctx = orbitCanvas.getContext('2d');
+        const w = orbitCanvas.width;
+        const h = orbitCanvas.height;
+        ctx.clearRect(0, 0, w, h);
+
+        const centerX = w / 2;
+        const centerY = h / 2;
+        
+        // Find max orbit size to scale the view
+        const apoapsis = moon.semiMajorAxis * (1 + moon.eccentricity);
+        const scale = (w / 2.2) / apoapsis;
+
+        const a = moon.semiMajorAxis * scale;
+        const e = moon.eccentricity;
+        const c = e * a; // focal distance
+        const b = Math.sqrt(a * a - c * c); // semi-minor axis
+
+        // Draw Orbit
+        ctx.beginPath();
+        ctx.ellipse(centerX + c, centerY, a, b, 0, 0, 2 * Math.PI);
+        ctx.strokeStyle = '#00aaff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Draw Planet
+        const planetRadiusPx = Math.max(5, (planet.radius / 1000) * scale * 0.1);
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, planetRadiusPx, 0, 2 * Math.PI);
+        ctx.fillStyle = '#999';
+        ctx.fill();
+
+        // Draw Moon
+        const moonRadiusPx = Math.max(2, (moon.radius) * scale * 0.1);
+        const moonX = centerX + c + a;
+        const moonY = centerY;
+        ctx.beginPath();
+        ctx.arc(moonX, moonY, moonRadiusPx, 0, 2 * Math.PI);
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+    }
+    
+    generateBtn.addEventListener('click', generateMoon);
+    copyBtn.addEventListener('click', () => {
+        outputCode.select();
+        document.execCommand('copy');
+    });
+
+    // Initial generation
+    generateMoon();
+});
+</script>
+</body>
+</html>
