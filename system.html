@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Star & Planet System Generator</title>
+    <style>
+        :root {
+            --bg-color: #1a1e23;
+            --panel-bg: #2a2f36;
+            --text-color: #e0e6ec;
+            --header-color: #ffffff;
+            --border-color: #404853;
+            --accent-color: #00aaff;
+            --accent-hover: #0088cc;
+            --green-color: #28a745;
+            --red-color: #dc3545;
+            --orange-color: #fd7e14;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .main-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+        }
+        .generator-panel {
+            background-color: var(--panel-bg);
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            flex: 1;
+            min-width: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        h1, h2 {
+            color: var(--header-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .lang-switcher {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        .lang-switcher button {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .lang-switcher button.active {
+            background-color: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+            flex-grow: 1;
+        }
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+        }
+        .btn-secondary {
+            background-color: var(--green-color);
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #1e7e34;
+        }
+         .btn-danger {
+            background-color: var(--orange-color);
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #d8680c;
+        }
+        .output-area {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 15px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', Courier, monospace;
+            flex-grow: 1;
+            overflow-y: auto;
+            min-height: 200px;
+        }
+        .description-area {
+            background-color: transparent;
+            border: none;
+            padding: 0 15px 15px 15px;
+            font-style: italic;
+            color: #a0a8b1;
+        }
+        .planet-preview {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        #orbitCanvas {
+            background-color: #000;
+            border-radius: 5px;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background-color: #3c424a;
+            color: var(--text-color);
+            box-sizing: border-box;
+        }
+        #savedPlanetsContainer .planet-entry {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            margin-top: 15px;
+            padding: 10px;
+        }
+        #savedPlanetsContainer h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: var(--accent-color);
+        }
+        #savedPlanetsContainer .planet-code {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+            background: #111315;
+            padding: 8px;
+            border-radius: 4px;
+        }
+        #savedPlanetsContainer .planet-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+         #savedPlanetsContainer .planet-actions button {
+            font-size: 12px;
+            padding: 5px 10px;
+         }
+    </style>
+</head>
+<body>
+
+    <div class="lang-switcher">
+        <button id="lang-en" class="active">EN</button>
+        <button id="lang-zh">中</button>
+    </div>
+
+    <div class="main-container">
+        <div class="generator-panel">
+            <h1 data-lang-key="starGeneratorTitle">Star Generator</h1>
+            <div class="button-group">
+                <button id="generateStarBtn" class="btn-primary" data-lang-key="generateStarBtn">Generate New Star</button>
+                <button id="copyStarBtn" class="btn-secondary" data-lang-key="copyStarBtn">Copy Star Code</button>
+            </div>
+            <div id="starDescription" class="description-area"></div>
+            <div id="starOutput" class="output-area"></div>
+        </div>
+
+        <div class="generator-panel">
+            <h1 data-lang-key="planetGeneratorTitle">Planet Generator</h1>
+            <div class="input-group">
+                <label for="planetName" data-lang-key="planetNameLabel">Planet Name</label>
+                <input type="text" id="planetName" value="B">
+            </div>
+            <div class="button-group">
+                <button id="generatePlanetBtn" class="btn-primary" data-lang-key="addPlanetBtn">Add Planet</button>
+                <button id="clearPlanetsBtn" class="btn-danger" data-lang-key="clearPlanetsBtn">Clear Planets</button>
+            </div>
+            <div class="planet-preview">
+                <h2 data-lang-key="orbitPreviewTitle">Orbit Preview</h2>
+                <canvas id="orbitCanvas"></canvas>
+            </div>
+            <div id="savedPlanetsContainer">
+                 <h2 data-lang-key="savedPlanetsTitle">Saved Planets</h2>
+                 <div id="planetsList"></div>
+            </div>
+        </div>
+    </div>
+
+<script>
+const translations = {
+    en: {
+        starGeneratorTitle: "Star Generator",
+        generateStarBtn: "Generate New Star",
+        copyStarBtn: "Copy Star Code",
+        planetGeneratorTitle: "Planet Generator",
+        planetNameLabel: "Planet Name",
+        addPlanetBtn: "Add Planet",
+        clearPlanetsBtn: "Clear Planets",
+        copyPlanetBtn: "Copy Planet Code",
+        orbitPreviewTitle: "Orbit Preview",
+        savedPlanetsTitle: "Saved Planets",
+        copyBtn: "Copy",
+        removeBtn: "Remove",
+        starDescName: "This is a star named",
+        starDescType: "It is",
+        starDescProps: "Its physical properties are",
+        starDescMass: "Mass",
+        starDescMassUnit: "times solar mass",
+        starDescTemp: "Surface Temperature",
+        starDescRadius: "Radius",
+        starDescApprox: "approx.",
+        starDescRadiusUnit: "thousand km",
+        starDescLuminosity: "The star is",
+        starDescBrighter: "brighter",
+        starDescDimmer: "dimmer",
+        starDescAbsMag: "than the Sun, with an absolute magnitude of",
+        starDescDistance: "It is located at a distance of",
+        starDescDistanceUnit: "light-years from us.",
+        starTypeO: "a massive and extremely hot blue star",
+        starTypeB: "a very hot and bright blue-white star",
+        starTypeA: "a hot and luminous white star",
+        starTypeF: "a yellow-white star, slightly larger and hotter than the Sun",
+        starTypeG: "a yellow dwarf star, very similar to our Sun",
+        starTypeK: "a cool and dim orange-red dwarf star",
+        starTypeM: "a cool and very dim red dwarf star",
+        copied: "Copied!",
+    },
+    zh: {
+        starGeneratorTitle: "恒星生成器",
+        generateStarBtn: "生成新恒星",
+        copyStarBtn: "复制恒星代码",
+        planetGeneratorTitle: "行星生成器",
+        planetNameLabel: "行星名称",
+        addPlanetBtn: "添加行星",
+        clearPlanetsBtn: "清空行星",
+        copyPlanetBtn: "复制行星代码",
+        orbitPreviewTitle: "轨道预览",
+        savedPlanetsTitle: "已保存行星",
+        copyBtn: "复制",
+        removeBtn: "移除",
+        starDescName: "这是一颗名为",
+        starDescType: "它是一颗",
+        starDescProps: "其物理属性为",
+        starDescMass: "质量",
+        starDescMassUnit: "倍太阳质量",
+        starDescTemp: "表面温度",
+        starDescRadius: "半径",
+        starDescApprox: "约",
+        starDescRadiusUnit: "千公里",
+        starDescLuminosity: "该恒星的光度",
+        starDescBrighter: "比太阳更亮",
+        starDescDimmer: "比太阳更暗",
+        starDescAbsMag: "，其绝对星等为",
+        starDescDistance: "。它位于距离我们",
+        starDescDistanceUnit: "光年的宇宙深处。",
+        starTypeO: "一颗巨大且极热的蓝色恒星",
+        starTypeB: "一颗非常明亮的蓝白色恒星",
+        starTypeA: "一颗炽热明亮的白色恒星",
+        starTypeF: "一颗比太阳稍大且更热的黄白色恒星",
+        starTypeG: "一颗与我们的太阳非常相似的黄矮星",
+        starTypeK: "一颗低温且暗淡的橙红色矮星",
+        starTypeM: "一颗低温且非常暗淡的红矮星",
+        copied: "已复制！",
+    }
+};
+
+let currentLang = 'en';
+let lastStarData = {};
+let savedPlanets = [];
+
+function setLanguage(lang) {
+    currentLang = lang;
+    document.querySelectorAll('[data-lang-key]').forEach(el => {
+        const key = el.dataset.langKey;
+        if (translations[lang][key]) {
+            el.textContent = translations[lang][key];
+        }
+    });
+    if (lastStarData.mass) {
+        document.getElementById('starDescription').innerHTML = generateStarDescription(lastStarData);
+    }
+    renderSavedPlanets(); // Re-render planet list to update button text
+    document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+    document.getElementById('lang-zh').classList.toggle('active', lang === 'zh');
+}
+
+function t(key) {
+    return translations[currentLang][key];
+}
+
+// --- STAR GENERATOR ---
+function generateStarData() {
+    const solar_mass = 1.0;
+    const solar_radius = 1.0;
+    const solar_temp = 5778;
+    const solar_abs_mag = 4.83;
+
+    const spectral_data = {
+        "O": [[16, 100], [30000, 50000]],
+        "B": [[2.1, 16], [10000, 30000]],
+        "A": [[1.4, 2.1], [7500, 10000]],
+        "F": [[1.04, 1.4], [6000, 7500]],
+        "G": [[0.8, 1.04], [5200, 6000]],
+        "K": [[0.45, 0.8], [3700, 5200]],
+        "M": [[0.08, 0.45], [2400, 3700]],
+    };
+
+    const spectral_type = Object.keys(spectral_data)[Math.floor(Math.random() * Object.keys(spectral_data).length)];
+    const [mass_range, temp_range] = spectral_data[spectral_type];
+    
+    const mass = parseFloat((Math.random() * (mass_range[1] - mass_range[0]) + mass_range[0]).toFixed(3));
+    const temperature = Math.floor(Math.random() * (temp_range[1] - temp_range[0]) + temp_range[0]);
+    
+    const radius_solar_units = Math.pow(mass, 0.75);
+    const radius_km = radius_solar_units * solar_radius * 695700;
+    const luminosity = Math.pow(radius_solar_units, 2) * Math.pow(temperature / solar_temp, 4);
+    const abs_mag = parseFloat((solar_abs_mag - 2.5 * Math.log10(luminosity)).toFixed(3));
+    
+    const ra = parseFloat((Math.random() * 360).toFixed(6));
+    const dec = parseFloat((Math.random() * 90 * (Math.random() > 0.5 ? 1 : -1)).toFixed(6));
+    const distance = parseFloat((Math.random() * 9990 + 10).toFixed(4));
+    
+    const star_name = `DSS-${Math.floor(Math.random() * 9000) + 1000}`;
+
+    lastStarData = { star_name, mass, temperature, radius_km, abs_mag, ra, dec, distance, spectral_type };
+    return lastStarData;
+}
+
+function generateStarDescription(data) {
+    const spectral_data_desc = {
+        "O": t("starTypeO"), "B": t("starTypeB"), "A": t("starTypeA"), "F": t("starTypeF"),
+        "G": t("starTypeG"), "K": t("starTypeK"), "M": t("starTypeM")
+    };
+    const description_text = spectral_data_desc[data.spectral_type];
+
+    return `
+        <p>${t("starDescName")} "${data.star_name}". ${t("starDescType")} ${description_text}.</p>
+        <p><b>${t("starDescProps")}:</b><br>
+        - ${t("starDescMass")}: ${data.mass.toFixed(2)} ${t("starDescMassUnit")}<br>
+        - ${t("starDescTemp")}: ${data.temperature}K<br>
+        - ${t("starDescRadius")}: ${t("starDescApprox")} ${(data.radius_km / 1000).toFixed(2)} ${t("starDescRadiusUnit")}</p>
+        <p>${t("starDescLuminosity")} ${data.abs_mag < 4.83 ? t("starDescBrighter") : t("starDescDimmer")} ${t("starDescAbsMag")} ${data.abs_mag}${t("starDescDistance")} ${data.distance} ${t("starDescDistanceUnit")}</p>
+    `;
+}
+
+function formatStarCode(data) {
+    return `"${data.star_name}"
+{
+    RA ${data.ra.toFixed(6)}
+    Dec ${data.dec.toFixed(6)}
+    Distance ${data.distance.toFixed(4)}
+    AbsMag ${data.abs_mag.toFixed(3)}
+    SpectralType "${data.spectral_type}"
+    Radius ${Math.round(data.radius_km)}
+    Mass ${data.mass.toFixed(3)}
+    Temperature ${data.temperature}
+}`;
+}
+
+// --- PLANET GENERATOR ---
+function generatePlanetData(star_name, star_mass) {
+    const radius = Math.floor(Math.random() * (70000 - 6000) + 6000);
+    const semi_major_axis = parseFloat((Math.random() * (15.0 - 0.1) + 0.1).toFixed(4));
+    const orbital_period = parseFloat(Math.sqrt(Math.pow(semi_major_axis, 3) / star_mass).toFixed(4));
+    const eccentricity = parseFloat((Math.random() * 0.199 + 0.001).toFixed(4));
+    
+    const atmosphere_types = {
+        earth_like: { sky: [0.2, 0.6, 1.0], sunset: [1.0, 0.5, 0.2], rayleigh: [0.001, 0.0035, 0.008] },
+        mars_like: { sky: [0.9, 0.5, 0.1], sunset: [0.3, 0.4, 0.9], rayleigh: [0.008, 0.0035, 0.001] },
+        alien_purple: { sky: [0.8, 0.5, 0.8], sunset: [0.3, 0.8, 0.5], rayleigh: [0.005, 0.002, 0.006] },
+        venus_like: { sky: [0.9, 0.8, 0.5], sunset: [0.6, 0.5, 0.4], rayleigh: [0.001, 0.001, 0.001] }
+    };
+    const atm_type = Object.keys(atmosphere_types)[Math.floor(Math.random() * Object.keys(atmosphere_types).length)];
+    const atm_data = atmosphere_types[atm_type];
+    const atmosphere_height = Math.floor(Math.random() * (radius / 50 - radius / 200) + radius / 200);
+
+    const planetDataObject = {
+        planet_name: document.getElementById('planetName').value || "B",
+        star_name,
+        radius, orbital_period, semi_major_axis, eccentricity,
+        inclination_orbit: parseFloat((Math.random() * 180).toFixed(4)),
+        ascending_node_orbit: parseFloat((Math.random() * 360).toFixed(4)),
+        arg_of_pericenter: parseFloat((Math.random() * 360).toFixed(4)),
+        mean_anomaly: parseFloat((Math.random() * 360).toFixed(4)),
+        atmosphere_height,
+        sky_color: atm_data.sky,
+        sunset_color: atm_data.sunset,
+        mie_scale_height: Math.floor(Math.random() * (atmosphere_height / 3 - atmosphere_height / 10) + atmosphere_height / 10),
+        mie_scattering: parseFloat((Math.random() * 0.009 + 0.001).toFixed(4)),
+        mie_asymmetry: parseFloat((Math.random() - 0.5).toFixed(2)),
+        rayleigh: atm_data.rayleigh,
+        rotation_period: parseFloat((Math.random() * 495 + 5).toFixed(1)),
+        inclination_rotation: parseFloat((Math.random() * 180).toFixed(1)),
+        ascending_node_rotation: parseFloat((Math.random() * 360).toFixed(1)),
+    };
+    return planetDataObject;
+}
+
+function formatPlanetCode(data) {
+    const formatColor = (c) => `[ ${c[0].toFixed(1)} ${c[1].toFixed(1)} ${c[2].toFixed(1)} ]`;
+    const formatRayleigh = (r) => `[ ${r[0].toFixed(4)} ${r[1].toFixed(4)} ${r[2].toFixed(4)} ]`;
+    const lower_color = data.sky_color.map(c => c * 0.8);
+    const upper_color = data.sky_color.map(c => c * 0.9);
+
+    return `"${data.planet_name}" "${data.star_name}"
+{
+    Texture         "${data.planet_name}.*"
+    Radius          ${data.radius}
+    EllipticalOrbit
+    {
+        Period          ${data.orbital_period.toFixed(4)}
+        SemiMajorAxis   ${data.semi_major_axis.toFixed(4)}
+        Eccentricity    ${data.eccentricity.toFixed(4)}
+        Inclination     ${data.inclination_orbit.toFixed(4)}
+        AscendingNode   ${data.ascending_node_orbit.toFixed(4)}
+        ArgOfPericenter ${data.arg_of_pericenter.toFixed(4)}
+        MeanAnomaly     ${data.mean_anomaly.toFixed(4)}
+    }
+    Atmosphere
+    {
+        Height          ${data.atmosphere_height}
+        Lower   ${formatColor(lower_color)}
+        Upper   ${formatColor(upper_color)}
+        Sky     ${formatColor(data.sky_color)}
+        Sunset  ${formatColor(data.sunset_color)}
+        MieScaleHeight  ${data.mie_scale_height}
+        Mie             ${data.mie_scattering.toFixed(4)}
+        MieAsymmetry    ${data.mie_asymmetry.toFixed(2)}
+        Rayleigh        ${formatRayleigh(data.rayleigh)}
+    }
+    UniformRotation
+    {
+        Period          ${data.rotation_period.toFixed(1)}
+        Inclination     ${data.inclination_rotation.toFixed(1)}
+        AscendingNode   ${data.ascending_node_rotation.toFixed(1)}
+    }
+}`;
+}
+
+// --- UI RENDERING ---
+function renderSavedPlanets() {
+    const container = document.getElementById('planetsList');
+    container.innerHTML = '';
+    savedPlanets.forEach((planet, index) => {
+        const entry = document.createElement('div');
+        entry.className = 'planet-entry';
+        entry.innerHTML = `
+            <h3>${planet.star_name} ${planet.planet_name}</h3>
+            <div class="planet-code">${formatPlanetCode(planet)}</div>
+            <div class="planet-actions">
+                <button class="btn-secondary copy-planet" data-index="${index}">${t('copyBtn')}</button>
+                <button class="btn-danger remove-planet" data-index="${index}">${t('removeBtn')}</button>
+            </div>
+        `;
+        container.appendChild(entry);
+    });
+}
+
+// --- ORBIT PREVIEW ---
+function drawOrbit(canvas, planets, starData) {
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    ctx.clearRect(0, 0, width, height);
+    
+    if (!starData.mass) return;
+
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const orbitColors = ['#00aaff', '#ff6347', '#32cd32', '#ffd700', '#ba55d3', '#ff4500'];
+
+    // Find max orbit size to scale the view
+    let maxApoapsis = 0;
+    planets.forEach(p => {
+        const apoapsis = p.semi_major_axis * (1 + p.eccentricity);
+        if (apoapsis > maxApoapsis) maxApoapsis = apoapsis;
+    });
+    const scale = maxApoapsis > 0 ? (width / 2.2) / maxApoapsis : 1;
+
+    // Draw Orbits and Planets
+    planets.forEach((planet, index) => {
+        const a = planet.semi_major_axis * scale;
+        const e = planet.eccentricity;
+        const c = e * a;
+        const b = Math.sqrt(a*a - c*c);
+
+        ctx.beginPath();
+        ctx.ellipse(centerX + c, centerY, a, b, 0, 0, 2 * Math.PI);
+        ctx.strokeStyle = orbitColors[index % orbitColors.length];
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        const planetX = centerX + c + a;
+        const planetY = centerY;
+        ctx.beginPath();
+        ctx.arc(planetX, planetY, 5, 0, 2 * Math.PI);
+        ctx.fillStyle = orbitColors[index % orbitColors.length];
+        ctx.fill();
+    });
+    
+    // Draw the star
+    const starRadius = Math.max(5, Math.pow(starData.mass, 0.5) * 5);
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, starRadius, 0, 2 * Math.PI);
+    ctx.fillStyle = getStarColor(starData.spectral_type);
+    ctx.fill();
+}
+
+function getStarColor(type) {
+    const colors = {
+        "O": "#9bb0ff", "B": "#aabfff", "A": "#cad7ff",
+        "F": "#f8f7ff", "G": "#fff4ea", "K": "#ffd2a1", "M": "#ffcc6f"
+    };
+    return colors[type] || "#ffffff";
+}
+
+// --- EVENT LISTENERS ---
+document.addEventListener('DOMContentLoaded', () => {
+    const starOutput = document.getElementById('starOutput');
+    const starDesc = document.getElementById('starDescription');
+    const orbitCanvas = document.getElementById('orbitCanvas');
+
+    document.getElementById('generateStarBtn').addEventListener('click', () => {
+        const data = generateStarData();
+        starOutput.textContent = formatStarCode(data);
+        starDesc.innerHTML = generateStarDescription(data);
+        
+        savedPlanets = [];
+        renderSavedPlanets();
+        drawOrbit(orbitCanvas, savedPlanets, lastStarData);
+        document.getElementById('planetName').value = "B";
+    });
+
+    document.getElementById('copyStarBtn').addEventListener('click', () => {
+        navigator.clipboard.writeText(starOutput.textContent.trim()).then(() => alert(t('copied')));
+    });
+
+    document.getElementById('generatePlanetBtn').addEventListener('click', () => {
+        if (!lastStarData.mass) {
+            alert(currentLang === 'zh' ? '请先生成一颗恒星！' : 'Please generate a star first!');
+            return;
+        }
+        const data = generatePlanetData(lastStarData.star_name, lastStarData.mass);
+        savedPlanets.push(data);
+        renderSavedPlanets();
+        drawOrbit(orbitCanvas, savedPlanets, lastStarData);
+        
+        // Auto-increment planet name
+        const currentName = document.getElementById('planetName').value;
+        document.getElementById('planetName').value = String.fromCharCode(currentName.charCodeAt(0) + 1);
+    });
+    
+    document.getElementById('clearPlanetsBtn').addEventListener('click', () => {
+        savedPlanets = [];
+        renderSavedPlanets();
+        drawOrbit(orbitCanvas, savedPlanets, lastStarData);
+        document.getElementById('planetName').value = "B";
+    });
+
+    document.getElementById('planetsList').addEventListener('click', (e) => {
+        const target = e.target;
+        const index = target.dataset.index;
+        if (index === undefined) return;
+
+        if (target.classList.contains('copy-planet')) {
+            const planetCode = formatPlanetCode(savedPlanets[index]);
+            navigator.clipboard.writeText(planetCode.trim()).then(() => alert(t('copied')));
+        } else if (target.classList.contains('remove-planet')) {
+            savedPlanets.splice(index, 1);
+            renderSavedPlanets();
+            drawOrbit(orbitCanvas, savedPlanets, lastStarData);
+        }
+    });
+
+    document.getElementById('lang-en').addEventListener('click', () => setLanguage('en'));
+    document.getElementById('lang-zh').addEventListener('click', () => setLanguage('zh'));
+
+    // Initial load
+    setLanguage('en');
+    document.getElementById('generateStarBtn').click();
+});
+</script>
+</body>
+</html>
+
