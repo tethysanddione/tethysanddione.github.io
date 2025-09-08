@@ -83,9 +83,10 @@
         <div class="control-group">
             <label class="label">基础纹理</label>
             <select id="texture-select">
-                <option value="rock">岩石 (Marble)</option>
+                <option value="rock">岩石 (Rock)</option>
                 <option value="ice">坚冰 (Sheet)</option>
                 <option value="dune">土丘 (Dune)</option>
+                <option value="stone">岩冰 (Shell)</option>
                 <option value="custom">自定义...</option>
             </select>
             <input type="file" id="texture-file" style="display: none; margin-top: 5px;" accept="image/*">
@@ -192,7 +193,8 @@
                  const textureUrls = {
                     rock: 'textures/marble.png',
                     ice: 'textures/sheet.png',
-                    dune: 'textures/dune.png'
+                    dune: 'textures/dune.png',
+                    stone: 'textures/stone.png'
                 };
                 const img = new Image();
                 img.onload = () => {
