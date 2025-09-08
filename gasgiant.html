@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>气体巨行星贴图生成器 | Gas Giant Texture Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 引入 Simplex Noise 库 -->
-    <script src="https://cdn.jsdelivr.net/npm/simplex-noise@3.0.1/dist/simplex-noise.min.js"></script>
+    <!-- 引入 Simplex Noise 库 (更换为更稳定的版本) -->
+    <script src="https://cdn.jsdelivr.net/npm/simplex-noise@2.4.0/simplex-noise.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -134,7 +134,15 @@
                 return new ImageData(clampedData, this.width, this.height);
             }
             get(y, x) {
-                const i = (y * this.width + x) * 4;
+                // FIX: Add bounds clamping and wrapping to prevent errors
+                const safeY = Math.max(0, Math.min(this.height - 1, Math.floor(y)));
+                // For horizontal seamlessness, we wrap the x-coordinate
+                let safeX = Math.floor(x);
+                safeX = (safeX % this.width + this.width) % this.width;
+
+                const i = (safeY * this.width + safeX) * 4;
+                // Fallback for safety, although with clamping/wrapping it shouldn't be NaN
+                if (isNaN(i)) { return [0, 0, 0, 255]; } 
                 return [this.data[i], this.data[i+1], this.data[i+2], this.data[i+3]];
             }
             set(y, x, color) {
@@ -165,7 +173,7 @@
                     const dx = newX - x1;
                     const dy = newY - y1;
 
-                    let finalColor = [0, 0, 0, 0];
+                    let finalColor = [0, 0, 0, 255];
                     for (let c = 0; c < 3; c++) {
                         const p1 = inputArray.get(y1, x1)[c];
                         const p2 = inputArray.get(y1, x1 + 1)[c];
@@ -198,12 +206,8 @@
                          const srcX = dx * cosA - dy * sinA + centerX;
                          const srcY = dx * sinA + dy * cosA + centerY;
 
-                         if (srcX >= 0 && srcX < width - 1 && srcY >= 0 && srcY < height - 1) {
-                             const x1 = Math.floor(srcX);
-                             const y1 = Math.floor(srcY);
-                             // Simplified to nearest neighbor for performance
-                             outputArray.set(y, x, inputArray.get(y1, x1));
-                         }
+                         // The robust .get() method makes this inherently safe
+                         outputArray.set(y, x, inputArray.get(srcY, srcX));
                      }
                  }
              }
@@ -226,7 +230,7 @@
                         weightSum += weight;
                     }
                     const val = total / weightSum;
-                    outputArray.set(y, x, [val, val, val]);
+                    outputArray.set(y, x, [val, val, val, 255]);
                 }
             }
             return outputArray;
@@ -248,10 +252,10 @@
             for (let i = 0; i < num_bands; i++) {
                 await updateStatus(`Step 2: Drawing main cloud bands... (${i + 1}/${num_bands})`);
                 const y_center = randint(0, height);
-                const band_height = uniform(height * 0.05, height * 0.2);
+                const band_height = uniform(height * 0.03, height * 0.2);
                 const band_color = choice(band_colors);
-                const wave_amplitude = uniform(height * 0.01, height * 0.03);
-                const wave_scale = uniform(3.0, 6.0);
+                const wave_amplitude = uniform(height * 0.00, height * 0.01);
+                const wave_scale = uniform(1.0, 10.0);
 
                 const bandLayer = new PixelArray(width, height);
 
@@ -263,12 +267,12 @@
 
                     for (let y = 0; y < height; y++) {
                         const intensity = 0.4 * Math.exp(-Math.pow(y - waved_y_center, 2) / (2 * Math.pow(band_height / 4, 2)));
-                        const final_intensity = intensity * (0.6 + 0.4 * turbulence_noise);
+                        const final_intensity = intensity * (0.85 + 0.15 * turbulence_noise);
 
                         const r = band_color[0] * final_intensity;
                         const g = band_color[1] * final_intensity;
                         const b = band_color[2] * final_intensity;
-                        bandLayer.set(y, x, [r, g, b]);
+                        bandLayer.set(y, x, [r, g, b, 255]);
                     }
                 }
                 
@@ -286,7 +290,7 @@
 
         async function addGlowingJetStreams(planetArray) {
             const { width, height } = planetArray;
-            const num_jets = randint(3, 8);
+            const num_jets = randint(0, 8);
             
             for (let i = 0; i < num_jets; i++) {
                 await updateStatus(`Step 3: Adding glowing jet streams... (${i + 1}/${num_jets})`);
@@ -296,9 +300,9 @@
                 const glow_color = [240, 240, 255];
                 
                 const main_wave_amp = uniform(height * 0.02, height * 0.04);
-                const main_wave_scale = uniform(4.0, 8.0);
+                const main_wave_scale = uniform(2.0, 8.0);
                 const turb_wave_amp = uniform(height * 0.005, height * 0.01);
-                const turb_wave_scale = uniform(2.0, 4.0);
+                const turb_wave_scale = uniform(1.0, 4.0);
 
                 for (let x = 0; x < width; x++) {
                     const x_norm = x / width;
@@ -315,7 +319,7 @@
                         const r = glow_color[0] * intensity * alpha;
                         const g = glow_color[1] * intensity * alpha;
                         const b = glow_color[2] * intensity * alpha;
-                        jetLayer.set(y, x, [r, g, b]);
+                        jetLayer.set(y, x, [r, g, b, 255]);
                     }
                 }
                 
@@ -331,7 +335,7 @@
 
         async function applyFlowDistortion(planetArray) {
             const { width, height } = planetArray;
-            const strength = uniform(5, 15);
+            const strength = uniform(1, 8);
             
             const coordsY = Array(height).fill(0).map(() => Array(width));
             const coordsX = Array(height).fill(0).map(() => Array(width));
@@ -346,8 +350,6 @@
                     
                     coordsY[y][x] = y + y_offset * strength;
                     coordsX[y][x] = x + x_offset * (strength / 4);
-                    // Wrap X
-                    coordsX[y][x] = (coordsX[y][x] + width) % width;
                 }
             }
             
@@ -356,67 +358,77 @@
             return mapCoordinates(planetArray, [coordsY, coordsX]);
         }
 
-        async function addGreatStorm(planetArray, palette) {
-             const { width, height } = planetArray;
-             const cy = randint(height * 0.2, height * 0.8);
-             const cx = randint(width * 0.2, width * 0.8);
-             const radius_y = uniform(height * 0.08, height * 0.15);
-             const radius_x = radius_y * uniform(1.5, 2.5);
-             const storm_color = choice([PALETTES["sunset_dream"][1], PALETTES["cosmic_violet"][5]]);
-             
-             // Create flow-around effect
-             await updateStatus(`Step 5: Creating storm flow-around effect...`);
-             const distorted_base_array = planetArray.clone(); // Simplified for now
-             
-             // Create storm texture
-             await updateStatus(`Step 5: Generating storm texture...`);
-             const stormTextureLayer = new PixelArray(width, height);
-             const maskArray = new PixelArray(width, height);
+async function addGreatStorm(planetArray, palette) {
+    const { width, height } = planetArray;
+    const cy = randint(height * 0.2, height * 0.8);
+    const cx = randint(width * 0.2, width * 0.8);
 
-             for (let y = 0; y < height; y++) {
-                 for (let x = 0; x < width; x++) {
-                     const dist_sq = Math.pow((x - cx) / radius_x, 2) + Math.pow((y - cy) / radius_y, 2);
-                     if (dist_sq < 1.2) { // Process a slightly larger area for blurring
-                         const edge_noise = simplex.noise2D(x / 25.0, y / 25.0);
-                         if (dist_sq / (1.0 + 0.3 * edge_noise) < 1.0) {
-                              maskArray.set(y, x, [1,1,1]);
-                         }
-                         const internal_noise = (simplex.noise2D(x / 50.0, y / 50.0) + 1) / 2;
-                         const r = storm_color[0] * internal_noise;
-                         const g = storm_color[1] * internal_noise;
-                         const b = storm_color[2] * internal_noise;
-                         stormTextureLayer.set(y, x, [r,g,b]);
-                     }
-                 }
-             }
+    // 半径
+    const radius_y = uniform(height * 0.08, height * 0.15);
+    const radius_x = radius_y * uniform(1.5, 2.5);
 
-             await updateStatus(`Step 5: Blurring storm mask...`);
-             const blurredMask = gaussianBlur(maskArray, 8);
-             
-             await updateStatus(`Step 5: Swirling storm...`);
-             const swirled_storm = swirl(stormTextureLayer, cy, cx, uniform(5, 8), Math.max(radius_x, radius_y) * 1.5);
-             
-             // Blend
-             for(let i=0; i < planetArray.data.length; i+=4) {
-                 const mask = blurredMask.data[i];
-                 planetArray.data[i] = planetArray.data[i] * (1-mask) + swirled_storm.data[i] * mask;
-                 planetArray.data[i+1] = planetArray.data[i+1] * (1-mask) + swirled_storm.data[i+1] * mask;
-                 planetArray.data[i+2] = planetArray.data[i+2] * (1-mask) + swirled_storm.data[i+2] * mask;
-             }
-             return planetArray;
+    // === 用传入的调色板来选颜色 ===
+    // 从 palette 中挑一个中间色和一个亮色
+    const midIndex = Math.floor(palette.length / 2);
+    const baseColor = palette[midIndex];
+    const highlightColor = palette[Math.min(midIndex + 1, palette.length - 1)];
+
+    await updateStatus(`Step 5: Generating storm texture with layered noise...`);
+    const stormTexture = new PixelArray(width, height);
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const dx = (x - cx) / radius_x;
+            const dy = (y - cy) / radius_y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 1.6) {
+                // --- 平滑衰减 Mask
+                const mask = Math.exp(-Math.pow(dist, 3.0) * 2.4);
+
+                // --- 噪声分层
+                const lowFreq = simplex.noise2D(x / 1500.0, y / 1500.0);
+                const highFreq = simplex.noise2D(x / 500.0, y / 500.0);
+                const detail = (lowFreq * 0.8 + highFreq * 0.2 + 1) / 2;
+
+                // --- 基于 palette 的渐变色
+                const r = baseColor[0] * (1 - detail) + highlightColor[0] * detail;
+                const g = baseColor[1] * (1 - detail) + highlightColor[1] * detail;
+                const b = baseColor[2] * (1 - detail) + highlightColor[2] * detail;
+
+                stormTexture.set(y, x, [r * mask, g * mask, b * mask, 255 * mask]);
+            }
         }
+    }
+
+    await updateStatus(`Step 5: Swirling storm with multi-scale flow...`);
+    let stormSwirl = swirl(stormTexture, cy, cx, uniform(4, 7), Math.max(radius_x, radius_y) * 1.6);
+    stormSwirl = swirl(stormSwirl, cy, cx, uniform(1.5, 3.0), Math.max(radius_x, radius_y) * 0.8);
+    
+    // --- Alpha 混合
+    for (let i = 0; i < planetArray.data.length; i += 4) {
+        const alpha = stormSwirl.data[i + 3] / 255.0;
+        if (alpha > 0.01) {
+            planetArray.data[i] = planetArray.data[i] * (1 - alpha) + stormSwirl.data[i] * alpha;
+            planetArray.data[i + 1] = planetArray.data[i + 1] * (1 - alpha) + stormSwirl.data[i + 1] * alpha;
+            planetArray.data[i + 2] = planetArray.data[i + 2] * (1 - alpha) + stormSwirl.data[i + 2] * alpha;
+        }
+    }
+
+    return planetArray;
+}
 
         async function addSeamlessStorms(planetArray) {
             const { width, height } = planetArray;
-            const num_storms = randint(2, 4);
+            const num_storms = randint(0, 16);
 
             let tempArray = planetArray;
             for (let i = 0; i < num_storms; i++) {
                 await updateStatus(`Step 6: Adding seamless eddies... (${i + 1}/${num_storms})`);
                 const cx = randint(width * 0.25, width * 0.75);
                 const cy = randint(0, height - 1);
-                const radius = randint(width * 0.08, width * 0.15);
-                const strength = uniform(1.5, 3.0) * choice([-1, 1]);
+                const radius = randint(width * 0.08, width * 0.2);
+                const strength = uniform(1.5, 4.0) * choice([-1, 1]);
                 tempArray = swirl(tempArray, cy, cx, strength, radius);
             }
             return tempArray;
@@ -431,54 +443,65 @@
             btnText.textContent = "正在生成...";
             downloadLink.classList.add('hidden');
 
-            // --- Get Settings ---
-            const resolution = resolutionSelect.value;
-            const paletteKey = paletteSelect.value;
-            const doGreatStorm = greatStormCheckbox.checked;
+            try {
+                // --- Get Settings ---
+                const resolution = resolutionSelect.value;
+                const paletteKey = paletteSelect.value;
+                const doGreatStorm = greatStormCheckbox.checked;
 
-            const WIDTH = resolution === '1k' ? 1024 : 2048;
-            const HEIGHT = resolution === '1k' ? 512 : 1024;
-            canvas.width = WIDTH;
-            canvas.height = HEIGHT;
+                const WIDTH = resolution === '1k' ? 1024 : 2048;
+                const HEIGHT = resolution === '1k' ? 512 : 1024;
+                canvas.width = WIDTH;
+                canvas.height = HEIGHT;
 
-            const seed = Date.now();
-            simplex = new SimplexNoise(seed);
+                const seed = Date.now();
+                simplex = new SimplexNoise(String(seed));
 
-            const paletteName = paletteKey === 'random' ? choice(Object.keys(PALETTES)) : paletteKey;
-            const palette = PALETTES[paletteName];
+                const paletteName = paletteKey === 'random' ? choice(Object.keys(PALETTES)) : paletteKey;
+                const palette = PALETTES[paletteName];
 
-            // --- Generation Steps ---
-            await updateStatus("Step 1: Generating base color...");
-            const base_color = palette[0];
-            ctx.fillStyle = `rgb(${base_color[0]}, ${base_color[1]}, ${base_color[2]})`;
-            ctx.fillRect(0, 0, WIDTH, HEIGHT);
-            let planetArray = PixelArray.fromImageData(ctx.getImageData(0, 0, WIDTH, HEIGHT));
+                // --- Generation Steps ---
+                await updateStatus("Step 1: Generating base color...");
+                const base_color = palette[0];
+                ctx.fillStyle = `rgb(${base_color[0]}, ${base_color[1]}, ${base_color[2]})`;
+                ctx.fillRect(0, 0, WIDTH, HEIGHT);
+                let planetArray = PixelArray.fromImageData(ctx.getImageData(0, 0, WIDTH, HEIGHT));
 
-            planetArray = await addMainBands(planetArray, palette);
-            planetArray = await addGlowingJetStreams(planetArray);
-            planetArray = await applyFlowDistortion(planetArray);
-            if (doGreatStorm) {
-                planetArray = await addGreatStorm(planetArray, palette);
+                planetArray = await addMainBands(planetArray, palette);
+                planetArray = await addGlowingJetStreams(planetArray);
+                planetArray = await applyFlowDistortion(planetArray);
+                if (doGreatStorm) {
+                    planetArray = await addGreatStorm(planetArray, palette);
+                }
+                planetArray = await addSeamlessStorms(planetArray);
+                
+                await updateStatus("Finalizing image...");
+
+                // Clip values
+                for(let i=0; i<planetArray.data.length; i+=4) {
+                    planetArray.data[i] = Math.max(0, Math.min(255, planetArray.data[i]));
+                    planetArray.data[i+1] = Math.max(0, Math.min(255, planetArray.data[i+1]));
+                    planetArray.data[i+2] = Math.max(0, Math.min(255, planetArray.data[i+2]));
+                    planetArray.data[i+3] = 255; // Ensure full opacity
+                }
+                
+                ctx.putImageData(planetArray.toImageData(), 0, 0);
+
+                // --- UI Teardown on Success ---
+                statusText.textContent = `完成! (调色板: ${paletteName})`;
+                downloadLink.href = canvas.toDataURL('image/png');
+                downloadLink.download = `gas_giant_${paletteName}_${seed}.png`;
+                downloadLink.classList.remove('hidden');
+
+            } catch (error) {
+                console.error("An error occurred during texture generation:", error);
+                statusText.textContent = "生成失败，请检查控制台错误。";
+            } finally {
+                // --- UI Teardown (always run) ---
+                generateBtn.disabled = false;
+                spinner.classList.add('hidden');
+                btnText.textContent = "生成贴图";
             }
-            planetArray = await addSeamlessStorms(planetArray);
-            
-            await updateStatus("Finalizing image...");
-
-            // Clip values
-            for(let i=0; i<planetArray.data.length; i++) {
-                planetArray.data[i] = Math.max(0, Math.min(255, planetArray.data[i]));
-            }
-            
-            ctx.putImageData(planetArray.toImageData(), 0, 0);
-
-            // --- UI Teardown ---
-            statusText.textContent = `完成! (调色板: ${paletteName})`;
-            downloadLink.href = canvas.toDataURL('image/png');
-            downloadLink.download = `gas_giant_${paletteName}_${seed}.png`;
-            downloadLink.classList.remove('hidden');
-            generateBtn.disabled = false;
-            spinner.classList.add('hidden');
-            btnText.textContent = "生成贴图";
         }
 
         // --- Initialization ---
@@ -497,7 +520,10 @@
             generate();
         }
 
-        init();
+        window.onload = function() {
+            init();
+        };
     </script>
 </body>
 </html>
+
