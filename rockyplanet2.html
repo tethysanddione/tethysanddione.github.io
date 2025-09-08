@@ -155,7 +155,7 @@
     const planetCtx = planetCanvas.getContext('2d');
     const heightmapCtx = heightmapCanvas.getContext('2d');
 
-    const worker = new Worker('worker.js');
+    const worker = new Worker('worker.js', { type: 'module' });
 
     textureSelect.addEventListener('change', () => {
         textureFileInput.style.display = textureSelect.value === 'custom' ? 'block' : 'none';
