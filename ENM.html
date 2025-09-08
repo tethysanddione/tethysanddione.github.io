@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ENM TC 强度分析工具 (兼容版)</title>
-    <!-- 使用更稳定且兼容性更好的 ONNX Runtime 版本 -->
+    <!-- 使用更新的、支持新 Opset 的 ONNX Runtime 版本 -->
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.17.0/dist/ort.min.js"></script>
     <style>
         /* --- 全手写兼容性 CSS --- */
@@ -303,7 +303,6 @@
                     diagnosisResultsEl.textContent = '开始下载模型 (约 30MB)...';
                     progressContainer.className = progressContainer.className.replace(' hidden', '');
 
-                    // 旧浏览器可能不支持 ReadableStream, 所以我们提供一个回退
                     if (!response.body || !response.headers.get('content-length')) {
                         console.warn("浏览器不支持响应流，无法显示实时进度。");
                         return response.arrayBuffer();
@@ -339,7 +338,6 @@
                         .catch(function(webglError) {
                             console.warn("WebGL 后端初始化失败:", webglError);
                             diagnosisResultsEl.textContent = 'WebGL 加载失败，正在尝试 WASM 后端...';
-                            // .slice(0) is needed to copy the buffer for some ort versions
                             return ort.InferenceSession.create(modelBuffer.slice(0), { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
                         });
                 })
@@ -524,3 +522,4 @@
     </script>
 </body>
 </html>
+
