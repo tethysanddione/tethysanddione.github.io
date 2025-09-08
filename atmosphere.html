@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Celestia 大气颜色测试器</title>
+    <style>
+        :root {
+            --bg-color: #1a1e23;
+            --panel-bg: #2a2f36;
+            --text-color: #e0e6ec;
+            --header-color: #ffffff;
+            --border-color: #404853;
+            --accent-color: #00aaff;
+            --accent-hover: #0088cc;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+            flex-wrap: wrap;
+        }
+        .controls, .preview {
+            background-color: var(--panel-bg);
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            flex: 1;
+            min-width: 400px;
+        }
+        h1, h2 {
+            color: var(--header-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        #atmosphere-code {
+            width: 100%;
+            height: 300px;
+            background-color: #111315;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 20px;
+            background-color: var(--accent-color);
+            color: white;
+        }
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+        .preview-box {
+            height: 200px;
+            width: 100%;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            margin-top: 10px;
+        }
+        .preview-container {
+            margin-bottom: 25px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="controls">
+        <h1>输入大气参数</h1>
+        <textarea id="atmosphere-code">
+Atmosphere
+{
+    Height          931
+    Lower   [ 0.2 0.5 0.8 ]
+    Upper   [ 0.2 0.5 0.9 ]
+    Sky     [ 0.2 0.6 1.0 ]
+    Sunset  [ 1.0 0.5 0.2 ]
+    MieScaleHeight  127
+    Mie             0.0012
+    MieAsymmetry    0.17
+    Rayleigh        [ 0.0010 0.0035 0.0080 ]
+}
+        </textarea>
+        <button id="render-btn">渲染 / 更新预览</button>
+    </div>
+
+    <div class="preview">
+        <h1>颜色渲染效果</h1>
+        <div class="preview-container">
+            <h2>白天天空 (地平线到天顶)</h2>
+            <div id="day-sky-preview" class="preview-box"></div>
+        </div>
+        <div class="preview-container">
+            <h2>日落天空 (地平线到天顶)</h2>
+            <div id="sunset-sky-preview" class="preview-box"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const codeInput = document.getElementById('atmosphere-code');
+        const renderBtn = document.getElementById('render-btn');
+        const daySkyPreview = document.getElementById('day-sky-preview');
+        const sunsetSkyPreview = document.getElementById('sunset-sky-preview');
+
+        function parseColor(key, text) {
+            const regex = new RegExp(key + "\\s*\\[\\s*([\\d.]+)\\s+([\\d.]+)\\s+([\\d.]+)\\s*\\]", "i");
+            const match = text.match(regex);
+            if (match) {
+                return [parseFloat(match[1]), parseFloat(match[2]), parseFloat(match[3])];
+            }
+            return [0, 0, 0];
+        }
+
+        // --- NEW: Function to parse single float values ---
+        function parseValue(key, text) {
+            const regex = new RegExp(key + "\\s+([\\d.]+)", "i");
+            const match = text.match(regex);
+            if (match) {
+                return parseFloat(match[1]);
+            }
+            return 0; // Default to 0 if not found
+        }
+
+        function toCssRgb(colorArray) {
+            const r = Math.round(colorArray[0] * 255);
+            const g = Math.round(colorArray[1] * 255);
+            const b = Math.round(colorArray[2] * 255);
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
+        function renderPreview() {
+            const text = codeInput.value;
+
+            // Parse all required colors and values from the input text
+            const lowerColor = parseColor("Lower", text);
+            const skyColor = parseColor("Sky", text);
+            const sunsetColor = parseColor("Sunset", text);
+            const mieStrength = parseValue("Mie", text);
+            
+            // Convert to CSS color strings
+            const lowerCss = toCssRgb(lowerColor);
+            const skyCss = toCssRgb(skyColor);
+            const sunsetCss = toCssRgb(sunsetColor);
+
+            // --- MODIFIED: Simulate Mie scattering effect ---
+            // Map the typical range of Mie values (e.g., 0.001 to 0.02) to a gradient percentage (e.g., 5% to 60%)
+            // This determines how high the horizon haze (Lower color) reaches.
+            const minMie = 0.001;
+            const maxMie = 0.02;
+            const minStop = 5;  // % height for minimum haze
+            const maxStop = 60; // % height for maximum haze
+            
+            const normalizedMie = Math.max(0, Math.min(1, (mieStrength - minMie) / (maxMie - minMie)));
+            const hazeStopPercent = minStop + normalizedMie * (maxStop - minStop);
+
+            // Create a darker version of the sky color for the sunset zenith
+            const darkSkyCss = toCssRgb(skyColor.map(c => c * 0.1));
+
+            // Apply gradients to the preview boxes
+            // The day sky now has a variable stop for the haze color based on Mie strength
+            daySkyPreview.style.background = `linear-gradient(to top, ${lowerCss} ${hazeStopPercent}%, ${skyCss})`;
+            sunsetSkyPreview.style.background = `linear-gradient(to top, ${sunsetCss}, ${darkSkyCss})`;
+        }
+
+        renderBtn.addEventListener('click', renderPreview);
+        renderPreview(); // Initial render on page load
+    });
+</script>
+
+</body>
+</html>
+
