@@ -270,7 +270,7 @@
         // GitHub Releases 直链有时会因 CORS 策略导致下载失败。
         // 我们改用 rawcdn.githack.com，这是一个为 GitHub 仓库提供正确 CORS 头的文件代理服务，
         // 能够确保模型在各种网络环境下被稳定加载。
-        var modelUrl = 'https://rawcdn.githack.com/tethysanddione/tethysanddione.github.io/v1.0.0/model.onnx';
+        var modelUrl = 'https://github.com/tethysanddione/tethysanddione.github.io/releases/download/v1.0.0/model.onnx';
         
         var session; // ONNX session
         var MODEL_INPUT_SIZE = 512;
