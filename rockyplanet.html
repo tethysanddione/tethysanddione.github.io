@@ -289,11 +289,14 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
     const MOUNTAIN_PEAK = Math.min(params.SEA_LEVEL + 0.35, 0.95);
     
     const warmth_factor = Math.max(0, Math.min(1, (params.ICE_CAP_LATITUDE - 0.5) / 0.5));
-    const global_temp_mod = (warmth_factor - 0.5) * 0.5;
+    const global_temp_mod = (warmth_factor - 0.5) * 0.6;
 
     const MIN_SNOW_LINE = 0.2;
     const MAX_SNOW_LINE = 1.5;
     const SNOW_LINE = MIN_SNOW_LINE * (1 - warmth_factor) + MAX_SNOW_LINE * warmth_factor;
+    
+    // +++ NEW: Controls the sharpness of the ice edge +++
+    const ICE_SHARPNESS = 5.0; // Higher value = sharper edge
 
     const tex_width = textures.sand.width;
     const tex_height = textures.sand.height;
@@ -335,7 +338,9 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
                 // Check for sea ice based on temperature
                 let ice_factor = 0.0;
                 if (temp < 0.15) {
-                    ice_factor = 1.0 - (temp / 0.15);
+                    let raw_ice_factor = 1.0 - (temp / 0.15);
+                    // Sharpen the transition curve to create a hard edge
+                    ice_factor = Math.pow(raw_ice_factor, ICE_SHARPNESS);
                 }
                 final_color = blend(base_color, sample('ice', tx, ty), ice_factor);
 
@@ -370,14 +375,16 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
                 }
                 final_color = base_color;
 
-                // Land snow/ice logic (applied on top of other land textures)
+                // Land snow/ice logic
                 const snow_line_dynamic = SNOW_LINE + (1 - temp) * 0.2;
                 let snow_factor = 0.0;
                 if (h > snow_line_dynamic) { 
                     snow_factor = 1.0; 
                 }
                 if (temp < 0.15) { 
-                    snow_factor = Math.max(snow_factor, 1.0 - (temp / 0.15));
+                    let raw_ice_factor = 1.0 - (temp / 0.15);
+                    // Apply the same sharpness to polar land ice for consistency
+                    snow_factor = Math.max(snow_factor, Math.pow(raw_ice_factor, ICE_SHARPNESS));
                 }
                 
                 if (snow_factor > 0) {
