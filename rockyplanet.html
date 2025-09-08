@@ -287,14 +287,17 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
 
     const COLOR_DEEP_WATER = [10, 15, 60], COLOR_SHALLOW_WATER = [15, 20, 65];
     const MOUNTAIN_PEAK = Math.min(params.SEA_LEVEL + 0.35, 0.95);
-    // Snow line is now a simpler, fixed calculation relative to the peaks.
-    const SNOW_LINE = Math.max(MOUNTAIN_PEAK - 0.15, params.SEA_LEVEL);
-
-    // --- NEW UNIFIED CLIMATE MODEL ---
+    
+    // --- FINAL UNIFIED CLIMATE MODEL ---
     // Create a global temperature modifier based on the ice cap slider.
-    // Maps slider value [0.5, 1.0] to a temperature modifier [-0.25, 0.25]
     const warmth_factor = Math.max(0, Math.min(1, (params.ICE_CAP_LATITUDE - 0.5) / 0.5));
     const global_temp_mod = (warmth_factor - 0.5) * 0.5; // Ranges from -0.25 to +0.25
+
+    // CORRECTED: Snow line is now an absolute altitude, independent of sea level.
+    const MIN_SNOW_LINE = 0.2; // Snow line altitude on the coldest planets
+    const MAX_SNOW_LINE = 1.5; // Snow line altitude on the hottest planets (effectively no snow)
+    const SNOW_LINE = MIN_SNOW_LINE * (1 - warmth_factor) + MAX_SNOW_LINE * warmth_factor;
+    // --- END CORRECTION ---
 
     const tex_width = textures.sand.width;
     const tex_height = textures.sand.height;
@@ -319,7 +322,6 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
             const h = heightMap[index];
             const m = moistureMap[index];
             
-            // The new temperature calculation is now the heart of the climate system
             const latitude_factor = 1.0 - Math.abs(y - height / 2) / (height / 2);
             let temp = latitude_factor * 0.7 + 0.1 + global_temp_mod; // Apply global temperature
             if (h > params.SEA_LEVEL) temp -= (h - params.SEA_LEVEL) * 0.5; // Apply altitude cooling
@@ -362,19 +364,16 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
                 }
 
                 // Simplified, unified snow/ice logic.
-                // This single block now handles BOTH mountain snow AND polar ice caps.
                 const snow_line_dynamic = SNOW_LINE + (1 - temp) * 0.2;
                 let snow_factor = 0.0;
-                if (h > snow_line_dynamic) { // Snow from high altitude
+                if (h > snow_line_dynamic) { 
                     snow_factor = 1.0; 
                 }
-                if (temp < 0.15) { // Snow/ice from low temperature (poles)
-                    // Blend based on how far below the freezing point it is
+                if (temp < 0.15) { 
                     snow_factor = Math.max(snow_factor, 1.0 - (temp / 0.15));
                 }
                 
                 if (snow_factor > 0) {
-                    // Use 'ice' texture for a consistent frozen look, or change to 'snow' if you prefer
                     final_color = blend(final_color, sample('ice', tx, ty), snow_factor);
                 }
             }
@@ -406,7 +405,6 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
     }
     return imageData;
 };
-
 
 // --- UI and Event Handling ---
 function updateSliderValue(slider, display) {
