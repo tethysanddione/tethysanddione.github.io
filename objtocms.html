@@ -77,8 +77,7 @@
         #drop-zone label {
             display: block;
             padding: 20px 0;
-            /* Clicks on label text are handled by the parent div, so make it non-interactive */
-            pointer-events: none;
+            cursor: pointer; /* 确保标签本身也显示为可点击状态 */
         }
         button {
             width: 100%;
@@ -159,13 +158,10 @@
     const export3dsBtn = document.getElementById('export-3ds-btn');
     const exportCmsBtn = document.getElementById('export-cms-btn');
 
-    // --- FIX STARTS HERE ---
-    // Make the entire drop zone clickable to open the file dialog
-    dropZone.addEventListener('click', () => {
-        fileInput.click();
-    });
-    // --- FIX ENDS HERE ---
-
+    // **↓↓↓ 这是添加的修复代码 ↓↓↓**
+    dropZone.addEventListener('click', () => fileInput.click()); 
+    // **↑↑↑ 这是添加的修复代码 ↑↑↑**
+    
     dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
     dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
     dropZone.addEventListener('drop', (e) => {
