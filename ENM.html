@@ -213,15 +213,16 @@
 
     <div class="container">
         <div class="text-center mb-6">
-            <h1>ENM-AIIR 强度分析工具</h1>
-            <p class="text-gray-400">上传热带气旋红外(IR-BW)云图，获取机器学习强度评估参考。</p>
+            <h1>ENM TC 强度分析工具</h1>
+            <p class="text-gray-400">上传热带气旋红外云图，获取 AI 强度评估参考。</p>
             <p class="text-xs text-gray-500 mt-1">请确保 `model.onnx` 文件与此 HTML 文件位于同一目录</p>
         </div>
 
         <div id="image-drop-area">
             <input type="file" id="image-upload" multiple accept="image/*">
             <div id="upload-prompt">
-                <svg stroke="currentColor" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M3 15a4 4 0 004 4h9a5 5 Sioo 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" /></svg>
+                <!-- FIX: Replaced corrupted SVG path with a valid one -->
+                <svg stroke="currentColor" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-4-4 4.002 4.002 0 012.75-3.8A5.002 5.002 0 0117 8a5 5 0 01.1 9.9M12 11v6m-3-3l3 3 3-3" /></svg>
                 <p class="mt-2" style="font-size: 14px;"><span style="font-weight: 600; color: #a5b4fc;">点击上传</span>、拖拽文件或粘贴图片</p>
                 <p class="text-xs text-gray-500">支持多张图片批量分析</p>
             </div>
@@ -266,11 +267,7 @@
         var currentFiles = null; 
         
         // --- 模型配置 ---
-        // !!! 性能优化建议 !!!
-        // GitHub Releases 直链有时会因 CORS 策略导致下载失败。
-        // 我们改用 rawcdn.githack.com，这是一个为 GitHub 仓库提供正确 CORS 头的文件代理服务，
-        // 能够确保模型在各种网络环境下被稳定加载。
-        var modelUrl = 'https://github.com/tethysanddione/tethysanddione.github.io/releases/download/v1.0.0/model.onnx';
+        var modelUrl = 'https://rawcdn.githack.com/tethysanddione/tethysanddione.github.io/v1.0.0/model.onnx';
         
         var session; // ONNX session
         var MODEL_INPUT_SIZE = 512;
@@ -468,15 +465,25 @@
             }
         }
         
+        // FIX: Restored click handler to trigger file input
+        imageDropArea.addEventListener('click', function() {
+            imageUploadInput.click();
+        });
+
         imageDropArea.addEventListener('dragover', function(e) {
             e.preventDefault();
-            imageDropArea.className += ' drag-over';
+            // FIX: Robustly add class
+            if (imageDropArea.className.indexOf('drag-over') === -1) {
+                imageDropArea.className += ' drag-over';
+            }
         });
         imageDropArea.addEventListener('dragleave', function() {
+            // FIX: Robustly remove class
             imageDropArea.className = imageDropArea.className.replace(' drag-over', '');
         });
         imageDropArea.addEventListener('drop', function(e) {
             e.preventDefault();
+            // FIX: Robustly remove class
             imageDropArea.className = imageDropArea.className.replace(' drag-over', '');
             handleFiles(e.dataTransfer.files);
         });
