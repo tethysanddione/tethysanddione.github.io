@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 模型转换器 (OBJ -&gt; 3DS + CMS)</title>
+    <style>
+        :root {
+            --bg-color: #1a1e23;
+            --panel-bg: #2a2f36;
+            --text-color: #e0e6ec;
+            --header-color: #ffffff;
+            --border-color: #404853;
+            --accent-color: #00aaff;
+            --accent-hover: #0088cc;
+            --green-color: #28a745;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+        .controls {
+            background-color: var(--panel-bg);
+            padding: 25px;
+            border-radius: 8px;
+            width: 350px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            border: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+        .preview {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        #preview-canvas {
+            width: 100%;
+            height: 100%;
+            min-height: 400px;
+            border-radius: 8px;
+            background-color: #000;
+            border: 1px solid var(--border-color);
+            cursor: grab;
+        }
+        h1, h2 {
+            color: var(--header-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        #drop-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        #drop-zone.dragover {
+            background-color: #3c424a;
+            border-color: var(--accent-color);
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 15px;
+        }
+        .btn-secondary { background-color: var(--green-color); color: white; }
+        .btn-secondary:hover { background-color: #1e7e34; }
+        button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .info-text { margin-top: 15px; font-size: 0.9em; opacity: 0.7; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="controls">
+        <h1>模型转换器</h1>
+        <p class="info-text">将 .obj 文件转换为 Celestia 兼容的 .3ds 和 .cms 文件。</p>
+        
+        <div id="drop-zone">
+            <p>将 .obj 文件拖放到此处<br>或点击选择文件</p>
+            <input type="file" id="file-input" accept=".obj" style="display: none;">
+        </div>
+
+        <h2 style="margin-top: 20px;">导出</h2>
+        <p id="file-info" class="info-text">尚未加载文件。</p>
+        <button id="export-3ds-btn" class="btn-secondary" disabled>下载 .3ds 文件</button>
+        <button id="export-cms-btn" class="btn-secondary" disabled>下载 .cms 文件</button>
+    </div>
+
+    <div class="preview">
+        <h2>3D 预览</h2>
+        <canvas id="preview-canvas"></canvas>
+    </div>
+</div>
+
+<!-- 这次，我们引用的是完整版的 three.js，因为它包含了必要的加载器和导出器 -->
+<script type="module">
+    import * as THREE from 'https://cdn.skypack.dev/three@0.128.0/build/three.module.js';
+    import { OBJLoader } from 'https://cdn.skypack.dev/three@0.128.0/examples/jsm/loaders/OBJLoader.js';
+    import { TDSExporter } from 'https://cdn.skypack.dev/three@0.128.0/examples/jsm/exporters/TDSExporter.js';
+
+    // --- SETUP ---
+    const canvas = document.getElementById('preview-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(50, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+    camera.position.z = 50;
+
+    // --- LIGHTING & HELPERS ---
+    scene.add(new THREE.AmbientLight(0xcccccc, 0.5));
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(1, 1, 1);
+    scene.add(directionalLight);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x444444, 0.6));
+    
+    let activeModel = null;
+    let modelName = 'model';
+
+    // --- UI & FILE HANDLING ---
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const fileInfo = document.getElementById('file-info');
+    const export3dsBtn = document.getElementById('export-3ds-btn');
+    const exportCmsBtn = document.getElementById('export-cms-btn');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFile(files[0]);
+        }
+    });
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+            handleFile(fileInput.files[0]);
+        }
+    });
+
+    function handleFile(file) {
+        if (!file.name.toLowerCase().endsWith('.obj')) {
+            alert("错误：请仅上传 .obj 文件。");
+            return;
+        }
+        modelName = file.name.replace(/\.obj$/i, '');
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            loadObj(event.target.result);
+            fileInfo.textContent = `已加载: ${file.name}`;
+            export3dsBtn.disabled = false;
+            exportCmsBtn.disabled = false;
+        };
+        reader.readAsText(file);
+    }
+    
+    // --- 3D LOGIC ---
+    function loadObj(objContent) {
+        if (activeModel) {
+            scene.remove(activeModel);
+        }
+        const loader = new OBJLoader();
+        const object = loader.parse(objContent);
+        
+        // 为所有子网格应用一个简单的灰色材质
+        object.traverse((child) => {
+            if (child.isMesh) {
+                child.material = new THREE.MeshStandardMaterial({
+                    color: 0xaaaaaa,
+                    roughness: 0.7,
+                    metalness: 0.1
+                });
+            }
+        });
+        
+        // 自动缩放和居中模型
+        const box = new THREE.Box3().setFromObject(object);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+        
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const scale = 20 / maxDim; // 将最大尺寸缩放到20个单位
+        object.scale.set(scale, scale, scale);
+        
+        box.setFromObject(object);
+        box.getCenter(center);
+        object.position.copy(center).multiplyScalar(-1);
+
+        activeModel = object;
+        scene.add(activeModel);
+    }
+
+    // --- MOUSE CONTROLS ---
+    let isDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
+    canvas.addEventListener('mousedown', (e) => { isDragging = true; previousMousePosition = {x: e.clientX, y: e.clientY}; canvas.style.cursor = 'grabbing'; });
+    window.addEventListener('mouseup', () => { isDragging = false; canvas.style.cursor = 'grab'; });
+    canvas.addEventListener('mousemove', (e) => {
+        if (!isDragging || !activeModel) return;
+        const deltaX = e.clientX - previousMousePosition.x;
+        const deltaY = e.clientY - previousMousePosition.y;
+        activeModel.rotation.y += deltaX * 0.01;
+        activeModel.rotation.x += deltaY * 0.01;
+        previousMousePosition = {x: e.clientX, y: e.clientY};
+    });
+    canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        camera.position.z += e.deltaY * 0.1;
+        camera.position.z = Math.max(10, Math.min(200, camera.position.z));
+    });
+
+    // --- EXPORT LOGIC ---
+    export3dsBtn.addEventListener('click', () => {
+        if (!activeModel) return;
+        const exporter = new TDSExporter();
+        const arraybuffer = exporter.parse(activeModel, { flipUpAxis: true });
+        download(new Blob([arraybuffer], { type: 'application/octet-stream' }), `${modelName}.3ds`);
+    });
+    
+    exportCmsBtn.addEventListener('click', () => {
+        const cmsContent = `Script "${modelName}" "Celestia Web Tools"\n{\n    Mesh "${modelName}.3ds"\n}`;
+        download(new Blob([cmsContent], { type: 'text/plain' }), `${modelName}.cms`);
+    });
+
+    function download(blob, filename) {
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
+
+    // --- RENDER LOOP ---
+    function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+    }
+    
+    window.addEventListener('resize', () => {
+        camera.aspect = canvas.clientWidth / canvas.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+    }, false);
+
+    animate();
+</script>
+</body>
+</html>
