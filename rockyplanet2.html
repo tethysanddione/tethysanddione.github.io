@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>程序化岩石行星生成器</title>
+    <style>
+        :root {
+            --bg-color: #1a1e23; --panel-bg: #2a2f36; --text-color: #e0e6ec;
+            --header-color: #ffffff; --border-color: #404853; --accent-color: #00aaff;
+            --accent-hover: #0088cc; --green-color: #28a745; --input-bg: #3c424a;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color); color: var(--text-color); margin: 0;
+            padding: 20px; display: flex; justify-content: center; align-items: flex-start; gap: 20px;
+        }
+        .container { display: flex; gap: 20px; width: 100%; max-width: 1600px; flex-wrap: wrap; }
+        .controls {
+            background-color: var(--panel-bg); padding: 25px; border-radius: 8px;
+            width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); border: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+        .preview-area { flex-grow: 1; display: flex; flex-direction: column; gap: 20px; min-width: 512px; }
+        .canvas-container { border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; background-color: #000; }
+        canvas { width: 100%; height: auto; border-radius: 4px; background-color: #111; }
+        h1, h2 { color: var(--header-color); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 0; }
+        h2 { margin-top: 25px; }
+        .control-group { margin-bottom: 18px; }
+        label, .label {
+            display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: bold; color: #ccc;
+        }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        input[type="number"], select, input[type="file"] {
+            width: 100%; box-sizing: border-box; padding: 8px; border-radius: 4px;
+            border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);
+        }
+        .value-display { font-family: monospace; font-size: 14px; background-color: var(--bg-color); padding: 2px 6px; border-radius: 4px; }
+        button {
+            width: 100%; padding: 12px; border: none; border-radius: 5px; font-size: 16px;
+            font-weight: bold; cursor: pointer; transition: background-color 0.2s; margin-top: 10px;
+        }
+        .btn-generate { background-color: var(--accent-color); color: white; }
+        .btn-generate:hover { background-color: var(--accent-hover); }
+        .btn-download { background-color: var(--green-color); color: white; margin-top: 5px;}
+        .btn-download:hover { background-color: #1e7e34; }
+        .loader {
+            display: none; text-align: center; padding: 20px; font-size: 18px;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.7); color: white; border-radius: 10px; z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="controls">
+        <h1>行星参数</h1>
+        
+        <h2>地形参数</h2>
+        <div class="control-group">
+            <label for="seed">随机种子 <span class="value-display" id="seed-value">1234</span></label>
+            <input type="number" id="seed" value="1234">
+        </div>
+        <div class="control-group">
+            <label for="scale">地形缩放 <span class="value-display" id="scale-value">250</span></label>
+            <input type="range" id="scale" min="50" max="500" step="1" value="250">
+        </div>
+        <div class="control-group">
+            <label for="octaves">地形细节 (Octaves) <span class="value-display" id="octaves-value">8</span></label>
+            <input type="range" id="octaves" min="1" max="12" step="1" value="8">
+        </div>
+        <div class="control-group">
+            <label for="crater_scale">陨石坑频率 <span class="value-display" id="crater_scale-value">80</span></label>
+            <input type="range" id="crater_scale" min="10" max="200" step="1" value="80">
+        </div>
+        <div class="control-group">
+            <label for="crater_strength">陨石坑深度 <span class="value-display" id="crater_strength-value">0.8</span></label>
+            <input type="range" id="crater_strength" min="0" max="1.5" step="0.05" value="0.8">
+        </div>
+
+        <h2>纹理参数</h2>
+        <div class="control-group">
+            <label class="label">基础纹理</label>
+            <select id="texture-select">
+                <option value="rock">岩石 (Marble)</option>
+                <option value="ice">坚冰 (Sheet)</option>
+                <option value="custom">自定义...</option>
+            </select>
+            <input type="file" id="texture-file" style="display: none; margin-top: 5px;" accept="image/*">
+        </div>
+        <div class="control-group">
+            <label for="texture_world_scale">纹理缩放 <span class="value-display" id="texture_world_scale-value">5.0</span></label>
+            <input type="range" id="texture_world_scale" min="1" max="15" step="0.1" value="5">
+        </div>
+        <div class="control-group">
+            <label for="perturb_strength">扰动强度 <span class="value-display" id="perturb_strength-value">15</span></label>
+            <input type="range" id="perturb_strength" min="0" max="50" step="1" value="15">
+        </div>
+        <div class="control-group">
+            <label for="shading_strength">光影强度 <span class="value-display" id="shading_strength-value">2.0</span></label>
+            <input type="range" id="shading_strength" min="0" max="5" step="0.1" value="2.0">
+        </div>
+        
+        <button id="generate-btn" class="btn-generate">生成行星</button>
+    </div>
+
+    <div class="preview-area">
+        <div class="canvas-container">
+            <h3>地表贴图 (Albedo)</h3>
+            <canvas id="planet-canvas" width="1024" height="512"></canvas>
+            <button id="download-planet-btn" class="btn-download">下载地表贴图 (.png)</button>
+        </div>
+        <div class="canvas-container">
+            <h3>高度图 (Heightmap)</h3>
+            <canvas id="heightmap-canvas" width="1024" height="512"></canvas>
+            <button id="download-heightmap-btn" class="btn-download">下载高度图 (.png)</button>
+        </div>
+    </div>
+</div>
+
+<div class="loader" id="loader">
+    <p>正在生成行星...</p>
+    <p>这可能需要几秒钟 ✨</p>
+</div>
+
+<script>
+    const controls = {};
+    const displays = {};
+    const inputIds = [
+        'seed', 'scale', 'octaves', 'crater_scale', 'crater_strength',
+        'texture_world_scale', 'perturb_strength', 'shading_strength'
+    ];
+
+    inputIds.forEach(id => {
+        controls[id] = document.getElementById(id);
+        displays[id + '-value'] = document.getElementById(id + '-value');
+        if (controls[id].type === 'range') {
+            controls[id].addEventListener('input', () => {
+                displays[id + '-value'].textContent = controls[id].value;
+            });
+        }
+    });
+    controls.seed.addEventListener('input', () => {
+        displays['seed-value'].textContent = controls.seed.value;
+    });
+
+    const generateBtn = document.getElementById('generate-btn');
+    const loader = document.getElementById('loader');
+    const textureSelect = document.getElementById('texture-select');
+    const textureFileInput = document.getElementById('texture-file');
+    
+    const planetCanvas = document.getElementById('planet-canvas');
+    const heightmapCanvas = document.getElementById('heightmap-canvas');
+    const planetCtx = planetCanvas.getContext('2d');
+    const heightmapCtx = heightmapCanvas.getContext('2d');
+
+    const worker = new Worker('worker.js');
+
+    textureSelect.addEventListener('change', () => {
+        textureFileInput.style.display = textureSelect.value === 'custom' ? 'block' : 'none';
+    });
+
+    async function getTextureImageData() {
+        return new Promise((resolve, reject) => {
+            let textureSource = textureSelect.value;
+
+            if (textureSource === 'custom') {
+                if (!textureFileInput.files || textureFileInput.files.length === 0) {
+                    alert('请选择一个自定义纹理文件。');
+                    return reject('No custom file selected');
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        resolve(ctx.getImageData(0, 0, img.width, img.height));
+                    };
+                    img.onerror = () => reject('Image load error');
+                    img.src = e.target.result;
+                };
+                reader.onerror = () => reject('File read error');
+                reader.readAsDataURL(textureFileInput.files[0]);
+            } else {
+                 // **重要改动**：现在我们使用相对路径指向本地文件夹
+                 const textureUrls = {
+                    rock: 'textures/marble.png',
+                    ice: 'textures/sheet.png'
+                };
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    resolve(ctx.getImageData(0, 0, img.width, img.height));
+                };
+                img.onerror = () => {
+                    alert(`纹理文件加载失败: ${textureUrls[textureSource]}\n请确保文件存在并且本地服务器已正确启动。`);
+                    reject('Default texture load error');
+                };
+                img.src = textureUrls[textureSource];
+            }
+        });
+    }
+
+    generateBtn.addEventListener('click', async () => {
+        loader.style.display = 'block';
+
+        try {
+            const textureImageData = await getTextureImageData();
+            
+            const params = {
+                width: 1024,
+                height: 512,
+                textureData: textureImageData
+            };
+            inputIds.forEach(id => {
+                params[id] = parseFloat(controls[id].value);
+            });
+
+            worker.postMessage(params, [params.textureData.data.buffer]);
+
+        } catch (error) {
+            console.error("Error preparing generation:", error);
+            loader.style.display = 'none';
+        }
+    });
+
+    worker.onmessage = (e) => {
+        const { colormapData, heightmapData, width, height } = e.data;
+        
+        const colormapImage = new ImageData(new Uint8ClampedArray(colormapData), width, height);
+        const heightmapImage = new ImageData(new Uint8ClampedArray(heightmapData), width, height);
+
+        planetCtx.putImageData(colormapImage, 0, 0);
+        heightmapCtx.putImageData(heightmapImage, 0, 0);
+
+        loader.style.display = 'none';
+    };
+    
+    function setupDownload(buttonId, canvas, type) {
+        document.getElementById(buttonId).addEventListener('click', () => {
+            const link = document.createElement('a');
+            const seed = controls.seed.value;
+            link.download = `planet_${type}_${seed}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    }
+
+    setupDownload('download-planet-btn', planetCanvas, textureSelect.value);
+    setupDownload('download-heightmap-btn', heightmapCanvas, 'heightmap');
+</script>
+</body>
+</html>
