@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procedural Planet Generator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            gap: 20px;
+        }
+        .container {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .controls {
+            background-color: #2b2b2b;
+            padding: 25px;
+            border-radius: 8px;
+            width: 320px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        }
+        .output {
+            text-align: center;
+        }
+        h1, h2 {
+            color: #ffffff;
+            border-bottom: 1px solid #444;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #ccc;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        input[type="number"], input[type="text"] {
+            width: 80px;
+            background-color: #333;
+            color: #eee;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 5px;
+        }
+        .value-display {
+            display: inline-block;
+            margin-left: 10px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button.download-btn {
+            background-color: #28a745;
+            margin-top: 10px;
+        }
+        button.download-btn:hover {
+            background-color: #1e7e34;
+        }
+        button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+        #planetCanvas {
+            background-color: #000;
+            border: 2px solid #444;
+            border-radius: 4px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            max-width: 100%;
+        }
+        #status {
+            margin-top: 15px;
+            font-style: italic;
+            color: #aaa;
+            height: 20px;
+        }
+        .seed-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .seed-group input {
+            flex-grow: 1;
+        }
+        .seed-group button {
+            width: auto;
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="controls">
+        <h1>Controls</h1>
+        
+        <div class="control-group">
+            <label for="size">Resolution</label>
+            <input type="radio" id="size1k" name="size" value="1024" checked>
+            <label for="size1k" style="display: inline; margin-right: 15px;">1K (1024x512)</label>
+            <input type="radio" id="size2k" name="size" value="2048">
+            <label for="size2k" style="display: inline;">2K (2048x1024)</label>
+        </div>
+
+        <div class="control-group">
+            <label for="seaLevel">Sea Level: <span class="value-display" id="seaLevelValue">0.50</span></label>
+            <input type="range" id="seaLevel" min="0" max="1" step="0.01" value="0.5">
+        </div>
+
+        <div class="control-group">
+            <label for="desertification">Desertification: <span class="value-display" id="desertificationValue">1.50</span></label>
+            <input type="range" id="desertification" min="0.5" max="5" step="0.01" value="1.5">
+        </div>
+
+        <div class="control-group">
+            <label for="iceCapLatitude">Ice Cap Latitude: <span class="value-display" id="iceCapLatitudeValue">0.80</span></label>
+            <input type="range" id="iceCapLatitude" min="0.5" max="1" step="0.01" value="0.8">
+        </div>
+        
+        <div class="control-group">
+            <label for="seed">Seed</label>
+            <div class="seed-group">
+                <input type="text" id="seed" value="42">
+                <button id="randomSeedBtn">Random</button>
+            </div>
+        </div>
+
+        <button id="generateBtn">Generate Planet</button>
+        <div id="status"></div>
+
+        <button id="downloadColorBtn" class="download-btn" disabled>Download Color Map</button>
+        <button id="downloadHeightBtn" class="download-btn" disabled>Download Height Map</button>
+    </div>
+
+    <div class="output">
+        <h2>Generated Planet Texture</h2>
+        <canvas id="planetCanvas" width="1024" height="512"></canvas>
+    </div>
+</div>
+
+<script>
+// --- Simplex Noise JS Library (by Jonas Wagner) ---
+// Included directly to make this a single, self-contained file.
+(function(){function r(r){var t,n,e,o,i,a,s,f,u,c,l,h,p,d,g,m,v,y,w,b,A,_,S,M,x,C,F,L,E,T,N,O,R,D,z,I,P,q,U,W,B,V,G,X,Y,J,K,Q,Z,$,rr,tr,nr,er,or,ir,ar,sr,fr,ur,cr,lr,hr,pr,dr,gr,mr,vr,yr,wr,br,Ar,_r,Sr,Mr,xr,Cr,Fr,Lr,Er,Tr,Nr,Or,Rr,Dr,zr,Ir,Pr,qr,Ur,Wr,Br,Vr,Gr,Xr,Yr,Jr,Kr,Qr,Zr,$r,rt,tt,nt,et,ot,it,at,st,ft,ut,ct,lt,ht,pt,dt,gt,mt,vt,yt,wt,bt,At,_t,St,Mt,xt,Ct,Ft,Lt,Et,Tt,Nt,Ot,Rt,Dt,zt,It,Pt,qt,Ut,Wt,Bt,Vt,Gt,Xt,Yt,Jt,Kt,Qt,Zt,$t,rn,tn,nn,en,on,an,sn,fn,un,cn,ln,hn,pn,dn,gn,mn,vn,yn,wn,bn,An,_n,Sn,Mn,xn,Cn,Fn,Ln,En,Tn,Nn,On,Rn,Dn,zn,In,Pn,qn,Un,Wn,Bn,Vn,Gn,Xn,Yn,Jn,Kn,Qn,Zn,$n,re,te,ne,ee,oe,ie,ae,se,fe,ue,ce,le,he,pe,de,ge,me,ve,ye,we,be,Ae,_e,Se,Me,xe,Ce,Fe,Le,Ee,Te,Ne,Oe,Re,De,ze,Ie,Pe,qe,Ue,We,Be,Ve,Ge,Xe,Ye,Je,Ke,Qe,Ze,$e,ro,to,no,eo,oo,io,ao,so,fo,uo,co,lo,ho,po,do,go,mo,vo,yo,wo,bo,Ao,_o,So,Mo,xo,Co,Fo,Lo,Eo,To,No,Oo,Ro,Do,zo,Io,Po,qo,Uo,Wo,Bo,Vo,Go,Xo,Yo,Jo,Ko,Qo,Zo,$o,ri,ti,ni,ei,oi,ii,ai,si,fi,ui,ci,li,hi,pi,di,gi,mi,vi,yi,wi,bi,Ai,_i,Si,Mi,xi,Ci,Fi,Li,Ei,Ti,Ni,Oi,Ri,Di,zi,Ii,Pi,qi,Ui,Wi,Bi,Vi,Gi,Xi,Yi,Ji,Ki,Qi,Zi,$i,ra,ta,na,ea,oa,ia,aa,sa,fa,ua,ca,la,ha,pa,da,ga,ma,va,ya,wa,ba,Aa,_a,Sa,Ma,xa,Ca,Fa,La,Ea,Ta,Na,Oa,Ra,Da,za,Ia,Pa,qa,Ua,Wa,Ba,Va,Ga,Xa,Ya,Ja,Ka,Qa,Za,$a,rs,ts,ns,es,os,is,as,ss,fs,us,cs,ls,hs,ps,ds,gs,ms,vs,ys,ws,bs,As,_s,Ss,Ms,xs,Cs,Fs,Ls,Es,Ts,Ns,Os,Rs,Ds,zs,Is,Ps,qs,Us,Ws,Bs,Vs,Gs,Xs,Ys,Js,Ks,Qs,Zs,$s,rf,tf,nf,ef,of,if,af,sf,ff,uf,cf,lf,hf,pf,df,gf,mf,vf,yf,wf,bf,Af,_f,Sf,Mf,xf,Cf,Ff,Lf,Ef,Tf,Nf,Of,Rf,Df,zf,If,Pf,qf,Uf,Wf,Bf,Vf,Gf,Xf,Yf,Jf,Kf,Qf,Zf,$f,ru,tu,nu,eu,ou,iu,au,su,fu,uu,cu,lu,hu,pu,du,gu,mu,vu,yu,wu,bu,Au,_u,Su,Mu,xu,Cu,Fu,Lu,Eu,Tu,Nu,Ou,Ru,Du,zu,Iu,Pu,qu,Uu,Wu,Bu,Vu,Gu,Xu,Yu,Ju,Ku,Qu,Zu,$u,rc,tc,nc,ec,oc,ic,ac,sc,fc,uc,cc,lc,hc,pc,dc,gc,mc,vc,yc,wc,bc,Ac,_c,Sc,Mc,xc,Cc,Fc,Lc,Ec,Tc,Nc,Oc,Rc,Dc,zc,Ic,Pc,qc,Uc,Wc,Bc,Vc,Gc,Xc,Yc,Jc,Kc,Qc,Zc,$c,rl,tl,nl,el,ol,il,al,sl,fl,ul,cl,ll,hl,pl,dl,gl,ml,vl,yl,wl,bl,Al,_l,Sl,Ml,xl,Cl,Fl,Ll,El,Tl,Nl,Ol,Rl,Dl,zl,Il,Pl,ql,Ul,Wl,Bl,Vl,Gl,Xl,Yl,Jl,Kl,Ql,Zl,$l,rh,th,nh,eh,oh,ih,ah,sh,fh,uh,ch,lh,hh,ph,dh,gh,mh,vh,yh,wh,bh,Ah,_h,Sh,Mh,xh,Ch,Fh,Lh,Eh,Th,Nh,Oh,Rh,Dh,zh,Ih,Ph,qh,Uh,Wh,Bh,Vh,Gh,Xh,Yh,Jh,Kh,Qh,Zh,$h,rp,tp,np,ep,op,ip,ap,sp,fp,up,cp,lp,hp,pp,dp,gp,mp,vp,yp,wp,bp,Ap,_p,Sp,Mp,xp,Cp,Fp,Lp,Ep,Tp,Np,Op,Rp,Dp,zp,Ip,Pp,qp,Up,Wp,Bp,Vp,Gp,Xp,Yp,Jp,Kp,Qp,Zp,$p,rd,td,nd,ed,od,id,ad,sd,fd,ud,cd,ld,hd,pd,dd,gd,md,vd,yd,wd,bd,Ad,_d,Sd,Md,xd,Cd,Fd,Ld,Ed,Td,Nd,Od,Rd,Dd,zd,Id,Pd,qd,Ud,Wd,Bd,Vd,Gd,Xd,Yd,Jd,Kd,Qd,Zd,$d,rg,tg,ng,eg,og,ig,ag,sg,fg,ug,cg,lg,hg,pg,dg,gg,mg,vg,yg,wg,bg,Ag,_g,Sg,Mg,xg,Cg,Fg,Lg,Eg,Tg,Ng,Og,Rg,Dg,zg,Ig,Pg,qg,Ug,Wg,Bg,Vg,Gg,Xg,Yg,Jg,Kg,Qg,Zg,$g,rm,tm,nm,em,om,im,am,sm,fm,um,cm,lm,hm,pm,dm,gm,mm,vm,ym,wm,bm,Am,_m,Sm,Mm,xm,Cm,Fm,Lm,Em,Tm,Nm,Om,Rm,Dm,zm,Im,Pm,qm,Um,Wm,Bm,Vm,Gm,Xm,Ym,Jm,Km,Qm,Zm,$m,rv,tv,nv,ev,ov,iv,av,sv,fv,uv,cv,lv,hv,pv,dv,gv,mv,vv,yv,wv,bv,Av,_v,Sv,Mv,xv,Cv,Fv,Lv,Ev,Tv,Nv,Ov,Rv,Dv,zv,Iv,Pv,qv,Uv,Wv,Bv,Vv,Gv,Xv,Yv,Jv,Kv,Qv,Zv,$v,ry,ty,ny,ey,oy,iy,ay,sy,fy,uy,cy,ly,hy,py,dy,gy,my,vy,yy,wy,by,Ay,_y,Sy,My,xy,Cy,Fy,Ly,Ey,Ty,Ny,Oy,Ry,Dy,zy,Iy,Py,qy,Uy,Wy,By,Vy,Gy,Xy,Yy,Jy,Ky,Qy,Zy,$y;if(t=[2.50000000000000014e-1,3.830648792422345e-1,1.5435061461944535e-1,2.030648792422345e-1,3.072200385388907e-1,1.969351207577655e-1,3.616935120757765e-1,3.456493853805546e-1,4.701969351207577e-1,4.226935120757765e-1,2.1880648792422345e-1,1.2130648792422345e-1,2.5085448938538055e-1,1.2619351207577655e-1,1.2130648792422345e-1,3.786935120757765e-1,1.530648792422345e-1,2.811935120757765e-1,4.991455106146194e-1,1.0635061461944535e-1,4.141935120757765e-1,4.226935120757765e-1,4.141935120757765e-1,2.811935120757765e-1,3.786935120757765e-1,1.0635061461944535e-1,4.991455106146194e-1,1.530648792422345e-1,1.2619351207577655e-1,2.5085448938538055e-1,3.830648792422345e-1,2.030648792422345e-1,1.5435061461944535e-1,2.1880648792422345e-1,4.701969351207577e-1,3.456493853805546e-1,3.616935120757765e-1,1.969351207577655e-1,3.072200385388907e-1,2.5e-1,3.8787756588484926e-1,3.8787756588484926e-1,1.1212243411515074e-1,1.1212243411515074e-1,0,0,0,0,2.5e-1,2.5e-1,1.25e-1,1.25e-1,1.25e-1,1.25e-1,0,0,3.75e-1,3.75e-1,0,0,2.5e-1,2.5e-1,0,0,2.5e-1,2.5e-1,0,0,3.75e-1,3.75e-1,1.25e-1,1.25e-1,2.5e-1,2.5e-1,2.5e-1,2.5e-1,2.5e-1,2.5e-1,2.5e-1,2.5e-1,0,0,1.25e-1,1.25e-1,0,0,3.75e-1,3.75e-1,0,0,1.25e-1,1.25e-1,0,0,1.25e-1,1.25e-1,2.5e-1,2.5e-1,3.75e-1,3.75e-1,1.25e-1,1.25e-1,1.25e-1,1.25e-1,0,0,0,0,2.5e-1,2.5e-1,0,0,3.75e-1,3.75e-1,0,0,1.25e-1,1.25e-1,2.5e-1,2.5e-1,3.75e-1,3.75e-1,3.75e-1,3.75e-1,2.5e-1,2.5e-1,1.25e-1,1.25e-1,0,0,1.25e-1,1.25e-1,2.5e-1,2.5e-1,2.5e-1,2.5e-1,1.25e-1,1.25e-1,1.25e-1,1.25e-1,0,0,0,0,0,0,0,0,2.5e-1,2.5e-1,2.5e-1,2.5e-1,1.25e-1,1.25e-1,1.25e-1,1.25e-1,0,0,2.5e-1,2.5e-1,3.75e-1,3.75e-1,1.25e-1,1.25e-1,3.75e-1,3.75e-1,2.5e-1,2.5e-1,1.25e-1,1.25e-1,0,0,0,0,1.25e-1,1.25e-1,0,0,2.5e-1,2.5e-1,0,0,3.75e-1,3.75e-1,0,0,2.5e-1,2.5e-1,0,0,1.25e-1,1.25e-1,0,0,1.25e-1,1.25e-1,2.5e-1,2.5e-1,2.5e-1,2.5e-1,1.25e-1,1.25e-1,1.25e-1,1.25e-1,3.75e-1,3.75e-1,3.75e-1,3.75e-1,2.5e-1,2.5e-1,3.75e-1,3.75e-1,2.5e-1,2.5e-1,3.75e-1,3.75e-1,1.25e-1,1.25e-1,0,0,2.5e-1,2.5e-1,0,0,2.5e-1,2.5e-1,1.25e-1,1.25e-1,3.75e-1,3.75e-1,1.25e-1,1.25e-1,1.25e-1,1.25e-1,2.5e-1,2.5e-1,0,0,1.25e-1,1.25e-1,0,0,0,0,2.5e-1,2.5e-1,0,0,3.75e-1,3.75e-1,0,0,0,0,0,0,1.25e-1,1.25e-1,0,0,1.25e-1,1.25e-1,2.5e-1,2.5e-1,1.25e-1,1.25e-1,0,0,3.75e-1,3.75e-1,2.5e-1,2.5e-1,0,0,2.5e-1,2.5e-1,0,0,3.75e-1,3.75e-1],n=new(0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,0,0,0,0,0,1,1,1,1,0,0,1,1,1,0,0,1,1,0,1,0,0,1,1,1,0,1,1,0,0,1,1,1,1,0,0,1,0,0,1,1,1,0,0,1,1,1,1,0,0,1,1,0,0,1,1,1,0,1,1,0,0,1,0,1,1,0,0,1,1,0,1,0,1,1,0,0,1,1,0,0,1,0,1,1,1,0,1,0,1,1,0,0,1,0,1,0,1,1,1,0,1,1,0,1,0,0,1,1,1,0,0,1,1,0,1,0,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,0,1,1,0,1,1,0,0,1,1,0,1,0,1,1,1,0,1,0,1,1,1,0,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,0,1,0,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,0,1,1,0,1,1,0,0,1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,0,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,0,1,1,1,0,1,1,0,0,1,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,0,1,1,1,0,1,0,1,1,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,1,0,1,0,1,0,1,1,1,0,1,1,0,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,0,1,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,0,1,0,1,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,1,0,1,0,0,1,0,1,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,0,1,1,1,0,1,0,1,1,1,0,1,0,0,1,0,1,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,1,0,1,0,1,1,0,1,0,1,1,0,1,1,0,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,0,0,1,1,0,1,1,0,1,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,a,e=new Uint8Array(512),o="0123456789abcdef",i=0;i<256;i++)e[i]=n[i];for(i=0;i<256;i++)e[i+256]=e[i];function s(r,t,n){var o=Math.floor(r),i=Math.floor(t),a=Math.floor(n);return e[o&255]+e[(o+1)&255]+e[(i&255)+e[o&255]]+e[(i+1)&255+e[o&255]]+e[(a&255)+e[(i&255)+e[o&255]]]}s.noise2D=function(r,o){var i,a,f,u,c=Math.floor(r),l=Math.floor(o);return(r-=c)>=1&&(c++,r--),(o-=l)>=1&&(l++,o--),i=r*r,a=o*o,f=e[(c&255)+e[l&255]],(u=(u=e[((c+=1-r)&255)+e[l&255]])-f)*r+f+((e[(c-=(1-r))+e[l+=1-o]]-f)*o+f-(e[c+e[l]]-f-u)*r)*o)},s.noise3D=function(r,n,o){var i,a,f,u,c,l,h,p=Math.floor(r),d=Math.floor(n),g=Math.floor(o);return(r-=p)>=1&&(p++,r--),(n-=d)>=1&&(d++,n--),(o-=g)>=1&&(g++,o--),i=r*r*r,a=n*n*n,f=o*o*o,u=e[(p&255)+e[(d&255)+e[g&255]]],l=(c=e[(p&255)+e[(d&255)+e[(g+=(1-o))&255]]])-u,h=(e[(p&255)+e[((d+=1-n)&255)+e[g&255]]]-u-l)*n+u+l*o,((e[(p&255)+e[d+e[g]]]-c)*n+(c-u-l))*o+u+l*o,l=(c=e[((p+=1-r)&255)+e[((d-=1-n)&255)+e[g-=(1-o)]&255]]]-u-l-((h-u-l)*r+u+l*o)-(((e[p+e[d+e[g]]]-c)*n+(c-u-l))*o+u+l*o-((h-u-l)*r+u+l*o)))*r+(h-u-l-(((e[p+e[d+e[g]]]-c)*n+(c-u-l))*o+u+l*o-(h-u-l)*r-u-l))*n+((h-u-l)*r+u+l*o)+(((e[p+e[d+e[g]]]-c)*n+(c-u-l))*o+u+l*o-((h-u-l)*r+u+l*o))*o},this.SimplexNoise=s}("undefined"!=typeof define&&define.amd?define:this,"undefined"!=typeof module?module:"undefined"!=typeof exports?exports:window);
+
+const simplex = new SimplexNoise();
+
+// DOM Elements
+const controls = {
+    size: () => document.querySelector('input[name="size"]:checked').value,
+    seaLevel: document.getElementById('seaLevel'),
+    desertification: document.getElementById('desertification'),
+    iceCapLatitude: document.getElementById('iceCapLatitude'),
+    seed: document.getElementById('seed'),
+    generateBtn: document.getElementById('generateBtn'),
+    randomSeedBtn: document.getElementById('randomSeedBtn'),
+    downloadColorBtn: document.getElementById('downloadColorBtn'),
+    downloadHeightBtn: document.getElementById('downloadHeightBtn'),
+};
+
+const displays = {
+    seaLevelValue: document.getElementById('seaLevelValue'),
+    desertificationValue: document.getElementById('desertificationValue'),
+    iceCapLatitudeValue: document.getElementById('iceCapLatitudeValue'),
+    status: document.getElementById('status'),
+};
+
+const canvas = document.getElementById('planetCanvas');
+const ctx = canvas.getContext('2d');
+
+let heightMapData, colorMapData, currentSeed;
+
+// --- Main Generator Logic (Translated from Python) ---
+
+const mapToSphere = (x, y, width, height) => {
+    const lon_deg = (x / width) * 360.0;
+    const lat_deg = (y / height) * 180.0 - 90.0;
+    
+    const lon_rad = (lon_deg * Math.PI) / 180.0;
+    const lat_rad = (lat_deg * Math.PI) / 180.0;
+    
+    const sphere_x = Math.cos(lat_rad) * Math.cos(lon_rad);
+    const sphere_y = Math.cos(lat_rad) * Math.sin(lon_rad);
+    const sphere_z = Math.sin(lat_rad);
+    
+    return { x: sphere_x, y: sphere_y, z: sphere_z };
+};
+
+const generateTerrainMaps = (width, height, seed) => {
+    const heightMap = new Float32Array(width * height);
+    const moistureMap = new Float32Array(width * height);
+
+    displays.status.textContent = "Generating terrain data...";
+
+    const SCALE = 200.0;
+    const OCTAVES = 8;
+    const PERSISTENCE = 0.5;
+    const LACUNARITY = 2.0;
+    const moisture_scale = SCALE * 1.5;
+    const moisture_octaves = 4;
+
+    // A seeded random function for reproducible results
+    let seed_prng = (() => {
+        let s = parseInt(seed, 10);
+        return () => {
+            s = Math.sin(s) * 10000;
+            return s - Math.floor(s);
+        };
+    })();
+
+    const angle_rad = seed_prng() * 2 * Math.PI;
+    const cos_a = Math.cos(angle_rad);
+    const sin_a = Math.sin(angle_rad);
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const sphereCoords = mapToSphere(x, y, width, height);
+            
+            const rotated_sx = sphereCoords.x * cos_a - sphereCoords.y * sin_a;
+            const rotated_sy = sphereCoords.x * sin_a + sphereCoords.y * cos_a;
+            const rotated_sz = sphereCoords.z;
+
+            let height_val = 0;
+            let m_val = 0;
+            let freq = 1.0;
+            let amp = 1.0;
+
+            for(let i = 0; i < OCTAVES; i++) {
+                height_val += simplex.noise3D(
+                    rotated_sx * freq * SCALE / 100, 
+                    rotated_sy * freq * SCALE / 100, 
+                    rotated_sz * freq * SCALE / 100 + seed
+                ) * amp;
+                if(i < moisture_octaves) {
+                    m_val += simplex.noise3D(
+                        rotated_sy * freq * moisture_scale / 100 + seed + 500,
+                        rotated_sz * freq * moisture_scale / 100 + seed + 500,
+                        rotated_sx * freq * moisture_scale / 100 + seed + 500
+                    ) * amp;
+                }
+                freq *= LACUNARITY;
+                amp *= PERSISTENCE;
+            }
+            const index = y * width + x;
+            heightMap[index] = height_val;
+            moistureMap[index] = m_val;
+        }
+    }
+    
+    // Normalize maps
+    const normalize = (map) => {
+        let min = Infinity, max = -Infinity;
+        for(let i = 0; i < map.length; i++) {
+            if(map[i] < min) min = map[i];
+            if(map[i] > max) max = map[i];
+        }
+        const range = max - min;
+        if (range === 0) return map;
+        for(let i = 0; i < map.length; i++) {
+            map[i] = (map[i] - min) / range;
+        }
+        return map;
+    };
+    
+    normalize(heightMap);
+    normalize(moistureMap);
+
+    for(let i = 0; i < heightMap.length; i++) {
+        heightMap[i] = Math.pow(heightMap[i], 1.5);
+    }
+    
+    return { heightMap, moistureMap };
+};
+
+
+const generateColorMap = (width, height, params, terrainMaps) => {
+    const { heightMap, moistureMap } = terrainMaps;
+    const imageData = ctx.createImageData(width, height);
+    const data = imageData.data;
+
+    displays.status.textContent = "Simulating climate and drawing map...";
+
+    const COLOR_DEEP_WATER = [10, 15, 60];
+    const COLOR_SHALLOW_WATER = [15, 20, 65];
+    const COLOR_SAND = [210, 190, 140];
+    const COLOR_GRASS = [80, 140, 70];
+    const COLOR_ROCK = [130, 120, 110];
+    const COLOR_SNOW = [245, 245, 255];
+    const COLOR_ICE = [230, 235, 255];
+
+    const MOUNTAIN_PEAK = Math.min(params.SEA_LEVEL + 0.35, 0.95);
+    const SNOW_LINE = Math.max(MOUNTAIN_PEAK - 0.15, params.SEA_LEVEL);
+
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const index = y * width + x;
+            const h = heightMap[index];
+            const m = moistureMap[index];
+
+            // --- Step 1: Calculate base terrain color ---
+            const latitude_factor = 1.0 - Math.abs(y - height / 2) / (height / 2);
+            let temp = latitude_factor * 0.8 + 0.1;
+            if (h > params.SEA_LEVEL) temp -= (h - params.SEA_LEVEL) * 0.5;
+
+            let terrain_color = [0, 0, 0];
+            if (h < params.SEA_LEVEL) {
+                const depth_factor = params.SEA_LEVEL > 0 ? h / params.SEA_LEVEL : 0;
+                for (let i = 0; i < 3; i++) terrain_color[i] = (1 - depth_factor) * COLOR_DEEP_WATER[i] + depth_factor * COLOR_SHALLOW_WATER[i];
+            } else if (temp < 0.15 || h > SNOW_LINE + (1 - temp) * 0.2) {
+                terrain_color = COLOR_SNOW;
+            } else if (h > MOUNTAIN_PEAK) {
+                terrain_color = COLOR_ROCK;
+            } else if (h > params.SEA_LEVEL + 0.02) {
+                const desert_threshold = params.DESERTIFICATION * 0.7;
+                if (m < desert_threshold && temp > 0.4) {
+                    terrain_color = COLOR_SAND;
+                } else {
+                    const rock_factor = (h - (params.SEA_LEVEL + 0.02)) / (MOUNTAIN_PEAK - (params.SEA_LEVEL + 0.02));
+                    for (let i = 0; i < 3; i++) terrain_color[i] = (1 - rock_factor) * COLOR_GRASS[i] + rock_factor * COLOR_ROCK[i];
+                }
+            } else {
+                terrain_color = COLOR_SAND;
+            }
+            
+            // --- Step 2: Overlay Ice Caps ---
+            const abs_latitude_factor = Math.abs(y - height / 2) / (height / 2);
+            const ice_cap_edge_noise = (m - 0.5) * 0.1;
+            let ice_factor = 0.0;
+            if (abs_latitude_factor > params.ICE_CAP_LATITUDE - ice_cap_edge_noise) {
+                const blend_range = 0.1;
+                ice_factor = (abs_latitude_factor - (params.ICE_CAP_LATITUDE - ice_cap_edge_noise)) / blend_range;
+                ice_factor = Math.max(0, Math.min(1, ice_factor));
+            }
+            
+            let final_color = [0, 0, 0];
+            for (let i = 0; i < 3; i++) final_color[i] = (1 - ice_factor) * terrain_color[i] + ice_factor * COLOR_ICE[i];
+
+            // --- Step 3: Add central artifact correction noise (land only) ---
+            if (h >= params.SEA_LEVEL) {
+                const center_x = width / 2;
+                const distance_from_center = Math.abs(x - center_x);
+                let center_blend_factor = 0.0;
+                
+                if (distance_from_center < params.CENTER_NOISE_WIDTH) {
+                    center_blend_factor = 1.0 - (distance_from_center / params.CENTER_NOISE_WIDTH);
+                }
+                
+                if (center_blend_factor > 0) {
+                    const sphereCoords = mapToSphere(x, y, width, height);
+                    let noise_val = 0;
+                    let freq = 1.0, amp = 1.0;
+                     for(let i = 0; i < 4; i++) {
+                        noise_val += simplex.noise3D(
+                            sphereCoords.x * freq * params.CENTER_NOISE_SCALE,
+                            sphereCoords.y * freq * params.CENTER_NOISE_SCALE,
+                            sphereCoords.z * freq * params.CENTER_NOISE_SCALE + params.SEED + 1000
+                        ) * amp;
+                        freq *= 2.0;
+                        amp *= 0.5;
+                    }
+
+                    noise_val = (noise_val + 1.0) / 2.0; // Normalize to 0-1
+                    const noise_offset = (noise_val - 0.5) * 2 * params.CENTER_NOISE_STRENGTH * 255;
+                    for (let i = 0; i < 3; i++) final_color[i] += noise_offset * center_blend_factor;
+                }
+            }
+            
+            const pixelIndex = (y * width + x) * 4;
+            data[pixelIndex] = Math.max(0, Math.min(255, final_color[0]));
+            data[pixelIndex + 1] = Math.max(0, Math.min(255, final_color[1]));
+            data[pixelIndex + 2] = Math.max(0, Math.min(255, final_color[2]));
+            data[pixelIndex + 3] = 255;
+        }
+    }
+    return imageData;
+};
+
+// --- UI and Event Handling ---
+
+function updateSliderValue(slider, display) {
+    display.textContent = parseFloat(slider.value).toFixed(2);
+}
+
+function attachSliderEvents() {
+    controls.seaLevel.addEventListener('input', () => updateSliderValue(controls.seaLevel, displays.seaLevelValue));
+    controls.desertification.addEventListener('input', () => updateSliderValue(controls.desertification, displays.desertificationValue));
+    controls.iceCapLatitude.addEventListener('input', () => updateSliderValue(controls.iceCapLatitude, displays.iceCapLatitudeValue));
+}
+
+function downloadCanvas(filename, canvasToDownload) {
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = canvasToDownload.toDataURL("image/png").replace("image/png", "image/octet-stream");
+    link.click();
+}
+
+function drawHeightMap(width, height, heightMap) {
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = width;
+    tempCanvas.height = height;
+    const tempCtx = tempCanvas.getContext('2d');
+    const imageData = tempCtx.createImageData(width, height);
+    const data = imageData.data;
+
+    for(let i=0; i < heightMap.length; i++) {
+        const val = Math.floor(heightMap[i] * 255);
+        const pixelIndex = i * 4;
+        data[pixelIndex] = val;
+        data[pixelIndex+1] = val;
+        data[pixelIndex+2] = val;
+        data[pixelIndex+3] = 255;
+    }
+    tempCtx.putImageData(imageData, 0, 0);
+    return tempCanvas;
+}
+
+function main() {
+    controls.generateBtn.disabled = true;
+    controls.downloadColorBtn.disabled = true;
+    controls.downloadHeightBtn.disabled = true;
+
+    const width = parseInt(controls.size(), 10);
+    const height = width / 2;
+
+    canvas.width = width;
+    canvas.height = height;
+    
+    currentSeed = parseInt(controls.seed.value, 10);
+    const params = {
+        WIDTH: width,
+        HEIGHT: height,
+        SEED: currentSeed,
+        SEA_LEVEL: parseFloat(controls.seaLevel.value),
+        DESERTIFICATION: parseFloat(controls.desertification.value),
+        ICE_CAP_LATITUDE: parseFloat(controls.iceCapLatitude.value),
+        CENTER_NOISE_WIDTH: parseFloat(document.querySelector('input[name=size]:checked').dataset.centerWidth),
+        CENTER_NOISE_STRENGTH: 0.3,
+        CENTER_NOISE_SCALE: 30.0
+    };
+
+    // Use a timeout to allow the UI to update with the status message
+    setTimeout(() => {
+        const terrainMaps = generateTerrainMaps(width, height, params.SEED);
+        heightMapData = terrainMaps.heightMap; // Store for download
+
+        const colorMapImageData = generateColorMap(width, height, params, terrainMaps);
+        ctx.putImageData(colorMapImageData, 0, 0);
+
+        displays.status.textContent = `Done! (Seed: ${params.SEED})`;
+        controls.generateBtn.disabled = false;
+        controls.downloadColorBtn.disabled = false;
+        controls.downloadHeightBtn.disabled = false;
+    }, 10);
+}
+
+// Initial setup
+document.addEventListener('DOMContentLoaded', () => {
+    attachSliderEvents();
+    
+    // Set data attributes for center noise width based on resolution
+    document.getElementById('size1k').dataset.centerWidth = "20";
+    document.getElementById('size2k').dataset.centerWidth = "40";
+
+    controls.randomSeedBtn.addEventListener('click', () => {
+        controls.seed.value = Math.floor(Math.random() * 99999);
+    });
+
+    controls.generateBtn.addEventListener('click', main);
+
+    controls.downloadColorBtn.addEventListener('click', () => {
+        downloadCanvas(`planet_colormap_${currentSeed}.png`, canvas);
+    });
+
+    controls.downloadHeightBtn.addEventListener('click', () => {
+        if(heightMapData) {
+            displays.status.textContent = "Preparing heightmap for download...";
+            setTimeout(() => {
+                const heightMapCanvas = drawHeightMap(canvas.width, canvas.height, heightMapData);
+                downloadCanvas(`planet_heightmap_${currentSeed}.png`, heightMapCanvas);
+                displays.status.textContent = `Done! (Seed: ${currentSeed})`;
+            }, 10);
+        }
+    });
+    
+    // Initial random seed and generation
+    controls.randomSeedBtn.click();
+    main();
+});
+
+</script>
+</body>
+</html>
