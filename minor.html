@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>交互式 3D 小行星生成器</title>
+    <style>
+        :root {
+            --bg-color: #1a1e23;
+            --panel-bg: #2a2f36;
+            --text-color: #e0e6ec;
+            --header-color: #ffffff;
+            --border-color: #404853;
+            --accent-color: #00aaff;
+            --accent-hover: #0088cc;
+            --green-color: #28a745;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 1400px;
+        }
+        .controls {
+            background-color: var(--panel-bg);
+            padding: 25px;
+            border-radius: 8px;
+            width: 350px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            border: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+        .preview {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        #preview-canvas {
+            width: 100%;
+            height: 100%;
+            min-height: 500px;
+            border-radius: 8px;
+            background-color: #000;
+            border: 1px solid var(--border-color);
+        }
+        h1, h2 {
+            color: var(--header-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #ccc;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        .value-display {
+            font-family: monospace;
+            font-size: 14px;
+            background-color: var(--bg-color);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 10px;
+        }
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+        }
+        .btn-secondary {
+            background-color: var(--green-color);
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #1e7e34;
+        }
+        .seed-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        #seed {
+            flex-grow: 1;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background-color: #3c424a;
+            color: var(--text-color);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="controls">
+        <h1>小行星生成器</h1>
+        
+        <div class="control-group">
+            <label for="radius">基础半径 <span class="value-display" id="radius-value">10.0</span></label>
+            <input type="range" id="radius" min="1" max="50" step="0.1" value="10">
+        </div>
+
+        <div class="control-group">
+            <label for="subdivisions">模型细节 <span class="value-display" id="subdivisions-value">50</span></label>
+            <input type="range" id="subdivisions" min="10" max="100" step="10" value="50">
+        </div>
+
+        <h2>噪声参数</h2>
+
+        <div class="control-group">
+            <label for="noise_scale">噪声频率 <span class="value-display" id="noise_scale-value">15.0</span></label>
+            <input type="range" id="noise_scale" min="1" max="50" step="0.1" value="15">
+        </div>
+        
+        <div class="control-group">
+            <label for="noise_strength">噪声强度 <span class="value-display" id="noise_strength-value">3.0</span></label>
+            <input type="range" id="noise_strength" min="0.1" max="15" step="0.1" value="3">
+        </div>
+        
+        <div class="control-group">
+            <label for="octaves">细节层数 (Octaves) <span class="value-display" id="octaves-value">6</span></label>
+            <input type="range" id="octaves" min="1" max="10" step="1" value="6">
+        </div>
+
+        <div class="control-group">
+            <label for="persistence">持续度 (Persistence) <span class="value-display" id="persistence-value">0.4</span></label>
+            <input type="range" id="persistence" min="0.1" max="1" step="0.01" value="0.4">
+        </div>
+
+        <div class="control-group">
+            <label for="lacunarity">隙缝度 (Lacunarity) <span class="value-display" id="lacunarity-value">2.5</span></label>
+            <input type="range" id="lacunarity" min="1" max="4" step="0.1" value="2.5">
+        </div>
+
+        <div class="control-group">
+            <label for="seed">随机种子</label>
+            <div class="seed-group">
+                <input type="number" id="seed" value="42">
+            </div>
+        </div>
+
+        <button id="randomizeNoiseBtn" class="btn-primary">随机化噪声</button>
+        <button id="exportObjBtn" class="btn-secondary">导出为 .obj 文件</button>
+    </div>
+
+    <div class="preview">
+        <canvas id="preview-canvas"></canvas>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+<script>
+    // --- SETUP ---
+    const canvas = document.getElementById('preview-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(50, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+    camera.position.z = 50;
+
+    // --- LIGHTING ---
+    const ambientLight = new THREE.AmbientLight(0x404040, 2); // soft white light
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    directionalLight.position.set(10, 10, 10);
+    scene.add(directionalLight);
+    
+    // --- MATERIAL ---
+    const material = new THREE.MeshStandardMaterial({
+        color: 0x888888,
+        roughness: 0.8,
+        metalness: 0.2
+    });
+
+    let asteroidMesh = null;
+    let simplex = new SimplexNoise();
+
+    // --- UI CONTROLS ---
+    const controls = {
+        radius: document.getElementById('radius'),
+        subdivisions: document.getElementById('subdivisions'),
+        noise_scale: document.getElementById('noise_scale'),
+        noise_strength: document.getElementById('noise_strength'),
+        octaves: document.getElementById('octaves'),
+        persistence: document.getElementById('persistence'),
+        lacunarity: document.getElementById('lacunarity'),
+        seed: document.getElementById('seed'),
+        randomizeNoiseBtn: document.getElementById('randomizeNoiseBtn'),
+        exportObjBtn: document.getElementById('exportObjBtn'),
+    };
+    
+    function updateValueDisplay(id, value, decimals = 1) {
+        document.getElementById(`${id}-value`).textContent = parseFloat(value).toFixed(decimals);
+    }
+
+    // --- MOUSE CONTROLS for PREVIEW ---
+    let isDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
+
+    canvas.addEventListener('mousedown', (e) => { isDragging = true; });
+    canvas.addEventListener('mouseup', (e) => { isDragging = false; });
+    canvas.addEventListener('mouseout', (e) => { isDragging = false; });
+    canvas.addEventListener('mousemove', (e) => {
+        if (!isDragging || !asteroidMesh) return;
+        const deltaMove = {
+            x: e.offsetX - previousMousePosition.x,
+            y: e.offsetY - previousMousePosition.y
+        };
+
+        const rotateQuaternion = new THREE.Quaternion()
+            .setFromEuler(new THREE.Euler(
+                toRadians(deltaMove.y * 1),
+                toRadians(deltaMove.x * 1),
+                0,
+                'XYZ'
+            ));
+        asteroidMesh.quaternion.multiplyQuaternions(rotateQuaternion, asteroidMesh.quaternion);
+
+        previousMousePosition = { x: e.offsetX, y: e.offsetY };
+    });
+    
+    canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        camera.position.z += e.deltaY * 0.05;
+        camera.position.z = Math.max(15, Math.min(200, camera.position.z));
+    });
+    
+    function toRadians(angle) { return angle * (Math.PI / 180); }
+
+    // --- CORE ASTEROID GENERATION LOGIC ---
+    function createRandomAsteroid() {
+        if (asteroidMesh) {
+            scene.remove(asteroidMesh);
+            asteroidMesh.geometry.dispose();
+        }
+
+        const params = {
+            radius: parseFloat(controls.radius.value),
+            subdivisions: parseInt(controls.subdivisions.value),
+            noise_scale: parseFloat(controls.noise_scale.value),
+            noise_strength: parseFloat(controls.noise_strength.value),
+            octaves: parseInt(controls.octaves.value),
+            persistence: parseFloat(controls.persistence.value),
+            lacunarity: parseFloat(controls.lacunarity.value),
+            seed: parseInt(controls.seed.value),
+        };
+        
+        // Use a seeded random for the simplex noise generator
+        simplex = new SimplexNoise(params.seed);
+
+        const geometry = new THREE.IcosahedronGeometry(params.radius, params.subdivisions);
+        const positionAttribute = geometry.getAttribute('position');
+        const vertices = [];
+        for (let i = 0; i < positionAttribute.count; i++) {
+            vertices.push(new THREE.Vector3().fromBufferAttribute(positionAttribute, i));
+        }
+
+        const displacedVertices = [];
+        vertices.forEach(vertex => {
+            const originalVertex = vertex.clone();
+            const normal = vertex.clone().normalize();
+            
+            const nx = vertex.x / params.noise_scale;
+            const ny = vertex.y / params.noise_scale;
+            const nz = vertex.z / params.noise_scale;
+
+            let noiseVal = 0;
+            let frequency = 1;
+            let amplitude = 1;
+            for (let i = 0; i < params.octaves; i++) {
+                noiseVal += simplex.noise3D(nx * frequency, ny * frequency, nz * frequency) * amplitude;
+                frequency *= params.lacunarity;
+                amplitude *= params.persistence;
+            }
+
+            const displacement = normal.multiplyScalar(noiseVal * params.noise_strength);
+            originalVertex.add(displacement);
+            displacedVertices.push(originalVertex.x, originalVertex.y, originalVertex.z);
+        });
+
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(displacedVertices, 3));
+        geometry.computeVertexNormals();
+        
+        asteroidMesh = new THREE.Mesh(geometry, material);
+        scene.add(asteroidMesh);
+    }
+
+    // --- OBJ EXPORTER ---
+    function exportToObj() {
+        if (!asteroidMesh) return;
+        const geometry = asteroidMesh.geometry;
+        const position = geometry.getAttribute('position');
+        const normal = geometry.getAttribute('normal');
+        const index = geometry.getIndex();
+        
+        let obj = '# Generated by Interactive 3D Asteroid Generator\n';
+        for (let i = 0; i < position.count; i++) {
+            obj += `v ${position.getX(i).toFixed(6)} ${position.getY(i).toFixed(6)} ${position.getZ(i).toFixed(6)}\n`;
+        }
+        for (let i = 0; i < normal.count; i++) {
+            obj += `vn ${normal.getX(i).toFixed(6)} ${normal.getY(i).toFixed(6)} ${normal.getZ(i).toFixed(6)}\n`;
+        }
+        for (let i = 0; i < index.count; i += 3) {
+            const i1 = index.getX(i) + 1;
+            const i2 = index.getX(i + 1) + 1;
+            const i3 = index.getX(i + 2) + 1;
+            obj += `f ${i1}//${i1} ${i2}//${i2} ${i3}//${i3}\n`;
+        }
+
+        const blob = new Blob([obj], { type: 'text/plain' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `asteroid_${controls.seed.value}.obj`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
+
+    // --- EVENT LISTENERS & INITIALIZATION ---
+    function init() {
+        Object.keys(controls).forEach(key => {
+            const el = controls[key];
+            if (el.type === 'range') {
+                el.addEventListener('input', () => {
+                    updateValueDisplay(key, el.value, key === 'persistence' || key === 'lacunarity' ? 2 : 1);
+                    createRandomAsteroid();
+                });
+            }
+        });
+
+        controls.subdivisions.addEventListener('change', createRandomAsteroid); // Only update on release for performance
+        controls.seed.addEventListener('change', createRandomAsteroid);
+        
+        controls.randomizeNoiseBtn.addEventListener('click', () => {
+            controls.noise_scale.value = (Math.random() * 49 + 1).toFixed(1);
+            controls.noise_strength.value = (Math.random() * 14.9 + 0.1).toFixed(1);
+            controls.octaves.value = Math.floor(Math.random() * 7 + 3);
+            controls.persistence.value = (Math.random() * 0.6 + 0.2).toFixed(2);
+            controls.lacunarity.value = (Math.random() * 2 + 1.5).toFixed(1);
+            controls.seed.value = Math.floor(Math.random() * 100000);
+
+            // Manually trigger updates
+            Object.keys(controls).forEach(key => {
+                const el = controls[key];
+                 if (el.type === 'range') {
+                    updateValueDisplay(key, el.value, key === 'persistence' || key === 'lacunarity' ? 2 : 1);
+                 }
+            });
+            createRandomAsteroid();
+        });
+        
+        controls.exportObjBtn.addEventListener('click', exportToObj);
+
+        window.addEventListener('resize', () => {
+            const previewBox = document.querySelector('.preview');
+            camera.aspect = previewBox.clientWidth / previewBox.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(previewBox.clientWidth, previewBox.clientHeight);
+        });
+
+        createRandomAsteroid();
+        animate();
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+    }
+
+    init();
+</script>
+</body>
+</html>
