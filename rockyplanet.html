@@ -139,7 +139,7 @@
 
         <div class="control-group">
             <label for="desertification">Desertification: <span class="value-display" id="desertificationValue">1.50</span></label>
-            <input type="range" id="desertification" min="0.5" max="5" step="0.01" value="1.5">
+            <input type="range" id="desertification" min="0.5" max="10" step="0.01" value="1.5">
         </div>
 
         <div class="control-group">
@@ -371,7 +371,7 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
             const ice_cap_edge_noise = (m - 0.5) * 0.1;
             let ice_factor = 0.0;
             if (abs_latitude_factor > params.ICE_CAP_LATITUDE - ice_cap_edge_noise) {
-                const blend_range = 0.1;
+                const blend_range = 0.01;
                 ice_factor = (abs_latitude_factor - (params.ICE_CAP_LATITUDE - ice_cap_edge_noise)) / blend_range;
                 ice_factor = Math.max(0, Math.min(1, ice_factor));
             }
@@ -457,8 +457,8 @@ function main() {
         DESERTIFICATION: parseFloat(controls.desertification.value),
         ICE_CAP_LATITUDE: parseFloat(controls.iceCapLatitude.value),
         CENTER_NOISE_WIDTH: parseFloat(document.querySelector('input[name=size]:checked').dataset.centerWidth),
-        CENTER_NOISE_STRENGTH: 0.3,
-        CENTER_NOISE_SCALE: 30.0
+        CENTER_NOISE_STRENGTH: 0.0,
+        CENTER_NOISE_SCALE: 0.0
     };
 
     setTimeout(() => {
