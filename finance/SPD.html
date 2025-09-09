@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>期权SPD分析工具</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* --- 全局样式 (与之前文件保持一致) --- */
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #121212;
+            color: #E0E0E0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* --- 主容器 --- */
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        /* --- 标题和副标题 --- */
+        h1 {
+            font-size: 2.8em;
+            font-weight: 600;
+            color: #FFFFFF;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            color: #A0A0A0;
+            margin-bottom: 50px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* --- 计算器主布局 --- */
+        .calculator-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            text-align: left;
+        }
+
+        /* --- 卡片样式 --- */
+        .card {
+            background-color: #282828;
+            border: 1px solid #404040;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        .card:last-child {
+             margin-bottom: 0;
+        }
+        
+        .card h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #FFFFFF;
+            font-size: 1.4em;
+            border-bottom: 1px solid #404040;
+            padding-bottom: 15px;
+        }
+
+        /* --- 表单元素样式 --- */
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #B0B0B0;
+        }
+        .input-group input, .input-group textarea {
+            width: 100%;
+            padding: 10px;
+            background-color: #1E1E1E;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            color: #E0E0E0;
+            font-size: 1em;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+        .input-group textarea {
+            min-height: 100px;
+        }
+
+        /* --- 按钮样式 --- */
+        .calc-button {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #FFFFFF;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+        .calc-button:hover {
+            background-color: #0056b3;
+        }
+        
+        /* --- Chart容器样式 --- */
+        .chart-container {
+            position: relative;
+            height: auto;
+            width: 100%;
+        }
+
+        /* --- 响应式布局 --- */
+        @media (max-width: 900px) {
+            .calculator-layout { grid-template-columns: 1fr; }
+            h1 { font-size: 2em; }
+            .subtitle { font-size: 1em; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>期权SPD分析工具</h1>
+        <p class="subtitle">通过期权链数据，生成基于市场隐含波动的股价未来概率密度分布图(SPD)</p>
+
+        <div class="calculator-layout">
+            <div class="input-section">
+                <div class="card">
+                    <h3>1. 粘贴期权链数据</h3>
+                    <div class="input-group">
+                        <label>行权价 (Strike Prices) - 用逗号分隔</label>
+                        <textarea id="strikePrices" placeholder="例如: 250, 252.5, 255, 257.5, ..."></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label>看涨期权价格 (Call Prices)</label>
+                        <textarea id="callPrices" placeholder="例如: 73.69, 65.53, 66.3, 70.32, ..."></textarea>
+                    </div>
+                     <div class="input-group">
+                        <label>看跌期权价格 (Put Prices)</label>
+                        <textarea id="putPrices" placeholder="例如: 0.42, 0.48, 0.5, 0.53, ..."></textarea>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>2. 参数设置</h3>
+                    <div class="input-group">
+                        <label>核密度估计带宽 (KDE Bandwidth)</label>
+                        <input type="number" id="kdeBandwidth" value="10" placeholder="例如: 10">
+                    </div>
+                </div>
+                <button id="calculateBtn" class="calc-button">生成SPD图像</button>
+            </div>
+
+            <div class="output-section">
+                <div class="card">
+                    <div class="chart-container">
+                        <canvas id="spdChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    let spdChartInstance = null; // 用于存储图表实例
+
+    document.getElementById('calculateBtn').addEventListener('click', function() {
+        // --- 1. 解析输入数据 ---
+        const parseData = (textareaId) => {
+            const text = document.getElementById(textareaId).value;
+            return text.split(/[\s,]+/).filter(Boolean).map(Number);
+        };
+        const strikes = parseData('strikePrices');
+        const calls = parseData('callPrices');
+        const puts = parseData('putPrices');
+        const bandwidth = parseFloat(document.getElementById('kdeBandwidth').value) || 10;
+
+        if (strikes.length !== calls.length || strikes.length !== puts.length || strikes.length < 3) {
+            alert('数据输入错误: 请确保行权价、看涨和看跌期权数量一致，且至少有3个数据点。');
+            return;
+        }
+
+        // --- 2. 计算风险中性密度 (RND) ---
+        // JS版本的 np.diff
+        const diff = (arr, n = 1) => {
+            let result = arr;
+            for (let i = 0; i < n; i++) {
+                result = result.slice(1).map((val, j) => val - result[j]);
+            }
+            return result;
+        };
+        
+        const dK = diff(strikes);
+        const d2c_dk2_raw = diff(calls, 2);
+        const d2p_dk2_raw = diff(puts, 2);
+
+        const d2c_dk2 = d2c_dk2_raw.map((val, i) => val / (dK[i] * dK[i + 1]));
+        const d2p_dk2 = d2p_dk2_raw.map((val, i) => val / (dK[i] * dK[i + 1]));
+
+        let rawRnd = [];
+        for (let i = 0; i < d2c_dk2.length; i++) {
+            rawRnd.push(Math.max(0, d2c_dk2[i], d2p_dk2[i]));
+        }
+        
+        // 归一化RND
+        const sumRnd = rawRnd.reduce((a, b) => a + b, 0);
+        const normalizedRnd = rawRnd.map(v => v / sumRnd);
+        const rndStrikes = strikes.slice(1, -1); // RND对应的行权价
+
+        // --- 3. 核密度估计 (KDE) ---
+        const gaussianKernel = (u) => (1 / Math.sqrt(2 * Math.PI)) * Math.exp(-0.5 * u * u);
+        
+        const xVals = [];
+        const numPoints = 200;
+        const minX = Math.min(...strikes);
+        const maxX = Math.max(...strikes);
+        for (let i = 0; i < numPoints; i++) {
+            xVals.push(minX + (maxX - minX) * i / (numPoints - 1));
+        }
+
+        const kdeDensity = xVals.map(x => {
+            let sum = 0;
+            for (let i = 0; i < normalizedRnd.length; i++) {
+                sum += normalizedRnd[i] * gaussianKernel((x - rndStrikes[i]) / bandwidth);
+            }
+            return sum / bandwidth; // KDE标准公式
+        });
+
+        // 归一化KDE密度 (使用梯形法则)
+        let totalArea = 0;
+        for (let i = 0; i < xVals.length - 1; i++) {
+            totalArea += (kdeDensity[i] + kdeDensity[i + 1]) / 2 * (xVals[i + 1] - xVals[i]);
+        }
+        const normalizedKdeDensity = kdeDensity.map(v => v / totalArea);
+
+        // --- 4. 绘制图表 ---
+        const ctx = document.getElementById('spdChart').getContext('2d');
+        if (spdChartInstance) {
+            spdChartInstance.destroy(); // 销毁旧图表实例
+        }
+
+        spdChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: xVals.map(v => v.toFixed(2)),
+                datasets: [{
+                    label: 'SPD Estimation (KDE)',
+                    data: normalizedKdeDensity,
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderWidth: 2,
+                    pointRadius: 0, // 不显示数据点
+                    tension: 0.1
+                }, {
+                    type: 'scatter',
+                    label: 'Raw RND Data',
+                    data: rndStrikes.map((strike, i) => ({ x: strike, y: normalizedRnd[i] })),
+                    backgroundColor: 'rgba(255, 99, 132, 1)'
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        type: 'linear',
+                        title: { display: true, text: 'Underlying Price', color: '#B0B0B0' },
+                        ticks: { color: '#B0B0B0' },
+                        grid: { color: '#404040' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Density', color: '#B0B0B0' },
+                        ticks: { color: '#B0B0B0' },
+                        grid: { color: '#404040' }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'State Price Density (SPD) Estimation',
+                        color: '#FFFFFF',
+                        font: { size: 18 }
+                    },
+                    legend: {
+                        labels: { color: '#B0B0B0' }
+                    }
+                }
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
