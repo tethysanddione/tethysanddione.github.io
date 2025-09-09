@@ -11,29 +11,30 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
             background-color: #121212; /* 深黑背景 */
             color: #E0E0E0; /* 默认浅灰色文字 */
-            display: flex; /* 使用flexbox布局 */
-            flex-direction: column; /* 垂直方向排列子项 */
-            justify-content: flex-start; /* 内容从顶部开始 */
-            align-items: center; /* 水平居中 */
-            min-height: 100vh;
-            padding: 0; /* 移除body默认padding，由内部元素控制 */
             box-sizing: border-box;
+            position: relative; /* 【修改点】为绝对定位的子元素（banner）创建定位上下文 */
+            padding-top: 1px; /* 防止子元素的margin-top溢出 */
         }
 
-        /* --- Banner 样式 --- */
+        /* --- Banner 样式 (关键修改) --- */
         .banner {
+            position: absolute; /* 【修改点】脱离文档流，作为背景 */
+            top: 0;
+            left: 0;
             width: 100%;
-            max-width: 1200px; /* 与container宽度保持一致 */
-            padding: 20px 0; /* 顶部留空 */
-            text-align: center;
+            height: 400px; /*【修改点】给banner一个固定的高度 */
+            z-index: 1; /* 【修改点】确保它在内容之下 */
+            opacity: 0.25; /* 【修改点】设置半透明效果 */
+            overflow: hidden; /* 防止图片溢出 */
         }
 
         .banner img {
-            width: 100%; /* 图片宽度填充父容器 */
-            max-width: 800px; /* 控制图片最大宽度，避免过大 */
-            height: auto;
-            border-radius: 8px; /* 轻微圆角 */
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); /* 增加一点阴影 */
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* 【修改点】让图片像背景一样填充容器，不变形 */
+            object-position: center; /* 图片居中显示 */
+            border-radius: 0; /* 背景图片不需要圆角 */
+            box-shadow: none; /* 背景图片不需要阴影 */
         }
 
         /* --- 主容器 --- */
@@ -41,8 +42,14 @@
             width: 100%;
             max-width: 1200px;
             text-align: center;
-            padding: 40px 0;
-            flex-grow: 1; /* 让主内容区域占据剩余空间 */
+            padding: 40px 20px; /* 增加了左右padding */
+            box-sizing: border-box;
+            position: relative; /* 【修改点】提升层级，以便设置z-index */
+            z-index: 2; /* 【修改点】确保内容在banner之上 */
+            margin: 60px auto 0 auto; /* 【修改点】与顶部留出空间，避免与banner重叠 */
+            background-color: rgba(18, 18, 18, 0.6); /* 可选：增加一点半透明背景，让文字更清晰 */
+            backdrop-filter: blur(10px); /* 可选：增加毛玻璃效果，提升质感 */
+            border-radius: 12px;
         }
 
         /* --- 标题和副标题 --- */
@@ -55,9 +62,9 @@
 
         .subtitle {
             font-size: 1.2em;
-            color: #A0A0A0; /* 较暗的灰色 */
+            color: #A0A0A0;
             margin-bottom: 50px;
-            max-width: 800px; /* 限制副标题宽度 */
+            max-width: 800px;
             margin-left: auto;
             margin-right: auto;
         }
@@ -66,67 +73,68 @@
         .tools-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px; /* 卡片间距 */
-            padding: 0 20px; /* 左右留空，防止贴边 */
+            gap: 25px;
         }
 
         /* --- 单个工具卡片样式 --- */
         .tool-card {
-            background-color: #282828; /* 卡片背景色 */
-            border: 1px solid #404040; /* 卡片边框 */
-            border-radius: 12px; /* 圆角 */
+            background-color: #282828;
+            border: 1px solid #404040;
+            border-radius: 12px;
             padding: 30px;
             text-align: left;
-            text-decoration: none; /* 移除链接下划线 */
+            text-decoration: none;
             color: inherit;
             transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
         }
 
-        /* --- 鼠标悬停效果 --- */
         .tool-card:hover {
-            transform: translateY(-8px); /* 向上浮动 */
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); /* 增加阴影 */
-            border-color: #686868; /* 边框变亮 */
+            transform: translateY(-8px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border-color: #686868;
         }
 
         .tool-card h3 {
             margin-top: 0;
             margin-bottom: 12px;
-            color: #FFFFFF; /* 卡片标题为白色 */
+            color: #FFFFFF;
             font-size: 1.4em;
         }
 
         .tool-card p {
             margin: 0;
-            color: #B0B0B0; /* 卡片描述文字颜色 */
+            color: #B0B0B0;
             line-height: 1.6;
             font-size: 1em;
         }
 
         /* --- 底部署名样式 --- */
         .credit {
-            margin-top: 50px; /* 与内容区域的间距 */
+            position: relative; /* 【修改点】同样设为相对定位 */
+            z-index: 2; /* 【修改点】确保它也在banner之上 */
+            margin-top: 50px;
             padding: 20px 0;
             font-size: 0.9em;
-            color: #606060; /* 较浅的灰色 */
+            color: #606060;
             text-align: center;
         }
 
         /* --- 响应式布局 --- */
         @media (max-width: 768px) {
+            .banner { height: 300px; } /* 在小屏幕上减小banner高度 */
+            .container { margin-top: 40px; }
             h1 { font-size: 2.2em; }
             .subtitle { font-size: 1em; margin-bottom: 30px;}
             .tool-card { padding: 20px; }
             .tool-card h3 { font-size: 1.2em; }
-            .tools-grid { gap: 15px; padding: 0 10px; }
-            .banner { padding: 10px 0; }
+            .tools-grid { gap: 15px; }
         }
     </style>
 </head>
 <body>
 
     <div class="banner">
-        <img src="banner.png" alt="金融工具集Banner">
+        <img src="banner.png" alt="背景Banner">
     </div>
 
     <div class="container">
@@ -154,7 +162,10 @@
                 <p>通过在一系列可能的市场条件下生成随机的结果样本，蒙特卡罗模拟可以解答关于投资组合平均表现和最坏表现。</p>
             </a>
             
-            
+            <a href="blockchain_demo.html" class="tool-card">
+                <h3>区块链原理演示</h3>
+                <p>一个交互式模拟器，让您亲手操作一个迷你的区块链，理解哈希、挖矿和防篡改特性。</p>
+            </a>
         </div>
     </div>
 
