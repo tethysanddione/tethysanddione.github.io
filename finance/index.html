@@ -169,6 +169,19 @@
             text-align: center;
         }
 
+        /* --- 页脚链接样式 --- */
+        .footer-link {
+            color: #606060;
+            text-decoration: none;
+            margin: 0 15px; /* 与其他内容保持间距 */
+            transition: color 0.3s ease;
+        }
+
+        .footer-link:hover {
+            color: #A0A0A0; /* 悬停时变亮 */
+            text-decoration: underline;
+        }
+
         /* --- 响应式布局 --- */
         @media (max-width: 768px) {
             .banner { height: 300px; }
@@ -226,7 +239,8 @@
     </div>
 
     <div class="credit">
-        &copy; 2025 MeowFin_Global
+        <span>&copy; 2025 MeowFin_Global</span>
+        <a href="privacy_policy.html" class="footer-link">隐私政策</a>
     </div>
 
 <script>
