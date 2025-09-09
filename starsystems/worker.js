@@ -83,15 +83,15 @@ self.onmessage = (e) => {
 
 function mapToSphere(x, y, width, height) {
     const lonRad = (x / width) * 2 * Math.PI;
-    // Correct mapping to avoid pinching at poles
     const latRad = Math.acos(1 - 2 * (y / height)) - Math.PI / 2;
     
     const sphereX = Math.cos(latRad) * Math.cos(lonRad);
     const sphereY = Math.cos(latRad) * Math.sin(lonRad);
     const sphereZ = Math.sin(latRad);
     
-    return { x: sphereX, y: sphereY, z: sphereZ };
+    return { x: sphereX, y: sphereY, z: sphereZ, lonRad, latRad }; // 返回经纬度
 }
+
 
 function generateHeightMap(params, noise3D, prng) {
     const { width, height, scale, octaves, crater_scale, crater_strength } = params;
@@ -110,13 +110,13 @@ function generateHeightMap(params, noise3D, prng) {
     const numCraters = Math.floor(crater_scale * 50);
     const craters = [];
     for (let i = 0; i < numCraters; i++) {
-        const u = prng() * 2 - 1;
-        const theta = prng() * 2 * Math.PI;
-        const r = Math.sqrt(1 - u * u);
-        const center = { x: r * Math.cos(theta), y: r * Math.sin(theta), z: u };
-
+        // 使用球面坐标来随机化中心位置，而非笛卡尔坐标
+        const lonRad = prng() * 2 * Math.PI;
+        const latRad = Math.acos(1 - 2 * prng()) - Math.PI / 2;
+        
         craters.push({
-            center,
+            lonRad,
+            latRad,
             radius: 0.02 + prng() * 0.08,
             depth: crater_strength * (0.5 + prng())
         });
@@ -127,7 +127,10 @@ function generateHeightMap(params, noise3D, prng) {
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const i = y * width + x;
-            const sp = mapToSphere(x, y, width, height);
+            
+            // 修正后的 mapToSphere 函数会返回经纬度，便于后续计算
+            const { sphereX, sphereY, sphereZ, lonRad, latRad } = mapToSphere(x, y, width, height);
+            const sp = { x: sphereX, y: sphereY, z: sphereZ };
 
             // ---- 基础噪声 ----
             let baseNoise = 0;
@@ -139,16 +142,20 @@ function generateHeightMap(params, noise3D, prng) {
                 amp *= 0.5;
             }
 
-            // ---- 陨石坑效果 ----
+            // ---- 陨石坑效果 (修改部分) ----
             let craterEffect = 0;
             for (const crater of craters) {
-                const dx = sp.x - crater.center.x;
-                const dy = sp.y - crater.center.y;
-                const dz = sp.z - crater.center.z;
-                const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                // 使用Haversine公式计算大圆距离，它在球体上是均匀的
+                const deltaLat = latRad - crater.latRad;
+                const deltaLon = lonRad - crater.lonRad;
 
-                const r = dist / crater.radius;
-                if (r <= 1.2) { // Slightly larger radius for rim effect
+                const a = Math.sin(deltaLat / 2)**2 + Math.cos(crater.latRad) * Math.cos(latRad) * Math.sin(deltaLon / 2)**2;
+                const dist_angle = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+                // dist_angle是0到PI的弧度值，代表距离
+                const r = dist_angle / crater.radius; 
+                
+                if (r <= 1.2) { 
                     craterEffect += craterProfile(r, crater.depth);
                 }
             }
