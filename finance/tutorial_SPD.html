@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教程：什么是价格的概率密度分布图？</title>
+    <!-- 引入 MathJax 库用于渲染LaTeX公式 -->
+    <script>
+    MathJax = {
+        tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']]
+        },
+        svg: {
+            fontCache: 'global'
+        }
+    };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+    </script>
+    <style>
+        /* --- 全局样式 (与您的主页保持一致) --- */
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #121212;
+            color: #E0E0E0;
+            box-sizing: border-box;
+            position: relative;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px; /* 文本页面宽度可以窄一些，易于阅读 */
+            text-align: left; /* 文本左对齐 */
+            padding: 40px;
+            box-sizing: border-box;
+            position: relative;
+            z-index: 2;
+            margin: 60px auto;
+            background-color: rgba(28, 28, 28, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+        }
+        h1, h2 {
+            color: #FFFFFF;
+            border-bottom: 1px solid #404040;
+            padding-bottom: 10px;
+        }
+        p, li {
+            font-size: 1.1em;
+            line-height: 1.9;
+            color: #B0B0B0;
+        }
+        a {
+            color: #0099ff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 30px;
+            padding: 8px 15px;
+            background-color: #007BFF;
+            color: #FFFFFF;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background-color 0.3s ease;
+        }
+        .back-link:hover {
+            background-color: #0056b3;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <a href="SPD.html" class="back-link">← 返回SPD分析工具</a>
+
+        <h1>什么是价格的概率密度分布图 (SPD)？</h1>
+        <h2>By @MeowFin_Global </h2>
+
+        <p>
+            SPD，也就是状态价格密度(State Price Density)，是一种反映投资者对金融资产未来价格分布预期的金融风险度量指标，能够为投资者提供资产价格预期的参考。金融资产未来价格分布不能直接观测到，但可以通过该资产衍生品的当前价格导出。未来分布的估计依据当前时刻的市场情绪，衡量了资产价格未来出现在不同位置的可能性。相比于目前市场上常用的VIX，金融资产价格未来分布不仅提供了市场的波动信息，还给出了具体的价格分布预期，可广泛应用于风险管理、波动预测等金融领域。
+        </p>
+
+        <p>
+            以欧式看涨期权合约为例，假设该合约标的资产价格为$S$，到期日为$T$，执行价为$K$。则该期权赋予持有者在$T$时刻以价格$K$买入该标的资产的权利。若$T$时刻标的资产价格$S_T > K$，则持有者行权，若$S_T < K$，则持有者不行权。因此持有看涨期权的到期收益函数为:
+        </p>
+
+        $$ \max(0, S_T - K) = (S_T - K)^+ $$
+
+        <p>
+            我们可以通过收益的数学期望及折现来给期权定价，其原理是公允价值应当等于到期时的收益期望。假设我们知道到期时资产价格$S_T$的分布$f(s)$，则当前时刻$t$，执行价为$K$的看涨期权价格应为
+        </p>
+        
+        $$ C_t(K) = e^{-r(T-t)} \int_{K}^{\infty} (s - K)f(s)ds \quad (1) $$
+
+        <p>
+            其中$r$是无风险利率。在公式(1)中，未来分布$f(s)$是不能观测到的，但$t$时刻不同执行价下的期权当前价格$C_t(K)$能够观测。因此我们可以通过期权价格反推$f(s)$，得到的就是$S_T$分布的估计，即标的资产的未来价格分布，反映了当前交易者对到期时标的资产价格的预期。
+        </p>
+        
+        <p>
+            基于公式(1)，经过微积分推导（Breeden-Litzenberger, 1978），可以得到金融资产未来价格分布的估计公式为：
+        </p>
+        
+        $$ f(S_T) = e^{r(T-t)} \frac{\partial^2 C(K)}{\partial K^2} \bigg|_{K=S_T} \quad (2) $$
+        
+        <p>
+            即我们可以把期权价格作为执行价的函数，对该函数求二阶导，得到标的资产的未来价格分布估计。通过不同到期日的期权数据得到的金融资产未来价格分布能够反映金融标的资产在未来不同时期的价格分布预期。
+        </p>
+
+        <p>
+            尽管这是一个很好的工具，但当前几乎没有平台提供金融资产未来价格分布的演算展示，因此本网站提供了较为便利的出图工具，在YouTube@MeowFin_Global的节目中也会使用。
+        </p>
+    </div>
+
+</body>
+</html>
