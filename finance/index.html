@@ -9,32 +9,30 @@
         body {
             margin: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-            background-color: #121212; /* 深黑背景 */
-            color: #E0E0E0; /* 默认浅灰色文字 */
+            background-color: #121212;
+            color: #E0E0E0;
             box-sizing: border-box;
-            position: relative; /* 【修改点】为绝对定位的子元素（banner）创建定位上下文 */
-            padding-top: 1px; /* 防止子元素的margin-top溢出 */
+            position: relative;
+            padding-top: 1px;
         }
 
-        /* --- Banner 样式 (关键修改) --- */
+        /* --- Banner 样式 --- */
         .banner {
-            position: absolute; /* 【修改点】脱离文档流，作为背景 */
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
-            height: 400px; /*【修改点】给banner一个固定的高度 */
-            z-index: 1; /* 【修改点】确保它在内容之下 */
-            opacity: 0.25; /* 【修改点】设置半透明效果 */
-            overflow: hidden; /* 防止图片溢出 */
+            height: 400px;
+            z-index: 1;
+            opacity: 0.25;
+            overflow: hidden;
         }
 
         .banner img {
             width: 100%;
             height: 100%;
-            object-fit: cover; /* 【修改点】让图片像背景一样填充容器，不变形 */
-            object-position: center; /* 图片居中显示 */
-            border-radius: 0; /* 背景图片不需要圆角 */
-            box-shadow: none; /* 背景图片不需要阴影 */
+            object-fit: cover;
+            object-position: center;
         }
 
         /* --- 主容器 --- */
@@ -42,14 +40,38 @@
             width: 100%;
             max-width: 1200px;
             text-align: center;
-            padding: 40px 20px; /* 增加了左右padding */
+            padding: 40px 20px;
             box-sizing: border-box;
-            position: relative; /* 【修改点】提升层级，以便设置z-index */
-            z-index: 2; /* 【修改点】确保内容在banner之上 */
-            margin: 60px auto 0 auto; /* 【修改点】与顶部留出空间，避免与banner重叠 */
-            background-color: rgba(18, 18, 18, 0.6); /* 可选：增加一点半透明背景，让文字更清晰 */
-            backdrop-filter: blur(10px); /* 可选：增加毛玻璃效果，提升质感 */
+            position: relative;
+            z-index: 2;
+            margin: 60px auto 0 auto;
+            background-color: rgba(18, 18, 18, 0.6);
+            backdrop-filter: blur(10px);
             border-radius: 12px;
+        }
+
+        /* --- 语言切换器样式 --- */
+        .lang-switcher {
+            margin-bottom: 30px;
+        }
+        .lang-btn {
+            background: none;
+            border: 1px solid #404040;
+            color: #A0A0A0;
+            padding: 8px 15px;
+            margin: 0 5px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .lang-btn:hover {
+            border-color: #FFFFFF;
+            color: #FFFFFF;
+        }
+        .lang-btn.active {
+            background-color: #007BFF;
+            border-color: #007BFF;
+            color: #FFFFFF;
         }
 
         /* --- 标题和副标题 --- */
@@ -110,8 +132,8 @@
 
         /* --- 底部署名样式 --- */
         .credit {
-            position: relative; /* 【修改点】同样设为相对定位 */
-            z-index: 2; /* 【修改点】确保它也在banner之上 */
+            position: relative;
+            z-index: 2;
             margin-top: 50px;
             padding: 20px 0;
             font-size: 0.9em;
@@ -121,7 +143,7 @@
 
         /* --- 响应式布局 --- */
         @media (max-width: 768px) {
-            .banner { height: 300px; } /* 在小屏幕上减小banner高度 */
+            .banner { height: 300px; }
             .container { margin-top: 40px; }
             h1 { font-size: 2.2em; }
             .subtitle { font-size: 1em; margin-bottom: 30px;}
@@ -138,36 +160,128 @@
     </div>
 
     <div class="container">
-        <h1>金融分析工具集</h1>
-        <p class="subtitle">精选专业模型，洞察市场内在价值</p>
+        
+        <div class="lang-switcher">
+            <button class="lang-btn" data-lang="zh-CN">简体中文</button>
+            <button class="lang-btn" data-lang="zh-TW">繁體中文</button>
+            <button class="lang-btn" data-lang="en">English</button>
+        </div>
+
+        <h1 data-key="title" class="i18n">金融分析工具集</h1>
+        <p data-key="subtitle" class="i18n">精选专业模型，洞察市场内在价值</p>
 
         <div class="tools-grid">
             <a href="forwardval.html" class="tool-card">
-                <h3>前瞻估值计算器</h3>
-                <p>基于分析师盈利预测和行业增长率，快速计算未来1-3年的动态市盈率(PE)和市销率(PS)，评估成长性价值。</p>
+                <h3 data-key="card1_title" class="i18n">前瞻估值计算器</h3>
+                <p data-key="card1_desc" class="i18n">基于分析师盈利预测和行业增长率，快速计算未来1-3年的动态市盈率(PE)和市销率(PS)，评估成长性价值。</p>
             </a>
 
             <a href="DCF.html" class="tool-card">
-                <h3>DCF 估值模型</h3>
-                <p>通过预测公司未来的自由现金流并进行折现，计算企业的内在价值。支持自定义增长率、折现率等核心参数。</p>
+                <h3 data-key="card2_title" class="i18n">DCF 估值模型</h3>
+                <p data-key="card2_desc" class="i18n">通过预测公司未来的自由现金流并进行折现，计算企业的内在价值。支持自定义增长率、折现率等核心参数。</p>
             </a>
 
             <a href="SPD.html" class="tool-card">
-                <h3>期权SPD分析工具</h3>
-                <p>输入期权链数据，生成基于市场隐含波动的股价未来概率密度分布图(SPD)，直观评估市场情绪与潜在股价区间。</p>
+                <h3 data-key="card3_title" class="i18n">期权SPD分析工具</h3>
+                <p data-key="card3_desc" class="i18n">输入期权链数据，生成基于市场隐含波动的股价未来概率密度分布图(SPD)，直观评估市场情绪与潜在股价区间。</p>
             </a>
 
             <a href="monte_carlo.html" class="tool-card">
-                <h3>蒙特卡洛模拟投资组合预测</h3>
-                <p>通过在一系列可能的市场条件下生成随机的结果样本，蒙特卡罗模拟可以解答关于投资组合平均表现和最坏表现。</p>
+                <h3 data-key="card4_title" class="i18n">蒙特卡洛模拟投资组合预测</h3>
+                <p data-key="card4_desc" class="i18n">通过在一系列可能的市场条件下生成随机的结果样本，蒙特卡罗模拟可以解答关于投资组合平均表现和最坏表现。</p>
             </a>
-            
         </div>
     </div>
 
     <div class="credit">
         &copy; 2025 MeowFin_Global
     </div>
+
+<script>
+    // 1. 语言字典
+    const translations = {
+        'zh-CN': {
+            title: '金融分析工具集',
+            subtitle: '精选专业模型，洞察市场内在价值',
+            card1_title: '前瞻估值计算器',
+            card1_desc: '基于分析师盈利预测和行业增长率，快速计算未来1-3年的动态市盈率(PE)和市销率(PS)，评估成长性价值。',
+            card2_title: 'DCF 估值模型',
+            card2_desc: '通过预测公司未来的自由现金流并进行折现，计算企业的内在价值。支持自定义增长率、折现率等核心参数。',
+            card3_title: '期权SPD分析工具',
+            card3_desc: '输入期权链数据，生成基于市场隐含波动的股价未来概率密度分布图(SPD)，直观评估市场情绪与潜在股价区间。',
+            card4_title: '蒙特卡洛模拟投资组合预测',
+            card4_desc: '通过在一系列可能的市场条件下生成随机的结果样本，蒙特卡罗模拟可以解答关于投资组合平均表现和最坏表现。'
+        },
+        'zh-TW': {
+            title: '金融分析工具集',
+            subtitle: '精選專業模型，洞察市場內在價值',
+            card1_title: '前瞻估值計算器',
+            card1_desc: '基於分析師盈利預測和行業增長率，快速計算未來1-3年的動態市盈率(PE)和市銷率(PS)，評估成長性價值。',
+            card2_title: 'DCF 估值模型',
+            card2_desc: '透過預測公司未來的自由現金流並進行折現，計算企業的內在價值。支援自定義增長率、折現率等核心參數。',
+            card3_title: '期權SPD分析工具',
+            card3_desc: '輸入期權鏈數據，生成基於市場隱含波動的股價未來概率密度分佈圖(SPD)，直觀評估市場情緒與潛在股價區間。',
+            card4_title: '蒙地卡羅模擬投資組合預測',
+            card4_desc: '透過在一系列可能的市場條件下生成隨機的結果樣本，蒙地卡羅模擬可以解答關於投資組合平均表現和最壞表現。'
+        },
+        'en': {
+            title: 'Financial Analysis Toolkit',
+            subtitle: 'Insight into Market Value with Curated Professional Models',
+            card1_title: 'Forward Valuation Calculator',
+            card1_desc: 'Based on analyst earnings forecasts and industry growth rates, quickly calculate forward P/E and P/S ratios for the next 1-3 years to assess growth value.',
+            card2_title: 'DCF Valuation Model',
+            card2_desc: 'Calculate the intrinsic value of a company by forecasting future free cash flows and discounting them. Supports custom growth rates, discount rates, etc.',
+            card3_title: 'Options SPD Analysis Tool',
+            card3_desc: 'Generate a stock price probability density (SPD) chart based on market-implied volatility from option chain data to assess market sentiment.',
+            card4_title: 'Monte Carlo Portfolio Simulation',
+            card4_desc: 'By generating random samples under various market conditions, Monte Carlo simulation can answer questions about the average and worst-case portfolio performance.'
+        }
+    };
+
+    // 2. 切换语言的函数
+    const changeLanguage = (lang) => {
+        // 更新所有带 data-key 的元素
+        document.querySelectorAll('.i18n').forEach(element => {
+            const key = element.getAttribute('data-key');
+            if (translations[lang] && translations[lang][key]) {
+                element.innerHTML = translations[lang][key];
+            }
+        });
+        
+        // 更新HTML文档的lang属性
+        document.documentElement.lang = lang;
+        
+        // 更新按钮的激活状态
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            if (btn.getAttribute('data-lang') === lang) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        // 将用户的语言选择保存到localStorage
+        localStorage.setItem('userLanguage', lang);
+    };
+
+    // 3. 为按钮绑定事件
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.addEventListener('click', (event) => {
+            const selectedLang = event.target.getAttribute('data-lang');
+            changeLanguage(selectedLang);
+        });
+    });
+
+    // 4. 页面加载时，检查localStorage中是否有保存的语言设置
+    document.addEventListener('DOMContentLoaded', () => {
+        const savedLang = localStorage.getItem('userLanguage');
+        // 尝试获取浏览器默认语言作为备选
+        const browserLang = navigator.language.startsWith('zh-TW') ? 'zh-TW' : (navigator.language.startsWith('zh') ? 'zh-CN' : 'en');
+        // 优先使用保存的语言，否则使用浏览器语言
+        const initialLang = savedLang || browserLang;
+        changeLanguage(initialLang);
+    });
+</script>
 
 </body>
 </html>
