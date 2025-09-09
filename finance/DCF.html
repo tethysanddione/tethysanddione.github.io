@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>简化版DCF现金流估值计算器</title>
+    <!-- 引入Font Awesome图标库 (用于教程链接图标) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         /* --- 全局样式 (与之前文件保持一致) --- */
         body {
@@ -18,23 +20,18 @@
             padding: 20px;
             box-sizing: border-box;
         }
-
-        /* --- 主容器 --- */
         .container {
             width: 100%;
             max-width: 1200px;
             text-align: center;
             padding: 40px 0;
         }
-
-        /* --- 标题和副标题 --- */
         h1 {
             font-size: 2.8em;
             font-weight: 600;
             color: #FFFFFF;
             margin-bottom: 10px;
         }
-
         .subtitle {
             font-size: 1.2em;
             color: #A0A0A0;
@@ -43,16 +40,12 @@
             margin-left: auto;
             margin-right: auto;
         }
-
-        /* --- 计算器主布局 --- */
         .calculator-layout {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 30px;
             text-align: left;
         }
-
-        /* --- 卡片样式 --- */
         .card {
             background-color: #282828;
             border: 1px solid #404040;
@@ -63,7 +56,6 @@
         .card:last-child {
              margin-bottom: 0;
         }
-        
         .card h3 {
             margin-top: 0;
             margin-bottom: 20px;
@@ -72,8 +64,6 @@
             border-bottom: 1px solid #404040;
             padding-bottom: 15px;
         }
-
-        /* --- 表单元素样式 --- */
         .input-group {
             margin-bottom: 15px;
         }
@@ -93,8 +83,6 @@
             font-size: 1em;
             box-sizing: border-box;
         }
-
-        /* --- 按钮样式 --- */
         .calc-button {
             width: 100%;
             padding: 15px;
@@ -111,11 +99,8 @@
         .calc-button:hover {
             background-color: #0056b3;
         }
-
-        /* --- 结果展示区样式 --- */
         .results-card .card-title-wacc { color: #17a2b8; }
         .results-card .card-title-dcf { color: #28a745; }
-
         .result-item {
             display: flex;
             justify-content: space-between;
@@ -129,9 +114,31 @@
         .result-item .value { color: #FFFFFF; font-weight: bold; font-size: 1.2em; }
         .result-item .value.positive { color: #28a745; }
         .result-item .value.negative { color: #dc3545; }
+        
+        /* --- 教程链接样式 --- */
+        .tutorial-link-container {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #404040;
+        }
+        .tutorial-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #A0A0A0;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: color 0.3s ease;
+        }
+        .tutorial-link:hover {
+            color: #FFFFFF;
+            text-decoration: underline;
+        }
+        .tutorial-link i {
+            font-size: 1.1em;
+        }
 
-
-        /* --- 响应式布局 --- */
         @media (max-width: 900px) {
             .calculator-layout { grid-template-columns: 1fr; }
             h1 { font-size: 2em; }
@@ -207,6 +214,14 @@
                     </div>
                 </div>
                 <button id="calculateBtn" class="calc-button">计算内在价值</button>
+                
+                <!-- 新增的教程链接部分 -->
+                <div class="tutorial-link-container">
+                    <a href="tutorial_DCF.html" class="tutorial-link">
+                        <i class="fa-solid fa-circle-question"></i>
+                        <span>如何理解DCF中的参数？</span>
+                    </a>
+                </div>
             </div>
 
             <div class="output-section">
@@ -247,11 +262,9 @@
         const rm = (parseFloat(document.getElementById('marketReturn').value) || 13) / 100;
         const beta = parseFloat(document.getElementById('beta').value) || 0;
         const taxRate = (parseFloat(document.getElementById('taxRate').value) || 0) / 100;
-
         const E = parseFloat(document.getElementById('marketCap').value) || 0;
         const D = parseFloat(document.getElementById('debtValue').value) || 0;
         const interestCost = parseFloat(document.getElementById('interestCost').value) || 0;
-
         const cf0 = parseFloat(document.getElementById('cf0').value) || 0;
         const cf_1 = parseFloat(document.getElementById('cf_1').value) || 0;
         const cf_2 = parseFloat(document.getElementById('cf_2').value) || 0;
@@ -259,24 +272,18 @@
         const pg = (parseFloat(document.getElementById('perpetualGrowthRate').value) || 2.5) / 100;
         
         // --- 2. 计算WACC ---
-        const Re = rf + beta * (rm - rf); // 股本成本
-        const Rd = (D > 0) ? (interestCost / D) : 0; // 债务成本
-        
-        const V = E + D; // 总资本
-        const We = (V > 0) ? (E / V) : 0; // 股本权重
-        const Wd = (V > 0) ? (D / V) : 0; // 债务权重
-
+        const Re = rf + beta * (rm - rf);
+        const Rd = (D > 0) ? (interestCost / D) : 0;
+        const V = E + D;
+        const We = (V > 0) ? (E / V) : 0;
+        const Wd = (V > 0) ? (D / V) : 0;
         const WACC = We * Re + Wd * Rd * (1 - taxRate);
 
         // --- 3. 计算DCF ---
         let dcfTotal = 0;
         let upside = 0;
-
-        if (WACC > pg) { // 只有WACC大于永续增长率时，模型才有效
-            // 计算用于预测的基准现金流
+        if (WACC > pg) {
             const baseCF = (cf0 + cf_1 + cf_2) / 3;
-
-            // 计算未来5年的现金流并折现
             let futureCFs = [];
             let discountedCFsSum = 0;
             for (let i = 1; i <= 5; i++) {
@@ -284,15 +291,9 @@
                 futureCFs.push(cf);
                 discountedCFsSum += cf / Math.pow(1 + WACC, i);
             }
-
-            // 计算终值并折现
             const terminalValue = (futureCFs[4] * (1 + pg)) / (WACC - pg);
             const discountedTV = terminalValue / Math.pow(1 + WACC, 5);
-
-            // DCF总额 = 未来5年折现现金流之和 + 终值折现
             dcfTotal = discountedCFsSum + discountedTV;
-            
-            // 计算上升空间
             if (E > 0) {
                 upside = (dcfTotal / E) - 1;
             }
@@ -307,7 +308,7 @@
             document.getElementById('dcfTotalResult').textContent = `${dcfTotal.toFixed(2)} 亿`;
             const upsideValue = document.getElementById('upsideResult');
             upsideValue.textContent = `${(upside * 100).toFixed(2)}%`;
-            upsideValue.className = 'value'; // Reset class
+            upsideValue.className = 'value';
             if (upside > 0) {
                 upsideValue.classList.add('positive');
             } else if (upside < 0) {
