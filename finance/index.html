@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金融分析工具集</title>
+    <style>
+        /* --- 全局样式 --- */
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #121212; /* 深黑背景 */
+            color: #E0E0E0; /* 默认浅灰色文字 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* --- 主容器 --- */
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        /* --- 标题和副标题 --- */
+        h1 {
+            font-size: 2.8em;
+            font-weight: 600;
+            color: #FFFFFF;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            color: #A0A0A0; /* 较暗的灰色 */
+            margin-bottom: 50px;
+        }
+
+        /* --- 工具网格布局 --- */
+        .tools-grid {
+            display: grid;
+            /* 响应式网格：在空间足够时每行最多3个，否则自动换行 */
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px; /* 卡片间距 */
+        }
+
+        /* --- 单个工具卡片样式 --- */
+        .tool-card {
+            background-color: #282828; /* 卡片背景色 */
+            border: 1px solid #404040; /* 卡片边框 */
+            border-radius: 12px; /* 圆角 */
+            padding: 30px;
+            text-align: left;
+            text-decoration: none; /* 移除链接下划线 */
+            color: inherit;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+
+        /* --- 鼠标悬停效果 --- */
+        .tool-card:hover {
+            transform: translateY(-8px); /* 向上浮动 */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); /* 增加阴影 */
+            border-color: #686868; /* 边框变亮 */
+        }
+
+        .tool-card h3 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: #FFFFFF; /* 卡片标题为白色 */
+            font-size: 1.4em;
+        }
+
+        .tool-card p {
+            margin: 0;
+            color: #B0B0B0; /* 卡片描述文字颜色 */
+            line-height: 1.6;
+            font-size: 1em;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>金融分析工具集</h1>
+        <p class="subtitle">精选专业模型，洞察市场内在价值</p>
+
+        <div class="tools-grid">
+            <a href="#" class="tool-card">
+                <h3>前瞻估值计算器</h3>
+                <p>基于分析师盈利预测和行业增长率，快速计算未来1-3年的动态市盈率(PE)和市销率(PS)，评估成长性价值。</p>
+            </a>
+
+            <a href="#" class="tool-card">
+                <h3>DCF 估值模型</h3>
+                <p>通过预测公司未来的自由现金流并进行折现，计算企业的内在价值。支持自定义增长率、折现率等核心参数。</p>
+            </a>
+
+            <a href="#" class="tool-card">
+                <h3>期权SPD分析工具</h3>
+                <p>输入期权链数据，生成基于市场隐含波动的股价未来概率密度分布图(SPD)，直观评估市场情绪与潜在股价区间。</p>
+            </a>
+        </div>
+    </div>
+
+</body>
+</html>
