@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蒙特卡洛投资组合模拟器</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* --- 全局样式 (与之前文件保持一致) --- */
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #121212;
+            color: #E0E0E0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            text-align: center;
+            padding: 40px 0;
+        }
+        h1 {
+            font-size: 2.8em;
+            font-weight: 600;
+            color: #FFFFFF;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            font-size: 1.2em;
+            color: #A0A0A0;
+            margin-bottom: 50px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .calculator-layout {
+            display: grid;
+            grid-template-columns: 1fr 2fr; /* 左侧窄，右侧宽 */
+            gap: 30px;
+            text-align: left;
+            align-items: flex-start;
+        }
+        .card {
+            background-color: #282828;
+            border: 1px solid #404040;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        .card:last-child {
+             margin-bottom: 0;
+        }
+        .card h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #FFFFFF;
+            font-size: 1.4em;
+            border-bottom: 1px solid #404040;
+            padding-bottom: 15px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #B0B0B0;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            background-color: #1E1E1E;
+            border: 1px solid #404040;
+            border-radius: 6px;
+            color: #E0E0E0;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+        .calc-button {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #FFFFFF;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+        }
+        .calc-button:hover {
+            background-color: #0056b3;
+        }
+        .calc-button:disabled {
+             background-color: #555;
+             cursor: not-allowed;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            min-height: 400px;
+        }
+        .results-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .summary-item {
+            background-color: #1E1E1E;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .summary-item .label {
+            font-size: 0.9em;
+            color: #A0A0A0;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .summary-item .value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #FFFFFF;
+        }
+        .summary-item .value.optimistic { color: #28a745; }
+        .summary-item .value.pessimistic { color: #dc3545; }
+
+        @media (max-width: 900px) {
+            .calculator-layout { grid-template-columns: 1fr; }
+            h1 { font-size: 2em; }
+            .subtitle { font-size: 1em; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>蒙特卡洛投资组合模拟器</h1>
+        <p class="subtitle">通过数千次随机模拟，预测未来投资组合价值的概率分布</p>
+
+        <div class="calculator-layout">
+            <div class="input-section">
+                <div class="card">
+                    <h3>1. 初始参数</h3>
+                    <div class="input-group">
+                        <label>初始投资额 (元)</label>
+                        <input type="number" id="initialInvestment" value="100000">
+                    </div>
+                    <div class="input-group">
+                        <label>每年追加投资 (元)</label>
+                        <input type="number" id="annualAddition" value="12000">
+                    </div>
+                    <div class="input-group">
+                        <label>模拟年限 (年)</label>
+                        <input type="number" id="simulationYears" value="20">
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>2. 市场回报假设</h3>
+                    <div class="input-group">
+                        <label>预期年均回报率 (%)</label>
+                        <input type="number" id="annualReturn" value="8">
+                    </div>
+                    <div class="input-group">
+                        <label>年均波动率/标准差 (%)</label>
+                        <input type="number" id="annualVolatility" value="15">
+                    </div>
+                </div>
+
+                 <div class="card">
+                    <h3>3. 模拟参数</h3>
+                     <div class="input-group">
+                        <label>模拟次数</label>
+                        <input type="number" id="numSimulations" value="1000">
+                    </div>
+                </div>
+                <button id="runSimulationBtn" class="calc-button">运行模拟</button>
+            </div>
+
+            <div class="output-section">
+                <div class="card">
+                    <div class="chart-container">
+                        <canvas id="mcChart"></canvas>
+                    </div>
+                    <div class="results-summary">
+                        <div class="summary-item">
+                            <span class="label">悲观结果 (10%)</span>
+                            <span class="value pessimistic" id="pessimisticValue">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">中位结果 (50%)</span>
+                            <span class="value" id="medianValue">-</span>
+                        </div>
+                         <div class="summary-item">
+                            <span class="label">乐观结果 (90%)</span>
+                            <span class="value optimistic" id="optimisticValue">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    let mcChartInstance = null;
+    const runBtn = document.getElementById('runSimulationBtn');
+
+    // Box-Muller transform to generate normally distributed random numbers
+    function generateNormalRandom(mean, stdDev) {
+        let u1 = 0, u2 = 0;
+        //Convert [0,1) to (0,1)
+        while (u1 === 0) u1 = Math.random();
+        while (u2 === 0) u2 = Math.random();
+        
+        const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+        // z0 is now a standard normal random number (mean 0, stdDev 1)
+        // Scale it to our desired mean and standard deviation
+        return z0 * stdDev + mean;
+    }
+
+    runBtn.addEventListener('click', function() {
+        runBtn.disabled = true;
+        runBtn.textContent = '正在模拟...';
+        
+        // Use setTimeout to allow the UI to update before the heavy calculation starts
+        setTimeout(() => {
+            // --- 1. Get Inputs ---
+            const initial = parseFloat(document.getElementById('initialInvestment').value);
+            const annualAdd = parseFloat(document.getElementById('annualAddition').value);
+            const years = parseInt(document.getElementById('simulationYears').value);
+            const meanReturn = parseFloat(document.getElementById('annualReturn').value) / 100;
+            const volatility = parseFloat(document.getElementById('annualVolatility').value) / 100;
+            const numSims = parseInt(document.getElementById('numSimulations').value);
+
+            // --- 2. Run Simulations ---
+            const allSimulations = [];
+            for (let i = 0; i < numSims; i++) {
+                const path = [initial];
+                let currentValue = initial;
+                for (let y = 0; y < years; y++) {
+                    const annualReturn = generateNormalRandom(meanReturn, volatility);
+                    currentValue = currentValue * (1 + annualReturn) + annualAdd;
+                    currentValue = Math.max(0, currentValue); // Cannot go below zero
+                    path.push(currentValue);
+                }
+                allSimulations.push(path);
+            }
+
+            // --- 3. Process Results ---
+            const path10th = [];
+            const path50th = [];
+            const path90th = [];
+
+            for (let y = 0; y <= years; y++) {
+                const yearValues = allSimulations.map(sim => sim[y]).sort((a, b) => a - b);
+                path10th.push(yearValues[Math.floor(numSims * 0.1)]);
+                path50th.push(yearValues[Math.floor(numSims * 0.5)]);
+                path90th.push(yearValues[Math.floor(numSims * 0.9)]);
+            }
+
+            // --- 4. Update Summary ---
+            const formatCurrency = (value) => `¥${(value / 10000).toFixed(2)}万`;
+            document.getElementById('pessimisticValue').textContent = formatCurrency(path10th[years]);
+            document.getElementById('medianValue').textContent = formatCurrency(path50th[years]);
+            document.getElementById('optimisticValue').textContent = formatCurrency(path90th[years]);
+            
+            // --- 5. Draw Chart ---
+            const ctx = document.getElementById('mcChart').getContext('2d');
+            const labels = Array.from({ length: years + 1 }, (_, i) => `第${i}年`);
+            
+            if (mcChartInstance) {
+                mcChartInstance.destroy();
+            }
+
+            mcChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '乐观结果 (90%)',
+                            data: path90th,
+                            borderColor: 'rgba(40, 167, 69, 0.8)',
+                            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            fill: '+1' // Fill to the next dataset (median)
+                        },
+                        {
+                            label: '中位结果 (50%)',
+                            data: path50th,
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            fill: false
+                        },
+                         {
+                            label: '悲观结果 (10%)',
+                            data: path10th,
+                            borderColor: 'rgba(220, 53, 69, 0.8)',
+                            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            fill: false // Fill to origin
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: { display: true, text: '投资年限', color: '#B0B0B0' },
+                            ticks: { color: '#B0B0B0' },
+                            grid: { color: '#404040' }
+                        },
+                        y: {
+                            title: { display: true, text: '投资组合价值 (元)', color: '#B0B0B0' },
+                            ticks: { color: '#B0B0B0', callback: (value) => `${(value / 10000).toFixed(0)}万` },
+                            grid: { color: '#404040' }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '投资组合价值概率分布',
+                            color: '#FFFFFF',
+                            font: { size: 18 }
+                        },
+                        legend: {
+                            labels: { color: '#B0B0B0' }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${formatCurrency(context.raw)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            runBtn.disabled = false;
+            runBtn.textContent = '重新运行模拟';
+        }, 50); // 50ms delay
+    });
+
+    // Automatically run simulation on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        runBtn.click();
+    });
+</script>
+
+</body>
+</html>
