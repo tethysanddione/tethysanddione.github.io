@@ -55,7 +55,7 @@ self.onmessage = (e) => {
     const noise3D = createNoise3D(seededRandom);
 
     // 1. Generate Height Map
-    const heightMap = generateHeightMap(params, noise3D);
+    const heightMap = generateHeightMap(params, noise3D, seededRandom); // Pass PRNG for craters
 
     // 2. Generate Planet Texture
     const colormapData = generatePlanetTexture(params, heightMap, noise2D);
@@ -83,7 +83,8 @@ self.onmessage = (e) => {
 
 function mapToSphere(x, y, width, height) {
     const lonRad = (x / width) * 2 * Math.PI;
-    const latRad = (y / height) * Math.PI - Math.PI / 2;
+    // Correct mapping to avoid pinching at poles
+    const latRad = Math.acos(1 - 2 * (y / height)) - Math.PI / 2;
     
     const sphereX = Math.cos(latRad) * Math.cos(lonRad);
     const sphereY = Math.cos(latRad) * Math.sin(lonRad);
@@ -92,31 +93,32 @@ function mapToSphere(x, y, width, height) {
     return { x: sphereX, y: sphereY, z: sphereZ };
 }
 
-function generateHeightMap(params, noise3D) {
+function generateHeightMap(params, noise3D, prng) {
     const { width, height, scale, octaves, crater_scale, crater_strength } = params;
     const heightMap = new Float32Array(width * height);
 
     // ---- 陨石坑 profile ----
     function craterProfile(r, depth) {
         if (r > 1.0) return 0;
-        const depression = -depth * Math.pow(1 - r * r, 2); 
-        const rim = depth * 0.25 * Math.exp(-Math.pow((r - 0.8) * 6, 2)); 
+        // A more realistic profile with a central peak
+        const depression = -depth * Math.exp(-Math.pow(r * 3, 2));
+        const rim = depth * 0.4 * Math.exp(-Math.pow((r - 0.9) * 5, 2));
         return depression + rim;
     }
 
     // ---- 随机生成坑中心 ----
-    const numCraters = Math.floor(crater_scale * 50); // crater_scale 控制数量
+    const numCraters = Math.floor(crater_scale * 50);
     const craters = [];
     for (let i = 0; i < numCraters; i++) {
-        const u = Math.random() * 2 - 1;
-        const theta = Math.random() * 2 * Math.PI;
+        const u = prng() * 2 - 1;
+        const theta = prng() * 2 * Math.PI;
         const r = Math.sqrt(1 - u * u);
         const center = { x: r * Math.cos(theta), y: r * Math.sin(theta), z: u };
 
         craters.push({
             center,
-            radius: 0.02 + Math.random() * 0.08, // 半径 2%~8%
-            depth: crater_strength * (0.5 + Math.random()) // 深度有随机性
+            radius: 0.02 + prng() * 0.08,
+            depth: crater_strength * (0.5 + prng())
         });
     }
 
@@ -146,7 +148,7 @@ function generateHeightMap(params, noise3D) {
                 const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
                 const r = dist / crater.radius;
-                if (r <= 1.0) {
+                if (r <= 1.2) { // Slightly larger radius for rim effect
                     craterEffect += craterProfile(r, crater.depth);
                 }
             }
@@ -161,20 +163,26 @@ function generateHeightMap(params, noise3D) {
 
     // ---- 归一化 ----
     const range = maxVal - minVal;
-    for (let i = 0; i < heightMap.length; i++) {
-        heightMap[i] = (heightMap[i] - minVal) / range;
+    if (range > 1e-6) {
+        for (let i = 0; i < heightMap.length; i++) {
+            heightMap[i] = (heightMap[i] - minVal) / range;
+        }
     }
 
     return heightMap;
 }
 
 
-function generatePlanetTexture(params, heightMap, noise2D) { // 4. 将 simplex 替换为 noise2D
-    const { width, height, textureData, texture_world_scale, perturb_strength, shading_strength } = params;
+function generatePlanetTexture(params, heightMap, noise2D) {
+    // 解构出所有需要的参数，包括新的纹理和混合参数
+    const { 
+        width, height, 
+        textureDataBase, textureDataHigh,
+        blend_altitude, blend_smoothness,
+        texture_world_scale, perturb_strength, shading_strength 
+    } = params;
+
     const colorMap = new Uint8ClampedArray(width * height * 4);
-    
-    const texWidth = textureData.width;
-    const texHeight = textureData.height;
     
     const lightVec = { x: 1.0, y: 0.5, z: 0.5 };
     const lightMag = Math.sqrt(lightVec.x**2 + lightVec.y**2 + lightVec.z**2);
@@ -185,6 +193,7 @@ function generatePlanetTexture(params, heightMap, noise2D) { // 4. 将 simplex �
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const i = y * width + x;
+            const h = heightMap[i]; // 当前点的高度 (0-1)
             const sp = mapToSphere(x, y, width, height);
 
             const weights = { x: Math.abs(sp.x), y: Math.abs(sp.y), z: Math.abs(sp.z) };
@@ -193,41 +202,41 @@ function generatePlanetTexture(params, heightMap, noise2D) { // 4. 将 simplex �
 
             const perturbVal = noise2D(sp.x * 300, sp.y * 300) * perturb_strength;
             
-            const coords = {
-                x: {
-                    u: (sp.y * texWidth * texture_world_scale + perturbVal) % texWidth,
-                    v: (sp.z * texHeight * texture_world_scale + perturbVal) % texHeight,
-                },
-                y: {
-                    u: (sp.x * texWidth * texture_world_scale + perturbVal) % texWidth,
-                    v: (sp.z * texHeight * texture_world_scale + perturbVal) % texHeight,
-                },
-                z: {
-                    u: (sp.x * texWidth * texture_world_scale + perturbVal) % texWidth,
-                    v: (sp.y * texHeight * texture_world_scale + perturbVal) % texHeight,
-                }
-            };
-
-            const colorX = sampleTextureBilinear(textureData, coords.x.u, coords.x.v);
-            const colorY = sampleTextureBilinear(textureData, coords.y.u, coords.y.v);
-            const colorZ = sampleTextureBilinear(textureData, coords.z.u, coords.z.v);
+            // --- 核心修改: 双纹理混合 ---
             
-            const mixedColor = {
-                r: colorX.r * weights.x + colorY.r * weights.y + colorZ.r * weights.z,
-                g: colorX.g * weights.x + colorY.g * weights.y + colorZ.g * weights.z,
-                b: colorX.b * weights.x + colorY.b * weights.y + colorZ.b * weights.z,
-            };
+            // 1. 获取基础纹理(低海拔)的颜色
+            const mixedColorBase = getTriplanarColor(sp, textureDataBase, texture_world_scale, perturbVal, weights);
+            let finalColor = mixedColorBase;
 
-            const surfaceNormal = { x: -gx[i] * shading_strength, y: -gy[i] * shading_strength, z: 0.1 };
+            // 2. 如果有高海拔纹理，则进行混合
+            if (textureDataHigh) {
+                const mixedColorHigh = getTriplanarColor(sp, textureDataHigh, texture_world_scale, perturbVal, weights);
+
+                // 3. 根据高度计算混合因子
+                const edge0 = blend_altitude - blend_smoothness;
+                const edge1 = blend_altitude + blend_smoothness;
+                const mixFactor = smoothstep(edge0, edge1, h);
+                
+                // 4. 混合两种颜色
+                finalColor = {
+                    r: lerp(mixedColorBase.r, mixedColorHigh.r, mixFactor),
+                    g: lerp(mixedColorBase.g, mixedColorHigh.g, mixFactor),
+                    b: lerp(mixedColorBase.b, mixedColorHigh.b, mixFactor),
+                };
+            }
+
+            // --- 混合结束 ---
+
+            const surfaceNormal = { x: -gx[i] * shading_strength * 100, y: -gy[i] * shading_strength * 100, z: 1 };
             const mag = Math.sqrt(surfaceNormal.x**2 + surfaceNormal.y**2 + surfaceNormal.z**2);
             surfaceNormal.x /= mag; surfaceNormal.y /= mag; surfaceNormal.z /= mag;
 
             const dot = surfaceNormal.x * lightVec.x + surfaceNormal.y * lightVec.y + surfaceNormal.z * lightVec.z;
             const shading = 0.6 + 0.4 * Math.max(0, dot);
             
-            colorMap[i * 4] = mixedColor.r * shading;
-            colorMap[i * 4 + 1] = mixedColor.g * shading;
-            colorMap[i * 4 + 2] = mixedColor.b * shading;
+            colorMap[i * 4] = finalColor.r * shading;
+            colorMap[i * 4 + 1] = finalColor.g * shading;
+            colorMap[i * 4 + 2] = finalColor.b * shading;
             colorMap[i * 4 + 3] = 255;
         }
     }
@@ -236,18 +245,65 @@ function generatePlanetTexture(params, heightMap, noise2D) { // 4. 将 simplex �
 
 // --- Helper Functions ---
 
+function lerp(a, b, t) {
+    return a * (1 - t) + b * t;
+}
+
+function smoothstep(edge0, edge1, x) {
+    const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+    return t * t * (3 - 2 * t);
+}
+
+function getTriplanarColor(sp, textureData, texture_world_scale, perturbVal, weights) {
+    const texWidth = textureData.width;
+    const texHeight = textureData.height;
+    
+    const coords = {
+        x: {
+            u: (sp.y * texWidth * texture_world_scale + perturbVal),
+            v: (sp.z * texHeight * texture_world_scale + perturbVal),
+        },
+        y: {
+            u: (sp.x * texWidth * texture_world_scale + perturbVal),
+            v: (sp.z * texHeight * texture_world_scale + perturbVal),
+        },
+        z: {
+            u: (sp.x * texWidth * texture_world_scale + perturbVal),
+            v: (sp.y * texHeight * texture_world_scale + perturbVal),
+        }
+    };
+
+    const colorX = sampleTextureBilinear(textureData, coords.x.u, coords.x.v);
+    const colorY = sampleTextureBilinear(textureData, coords.y.u, coords.y.v);
+    const colorZ = sampleTextureBilinear(textureData, coords.z.u, coords.z.v);
+    
+    return {
+        r: colorX.r * weights.x + colorY.r * weights.y + colorZ.r * weights.z,
+        g: colorX.g * weights.x + colorY.g * weights.y + colorZ.g * weights.z,
+        b: colorX.b * weights.x + colorY.b * weights.y + colorZ.b * weights.z,
+    };
+}
+
+
 function calculateGradient(data, width, height) {
     const gx = new Float32Array(data.length);
     const gy = new Float32Array(data.length);
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const i = y * width + x;
-            const x1 = data[y * width + (x > 0 ? x - 1 : x)];
-            const x2 = data[y * width + (x < width - 1 ? x + 1 : x)];
-            const y1 = data[(y > 0 ? y - 1 : y) * width + x];
-            const y2 = data[(y < height - 1 ? y + 1 : y) * width + x];
-            gx[i] = (x2 - x1) / 2;
-            gy[i] = (y2 - y1) / 2;
+            // Use wrapped (toroidal) sampling for seamless gradients at edges
+            const x_prev = (x === 0) ? width - 1 : x - 1;
+            const x_next = (x === width - 1) ? 0 : x + 1;
+            const y_prev = (y === 0) ? height - 1 : y - 1;
+            const y_next = (y === height - 1) ? 0 : y + 1;
+
+            const x1 = data[y * width + x_prev];
+            const x2 = data[y * width + x_next];
+            const y1 = data[y_prev * width + x];
+            const y2 = data[y_next * width + x];
+            
+            gx[i] = (x2 - x1);
+            gy[i] = (y2 - y1);
         }
     }
     return { gx, gy };
@@ -257,6 +313,7 @@ function sampleTextureBilinear(textureData, u, v) {
     const texWidth = textureData.width;
     const texHeight = textureData.height;
 
+    // Ensure u and v are positive for modulo operations
     u = u < 0 ? (u % texWidth) + texWidth : u;
     v = v < 0 ? (v % texHeight) + texHeight : v;
 
@@ -287,3 +344,4 @@ function sampleTextureBilinear(textureData, u, v) {
 
     return { r, g, b };
 }
+
