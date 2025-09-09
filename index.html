@@ -1,1 +1,52 @@
-hi
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>导航</title>
+    <style>
+        :root {
+            --bg-color: #1a1e23;
+            --text-color: #e0e6ec;
+            --accent-color: #00aaff;
+            --accent-hover: #0088cc;
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--bg-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        .nav-button {
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            background-color: var(--accent-color);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            box-shadow: 0 4px 15px rgba(0, 170, 255, 0.3);
+        }
+        .nav-button:hover {
+            background-color: var(--accent-hover);
+        }
+    </style>
+</head>
+<body>
+
+    <button id="navigate-btn" class="nav-button">探索星系 (Explore Star Systems)</button>
+
+    <script>
+        document.getElementById('navigate-btn').addEventListener('click', () => {
+            window.location.href = '/starsystems';
+        });
+    </script>
+
+</body>
+</html>
+
