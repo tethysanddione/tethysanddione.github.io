@@ -6,7 +6,7 @@
     <title>期权SPD分析工具</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* --- 全局样式 (与之前文件保持一致) --- */
+        /* --- 全局样式 (无需修改) --- */
         body {
             margin: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
@@ -19,23 +19,18 @@
             padding: 20px;
             box-sizing: border-box;
         }
-
-        /* --- 主容器 --- */
         .container {
             width: 100%;
             max-width: 1200px;
             text-align: center;
             padding: 40px 0;
         }
-
-        /* --- 标题和副标题 --- */
         h1 {
             font-size: 2.8em;
             font-weight: 600;
             color: #FFFFFF;
             margin-bottom: 10px;
         }
-
         .subtitle {
             font-size: 1.2em;
             color: #A0A0A0;
@@ -44,17 +39,13 @@
             margin-left: auto;
             margin-right: auto;
         }
-
-        /* --- 计算器主布局 --- */
         .calculator-layout {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 30px;
             text-align: left;
-            align-items: flex-start; /* 顶部对齐 */
+            align-items: flex-start;
         }
-
-        /* --- 卡片样式 --- */
         .card {
             background-color: #282828;
             border: 1px solid #404040;
@@ -65,7 +56,6 @@
         .card:last-child {
              margin-bottom: 0;
         }
-        
         .card h3 {
             margin-top: 0;
             margin-bottom: 20px;
@@ -74,8 +64,6 @@
             border-bottom: 1px solid #404040;
             padding-bottom: 15px;
         }
-
-        /* --- 表单元素样式 --- */
         .input-group {
             margin-bottom: 15px;
         }
@@ -99,8 +87,6 @@
         .input-group textarea {
             min-height: 100px;
         }
-
-        /* --- 按钮样式 --- */
         .calc-button {
             width: 100%;
             padding: 15px;
@@ -117,18 +103,12 @@
         .calc-button:hover {
             background-color: #0056b3;
         }
-        
-        /* --- Chart容器样式 (这是修复的部分) --- */
         .chart-container {
             position: relative;
             width: 100%;
-            /* 使用 aspect-ratio 属性强制容器保持固定的宽高比 */
-            /* 这样 Chart.js 就知道在多大的空间里绘制图表 */
             aspect-ratio: 16 / 10;
-            min-height: 350px; /* 增加一个最小高度以防被过度压缩 */
+            min-height: 350px;
         }
-
-        /* --- 响应式布局 --- */
         @media (max-width: 900px) {
             .calculator-layout { grid-template-columns: 1fr; }
             h1 { font-size: 2em; }
@@ -142,25 +122,24 @@
         <h1>期权SPD分析工具</h1>
         <p class="subtitle">通过期权链数据，生成基于市场隐含波动的股价未来概率密度分布图(SPD)</p>
 
-    <div class="calculator-layout">
-        <div class="input-section">
-            <div class="card">
-                <h3>1. 粘贴期权链数据</h3>
-                <div class="input-group">
-                    <label>行权价 (Strike Prices) - 用逗号分隔</label>
-                    <textarea id="strikePrices">250, 252.5, 255, 257.5, 260, 262.5, 265, 267.5, 270, 272.5, 275, 277.5, 280, 282.5, 285, 287.5, 290, 292.5, 295, 297.5, 300, 302.5, 305, 307.5, 310, 312.5, 315, 317.5, 320, 322.5, 325, 327.5, 330, 332.5, 335, 337.5, 340, 342.5, 345, 347.5, 350, 352.5, 355, 357.5, 360, 362.5, 365, 367.5, 370, 372.5, 375, 380, 385, 390, 395, 400, 405</textarea>
+        <div class="calculator-layout">
+            
+            <div class="input-section">
+                <div class="card">
+                    <h3>1. 粘贴期权链数据</h3>
+                    <div class="input-group">
+                        <label>行权价 (Strike Prices) - 用逗号分隔</label>
+                        <textarea id="strikePrices">250, 252.5, 255, 257.5, 260, 262.5, 265, 267.5, 270, 272.5, 275, 277.5, 280, 282.5, 285, 287.5, 290, 292.5, 295, 297.5, 300, 302.5, 305, 307.5, 310, 312.5, 315, 317.5, 320, 322.5, 325, 327.5, 330, 332.5, 335, 337.5, 340, 342.5, 345, 347.5, 350, 352.5, 355, 357.5, 360, 362.5, 365, 367.5, 370, 372.5, 375, 380, 385, 390, 395, 400, 405</textarea>
+                    </div>
+                    <div class="input-group">
+                        <label>看涨期权价格 (Call Prices)</label>
+                        <textarea id="callPrices">73.69, 65.53, 66.3, 70.32, 62.8, 55, 57.35, 56.34, 53.27, 50.85, 49.07, 43.7, 44.23, 44.0, 41.02, 39.58, 34.85, 32.51, 31.07, 29.0, 26.41, 24.42, 22.58, 20.91, 19.16, 17.65, 15.95, 14.55, 13.2, 11.96, 10.66, 9.58, 8.6, 7.74, 6.85, 6.15, 5.41, 4.83, 4.27, 3.8, 3.35, 2.92, 2.62, 2.33, 2.05, 1.79, 1.6, 1.43, 1.27, 1.14, 1.01, 0.8, 0.65, 0.53, 0.42, 0.35, 0.29</textarea>
+                    </div>
+                     <div class="input-group">
+                        <label>看跌期权价格 (Put Prices)</label>
+                        <textarea id="putPrices">0.42, 0.48, 0.5, 0.53, 0.59, 0.64, 0.68, 0.78, 0.85, 0.85, 1.08, 1.24, 1.39, 1.6, 1.81, 2.05, 2.38, 2.59, 3.1, 3.55, 4.1, 4.6, 5.25, 6.05, 6.85, 7.6, 8.6, 9.66, 10.8, 12.1, 13.45, 14.75, 16.28, 17.7, 19.45, 20.9, 23.1, 24.45, 26.41, 28.35, 30.93, 31.85, 34.05, 36.25, 38.0, 41.1, 42.5, 45.65, 46.5, 50.95, 53.67, 58.0, 62.9, 69.4, 66.5, 78.17, 80.0</textarea>
+                    </div>
                 </div>
-                <div class="input-group">
-                    <label>看涨期权价格 (Call Prices)</label>
-                    <textarea id="callPrices">73.69, 65.53, 66.3, 70.32, 62.8, 55, 57.35, 56.34, 53.27, 50.85, 49.07, 43.7, 44.23, 44.0, 41.02, 39.58, 34.85, 32.51, 31.07, 29.0, 26.41, 24.42, 22.58, 20.91, 19.16, 17.65, 15.95, 14.55, 13.2, 11.96, 10.66, 9.58, 8.6, 7.74, 6.85, 6.15, 5.41, 4.83, 4.27, 3.8, 3.35, 2.92, 2.62, 2.33, 2.05, 1.79, 1.6, 1.43, 1.27, 1.14, 1.01, 0.8, 0.65, 0.53, 0.42, 0.35, 0.29</textarea>
-                </div>
-                 <div class="input-group">
-                    <label>看跌期权价格 (Put Prices)</label>
-                    <textarea id="putPrices">0.42, 0.48, 0.5, 0.53, 0.59, 0.64, 0.68, 0.78, 0.85, 0.85, 1.08, 1.24, 1.39, 1.6, 1.81, 2.05, 2.38, 2.59, 3.1, 3.55, 4.1, 4.6, 5.25, 6.05, 6.85, 7.6, 8.6, 9.66, 10.8, 12.1, 13.45, 14.75, 16.28, 17.7, 19.45, 20.9, 23.1, 24.45, 26.41, 28.35, 30.93, 31.85, 34.05, 36.25, 38.0, 41.1, 42.5, 45.65, 46.5, 50.95, 53.67, 58.0, 62.9, 69.4, 66.5, 78.17, 80.0</textarea>
-                </div>
-            </div>
-        </div>
-    </div>
 
                 <div class="card">
                     <h3>2. 参数设置</h3>
@@ -179,14 +158,12 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-
-<script>
-    let spdChartInstance = null; // 用于存储图表实例
+            
+        </div> </div> <script>
+    // JavaScript部分无需修改，所以保持原样
+    let spdChartInstance = null; 
 
     document.getElementById('calculateBtn').addEventListener('click', function() {
-        // --- 1. 解析输入数据 ---
         const parseData = (textareaId) => {
             const text = document.getElementById(textareaId).value;
             return text.split(/[\s,]+/).filter(Boolean).map(Number);
@@ -201,8 +178,6 @@
             return;
         }
 
-        // --- 2. 计算风险中性密度 (RND) ---
-        // JS版本的 np.diff
         const diff = (arr, n = 1) => {
             let result = arr;
             for (let i = 0; i < n; i++) {
@@ -223,12 +198,11 @@
             rawRnd.push(Math.max(0, d2c_dk2[i], d2p_dk2[i]));
         }
         
-        // 归一化RND
         const sumRnd = rawRnd.reduce((a, b) => a + b, 0);
+        if(sumRnd === 0) return;
         const normalizedRnd = rawRnd.map(v => v / sumRnd);
-        const rndStrikes = strikes.slice(1, -1); // RND对应的行权价
+        const rndStrikes = strikes.slice(1, -1);
 
-        // --- 3. 核密度估计 (KDE) ---
         const gaussianKernel = (u) => (1 / Math.sqrt(2 * Math.PI)) * Math.exp(-0.5 * u * u);
         
         const xVals = [];
@@ -244,20 +218,19 @@
             for (let i = 0; i < normalizedRnd.length; i++) {
                 sum += normalizedRnd[i] * gaussianKernel((x - rndStrikes[i]) / bandwidth);
             }
-            return sum / bandwidth; // KDE标准公式
+            return sum / bandwidth;
         });
 
-        // 归一化KDE密度 (使用梯形法则)
         let totalArea = 0;
         for (let i = 0; i < xVals.length - 1; i++) {
             totalArea += (kdeDensity[i] + kdeDensity[i + 1]) / 2 * (xVals[i + 1] - xVals[i]);
         }
+        if(totalArea === 0) return;
         const normalizedKdeDensity = kdeDensity.map(v => v / totalArea);
 
-        // --- 4. 绘制图表 ---
         const ctx = document.getElementById('spdChart').getContext('2d');
         if (spdChartInstance) {
-            spdChartInstance.destroy(); // 销毁旧图表实例
+            spdChartInstance.destroy();
         }
 
         spdChartInstance = new Chart(ctx, {
@@ -270,7 +243,7 @@
                     borderColor: 'rgba(54, 162, 235, 1)',
                     backgroundColor: 'rgba(54, 162, 235, 0.2)',
                     borderWidth: 2,
-                    pointRadius: 0, // 不显示数据点
+                    pointRadius: 0,
                     tension: 0.1
                 }, {
                     type: 'scatter',
@@ -280,6 +253,8 @@
                 }]
             },
             options: {
+                responsive: true,
+                maintainAspectRatio: false,
                 scales: {
                     x: {
                         type: 'linear',
@@ -306,6 +281,11 @@
                 }
             }
         });
+    });
+
+    // 页面加载后自动点击一次按钮，生成初始图表
+    document.addEventListener('DOMContentLoaded', () => {
+         document.getElementById('calculateBtn').click();
     });
 </script>
 
