@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <title>金融分析工具集</title>
     <style>
         /* --- 全局样式 --- */
@@ -72,6 +73,33 @@
             background-color: #007BFF;
             border-color: #007BFF;
             color: #FFFFFF;
+        }
+        /* --- 社交媒体/外部链接按钮样式 --- */
+        .social-btn {
+            display: inline-flex; /* 让图标和文字在同一行并垂直居中 */
+            align-items: center;
+            gap: 8px; /* 图标和文字之间的间距 */
+            text-decoration: none;
+            border: 1px solid #404040;
+            color: #A0A0A0;
+            padding: 8px 15px;
+            margin: 0 5px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            vertical-align: middle; /* 与旁边的按钮对齐 */
+        }
+
+        /* YouTube 按钮的悬停效果 */
+        .social-btn.youtube-btn:hover {
+            background-color: #FF0000; /* YouTube 红色 */
+            border-color: #FF0000;
+            color: #FFFFFF;
+        }
+
+        /* 图标样式 */
+        .social-btn i {
+            font-size: 1.2em; /* 让图标比文字稍大一点 */
         }
 
         /* --- 标题和副标题 --- */
@@ -165,6 +193,10 @@
             <button class="lang-btn" data-lang="zh-CN">简体中文</button>
             <button class="lang-btn" data-lang="zh-TW">繁體中文</button>
             <button class="lang-btn" data-lang="en">English</button>
+            <a href="https://www.youtube.com/@MeowFin_Global" target="_blank" class="social-btn youtube-btn">
+                <i class="fa-brands fa-youtube"></i>
+                <span>YouTube 频道</span>
+            </a>
         </div>
 
         <h1 data-key="title" class="i18n">金融分析工具集</h1>
