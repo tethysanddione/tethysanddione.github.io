@@ -144,7 +144,7 @@ function generateHeightMap(params, noise3D, prng) {
             for (const crater of craters) {
                 const dx = sp.x - crater.center.x;
                 const dy = sp.y - crater.center.y;
-                const dz = (sp.z - crater.center.z) * 1.25;
+                const dz = (sp.z - crater.center.z) * 1.00;
                 const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
                 const r = dist / crater.radius;
