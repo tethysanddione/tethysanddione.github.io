@@ -114,6 +114,8 @@
                 <option value="stone">岩冰 (Shell)</option>
                 <option value="desert">荒漠 (Desert)</option>
                 <option value="silicate">硅酸盐 (Silicate)</option>
+                <option value="felsic">长英质 (Felsic)</option>
+                <option value="tholin">托林 (Tholin)</option>
                 <option value="custom">自定义...</option>
             </select>
             <input type="file" id="texture-file" style="display: none; margin-top: 5px;" accept="image/*">
@@ -223,7 +225,9 @@
                     dune: 'textures/dune.png',
                     stone: 'textures/stone.png',
                     desert: 'textures/desert.png',
-                    silicate: 'textures/silicate.png'
+                    silicate: 'textures/silicate.png',
+                    felsic: 'textures/felsic.png',
+                    tholin: 'textures/tholin.png'
                 };
                 const img = new Image();
                 img.onload = () => {
