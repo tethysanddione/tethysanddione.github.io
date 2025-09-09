@@ -11,12 +11,29 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
             background-color: #121212; /* 深黑背景 */
             color: #E0E0E0; /* 默认浅灰色文字 */
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            display: flex; /* 使用flexbox布局 */
+            flex-direction: column; /* 垂直方向排列子项 */
+            justify-content: flex-start; /* 内容从顶部开始 */
+            align-items: center; /* 水平居中 */
             min-height: 100vh;
-            padding: 20px;
+            padding: 0; /* 移除body默认padding，由内部元素控制 */
             box-sizing: border-box;
+        }
+
+        /* --- Banner 样式 --- */
+        .banner {
+            width: 100%;
+            max-width: 1200px; /* 与container宽度保持一致 */
+            padding: 20px 0; /* 顶部留空 */
+            text-align: center;
+        }
+
+        .banner img {
+            width: 100%; /* 图片宽度填充父容器 */
+            max-width: 800px; /* 控制图片最大宽度，避免过大 */
+            height: auto;
+            border-radius: 8px; /* 轻微圆角 */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); /* 增加一点阴影 */
         }
 
         /* --- 主容器 --- */
@@ -25,6 +42,7 @@
             max-width: 1200px;
             text-align: center;
             padding: 40px 0;
+            flex-grow: 1; /* 让主内容区域占据剩余空间 */
         }
 
         /* --- 标题和副标题 --- */
@@ -39,14 +57,17 @@
             font-size: 1.2em;
             color: #A0A0A0; /* 较暗的灰色 */
             margin-bottom: 50px;
+            max-width: 800px; /* 限制副标题宽度 */
+            margin-left: auto;
+            margin-right: auto;
         }
 
         /* --- 工具网格布局 --- */
         .tools-grid {
             display: grid;
-            /* 响应式网格：在空间足够时每行最多3个，否则自动换行 */
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 25px; /* 卡片间距 */
+            padding: 0 20px; /* 左右留空，防止贴边 */
         }
 
         /* --- 单个工具卡片样式 --- */
@@ -81,9 +102,32 @@
             line-height: 1.6;
             font-size: 1em;
         }
+
+        /* --- 底部署名样式 --- */
+        .credit {
+            margin-top: 50px; /* 与内容区域的间距 */
+            padding: 20px 0;
+            font-size: 0.9em;
+            color: #606060; /* 较浅的灰色 */
+            text-align: center;
+        }
+
+        /* --- 响应式布局 --- */
+        @media (max-width: 768px) {
+            h1 { font-size: 2.2em; }
+            .subtitle { font-size: 1em; margin-bottom: 30px;}
+            .tool-card { padding: 20px; }
+            .tool-card h3 { font-size: 1.2em; }
+            .tools-grid { gap: 15px; padding: 0 10px; }
+            .banner { padding: 10px 0; }
+        }
     </style>
 </head>
 <body>
+
+    <div class="banner">
+        <img src="banner.png" alt="金融工具集Banner">
+    </div>
 
     <div class="container">
         <h1>金融分析工具集</h1>
@@ -109,7 +153,13 @@
                 <h3>蒙特卡洛模拟投资组合预测</h3>
                 <p>通过在一系列可能的市场条件下生成随机的结果样本，蒙特卡罗模拟可以解答关于投资组合平均表现和最坏表现。</p>
             </a>
+            
+            
         </div>
+    </div>
+
+    <div class="credit">
+        &copy; 2025 MeowFin_Global
     </div>
 
 </body>
