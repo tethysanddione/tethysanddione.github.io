@@ -253,9 +253,13 @@
     <div id="enm-help-overlay" class="modal-overlay hidden"></div>
     <div id="enm-help-modal" class="modal hidden"></div>
 
-    <script>
+<script>
     document.addEventListener('DOMContentLoaded', function() {
-        // --- 全局变量和常量 ---
+        // --- API 后端地址 ---
+        // 部署后，请将此URL替换为你的Cloud Run服务的URL
+        var BACKEND_URL = 'YOUR_CLOUD_RUN_SERVICE_URL/predict'; 
+        
+        // --- 全局变量 ---
         var runDiagnosisBtn = document.getElementById('run-diagnosis');
         var runBtnText = document.getElementById('run-btn-text');
         var imageUploadInput = document.getElementById('image-upload');
@@ -264,179 +268,65 @@
         var uploadPrompt = document.getElementById('upload-prompt');
         var imagePreviewContainer = document.getElementById('image-preview-container');
         var previewImage = document.getElementById('preview-image');
-        var currentFiles = null; 
-        
-        // --- 模型配置 ---
-        var modelUrl = 'model.onnx';
-        
-        var session; // ONNX session
-        var MODEL_INPUT_SIZE = 512;
-        var class_ids = [15, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80];
-        var temperature = 0.89;
-        var pred_anchor = [15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80];
-        var ci_anchor = [23, 30, 35, 45, 55, 65, 77, 90, 102, 115, 128, 143, 163, 193];
+        var currentFiles = null;
 
-        // --- 核心算法逻辑 (ES5) ---
-        var polarize_probs = function(probs, temp) {
-            if (temp === 1.0) return probs;
-            var scaled = probs.map(function(p) { return Math.pow(p, 1 / temp); });
-            var sum = scaled.reduce(function(a, b) { return a + b; }, 0);
-            return scaled.map(function(p) { return p / sum; });
-        };
-        var linearInterpolate = function(x, x_points, y_points) {
-            if (x <= x_points[0]) return y_points[0];
-            if (x >= x_points[x_points.length - 1]) return y_points[y_points.length - 1];
-            var i = 1;
-            while (x > x_points[i]) i++;
-            var slope = (y_points[i] - y_points[i - 1]) / (x_points[i] - x_points[i - 1]);
-            return y_points[i - 1] + slope * (x - x_points[i - 1]);
-        };
-        var pred_to_ci = function(pred) { return linearInterpolate(pred, pred_anchor, ci_anchor); };
+        // --- 模型加载状态模拟 ---
+        // 由于模型在后端，前端只需确认后端可用即可。
+        // 为简单起见，我们假设后端总是可用的。
+        runDiagnosisBtn.disabled = false;
+        runBtnText.textContent = '开始分析';
+        diagnosisResultsEl.textContent = '模型已在云端就绪。请上传图片进行分析。';
 
-        // --- 模型加载 (ES5 Promises) ---
-        function loadModel() {
-            var progressContainer = document.getElementById('model-progress-container');
-            var progressBar = document.getElementById('model-progress-bar');
-            
-            if (session) return;
-            diagnosisResultsEl.textContent = '准备加载模型...';
-            
-            fetch(modelUrl)
-                .then(function(response) {
-                    if (!response.ok) throw new Error('网络响应错误: ' + response.statusText);
-                    diagnosisResultsEl.textContent = '开始下载模型 (约 30MB)...';
-                    progressContainer.classList.remove('hidden');
-
-                    if (!response.body || !response.headers.get('content-length')) {
-                        console.warn("浏览器不支持响应流，无法显示实时进度。");
-                        return response.arrayBuffer();
-                    }
-
-                    var total = parseInt(response.headers.get('content-length'), 10);
-                    var loaded = 0;
-                    var reader = response.body.getReader();
-                    var chunks = [];
-
-                    function read() {
-                        return reader.read().then(function(result) {
-                            if (result.done) {
-                                var fullBuffer = new Uint8Array(loaded);
-                                var offset = 0;
-                                for (var i = 0; i < chunks.length; i++) {
-                                    fullBuffer.set(chunks[i], offset);
-                                    offset += chunks[i].length;
-                                }
-                                return fullBuffer.buffer;
-                            }
-                            chunks.push(result.value);
-                            loaded += result.value.length;
-                            progressBar.style.width = (loaded / total * 100).toFixed(2) + '%';
-                            return read();
-                        });
-                    }
-                    return read();
-                })
-                .then(function(modelBuffer) {
-                    diagnosisResultsEl.textContent = '模型下载完毕，正在初始化 WebGL 后端...';
-                    return ort.InferenceSession.create(modelBuffer, { executionProviders: ['webgl'], graphOptimizationLevel: 'all' })
-                        .catch(function(webglError) {
-                            console.warn("WebGL 后端初始化失败:", webglError);
-                            diagnosisResultsEl.textContent = 'WebGL 加载失败，正在尝试 WASM 后端...';
-                            return ort.InferenceSession.create(modelBuffer.slice(0), { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
-                        });
-                })
-                .then(function(createdSession) {
-                    session = createdSession;
-                    diagnosisResultsEl.textContent = '模型加载成功！请上传图片进行分析。';
-                    runDiagnosisBtn.disabled = false;
-                    runBtnText.textContent = '开始分析';
-                    setTimeout(function() { progressContainer.classList.add('hidden'); }, 1500);
-                })
-                .catch(function(error) {
-                    console.error("模型加载失败:", error);
-                    diagnosisResultsEl.textContent = '模型加载失败: ' + error.message + '\n请将 model.onnx 文件放在同目录下，或配置有效的CDN链接。';
-                    runBtnText.textContent = '加载失败';
-                    progressContainer.classList.add('hidden');
-                });
-        }
-
-        // --- 图像预处理 (ES5 Promises) ---
-        function preprocessImage(file) {
-            return new Promise(function(resolve, reject) {
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                    var img = new Image();
-                    img.onload = function() {
-                        try {
-                            var canvas = document.createElement('canvas');
-                            canvas.width = MODEL_INPUT_SIZE;
-                            canvas.height = MODEL_INPUT_SIZE;
-                            var ctx = canvas.getContext('2d');
-                            var ratio = Math.min(MODEL_INPUT_SIZE / img.width, MODEL_INPUT_SIZE / img.height);
-                            var newWidth = Math.round(img.width * ratio);
-                            var newHeight = Math.round(img.height * ratio);
-                            var padX = (MODEL_INPUT_SIZE - newWidth) / 2;
-                            var padY = (MODEL_INPUT_SIZE - newHeight) / 2;
-                            ctx.fillStyle = 'rgb(114, 114, 114)';
-                            ctx.fillRect(0, 0, MODEL_INPUT_SIZE, MODEL_INPUT_SIZE);
-                            ctx.drawImage(img, padX, padY, newWidth, newHeight);
-                            var imageData = ctx.getImageData(0, 0, MODEL_INPUT_SIZE, MODEL_INPUT_SIZE);
-                            var data = imageData.data;
-                            var inputTensor = new Float32Array(1 * 3 * MODEL_INPUT_SIZE * MODEL_INPUT_SIZE);
-                            for (var i = 0; i < MODEL_INPUT_SIZE * MODEL_INPUT_SIZE; i++) {
-                                inputTensor[i] = data[i * 4] / 255.0;
-                                inputTensor[i + MODEL_INPUT_SIZE * MODEL_INPUT_SIZE] = data[i * 4 + 1] / 255.0;
-                                inputTensor[i + 2 * MODEL_INPUT_SIZE * MODEL_INPUT_SIZE] = data[i * 4 + 2] / 255.0;
-                            }
-                            resolve(inputTensor);
-                        } catch (err) {
-                            reject(err);
-                        }
-                    };
-                    img.onerror = reject;
-                    img.src = e.target.result;
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-        }
-
-        // --- 运行分析 (ES5 Promises) ---
+        // --- 运行分析 (调用后端API) ---
         function runAnalysis() {
             var files = currentFiles;
             if (!files || files.length === 0) {
                 diagnosisResultsEl.textContent = '请先选择一个或多个图像文件。';
                 return;
             }
-            if (!session) {
-                diagnosisResultsEl.textContent = '模型尚未加载完成，请稍候。';
+            // 检查URL是否已配置
+            if (BACKEND_URL.includes('YOUR_CLOUD_RUN_SERVICE_URL')) {
+                alert('请先在JavaScript代码中设置您的Cloud Run服务URL！');
                 return;
             }
 
             runDiagnosisBtn.disabled = true;
             runBtnText.textContent = '分析中...';
-            diagnosisResultsEl.textContent = '正在处理图像并运行模型...';
+            diagnosisResultsEl.textContent = '正在上传图片到云端服务器...';
             
+            // 为每个文件创建一个API调用Promise
             var analysisPromises = Array.prototype.map.call(files, function(file) {
-                return preprocessImage(file)
-                    .then(function(preprocessedData) {
-                        var tensor = new ort.Tensor('float32', preprocessedData, [1, 3, MODEL_INPUT_SIZE, MODEL_INPUT_SIZE]);
-                        var feeds = { 'images': tensor };
-                        return session.run(feeds);
-                    })
-                    .then(function(results) {
-                        var probs = Array.prototype.slice.call(results.output0.data);
-                        var polarizedProbs = polarize_probs(probs, temperature);
-                        var weighted_pred = polarizedProbs.reduce(function(sum, prob, i) { return sum + prob * class_ids[i]; }, 0);
-                        var ci_value = pred_to_ci(weighted_pred);
-                        return '✅ ' + file.name + ': ' + ci_value.toFixed(1) + ' KT';
-                    })
-                    .catch(function(e) {
-                        console.error('处理 ' + file.name + ' 时出错:', e);
-                        return '❌ ' + file.name + ': 分析失败 - ' + e.message;
-                    });
+                var formData = new FormData();
+                formData.append('file', file);
+
+                // 使用fetch API发送文件到后端
+                return fetch(BACKEND_URL, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(function(response) {
+                    if (!response.ok) {
+                        // 如果服务器返回错误状态，则抛出错误
+                        return response.json().then(function(err) {
+                            throw new Error(err.error || '服务器响应错误');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(function(data) {
+                    if (data.error) {
+                        // 处理应用级错误
+                        return '❌ ' + data.fileName + ': ' + data.error;
+                    }
+                    return '✅ ' + data.fileName + ': ' + data.ci_value.toFixed(1) + ' KT';
+                })
+                .catch(function(e) {
+                    console.error('处理 ' + file.name + ' 时出错:', e);
+                    return '❌ ' + file.name + ': 分析失败 - ' + e.message;
+                });
             });
             
+            // 等待所有API调用完成
             Promise.all(analysisPromises)
                 .then(function(resolvedResults) {
                     diagnosisResultsEl.textContent = '分析结果:\n' + resolvedResults.join('\n');
@@ -445,7 +335,7 @@
                 });
         }
 
-        // --- 事件监听与 UI 控制 ---
+        // --- 事件监听与 UI 控制 (这部分基本不变) ---
         function handleFiles(files) {
             if (!files || files.length === 0) return;
             currentFiles = files;
@@ -464,9 +354,6 @@
                 diagnosisResultsEl.textContent = '已选择图片: ' + files[0].name + '。准备好后请点击开始分析。';
             }
         }
-        
-        // FIX: Removed event listener from drop area to prevent conflicts.
-        // The click is now handled by the overlayed file input itself.
 
         imageDropArea.addEventListener('dragover', function(e) {
             e.preventDefault();
@@ -480,9 +367,7 @@
             imageDropArea.classList.remove('drag-over');
             handleFiles(e.dataTransfer.files);
         });
-        imageUploadInput.addEventListener('change', function() { 
-            handleFiles(imageUploadInput.files); 
-        });
+        imageUploadInput.addEventListener('change', function() { handleFiles(this.files); });
         window.addEventListener('paste', function(e) {
             if (e.clipboardData && e.clipboardData.files.length > 0) {
                 handleFiles(e.clipboardData.files);
@@ -490,7 +375,7 @@
         });
         runDiagnosisBtn.addEventListener('click', runAnalysis);
         
-        // --- 弹窗逻辑 ---
+        // --- 弹窗逻辑 (完全不变) ---
         var enmHelpBtn = document.getElementById('enm-help-btn');
         var enmHelpModal = document.getElementById('enm-help-modal');
         var enmHelpOverlay = document.getElementById('enm-help-overlay');
@@ -502,7 +387,7 @@
                 '<h3>使用说明</h3>' +
                 '<ol style="list-style-position: inside;">' +
                     '<li><strong>上传图像</strong>：点击、拖拽或粘贴一张或多张热带气旋的<strong>红外（IR-BW）</strong>卫星云图。</li>' +
-                    '<li><strong>开始分析</strong>：点击“开始分析”按钮，网页端的AI模型将对每一张图片进行推理。</li>' +
+                    '<li><strong>开始分析</strong>：点击“开始分析”按钮，图片将被上传至云端 AI 模型进行推理。</li>' +
                     '<li><strong>查看结果</strong>：模型将根据云图特征计算出强度估值（单位：KT）。</li>' +
                 '</ol>' +
                 '<h3>注意事项 (Disclaimer)</h3>' +
@@ -529,9 +414,6 @@
         document.getElementById('error-info-btn').addEventListener('click', function() {
             alert('ENM模型误差情况说明：\n\n1. 均方根误差 (RMSE): 约 8.7 KT。\n2. 90%误差范围：13KT；70%误差范围：9KT；50%误差范围：5KT。\n3. 主要误差来源：伪风眼、干区入侵、不对称云团等复杂情况。\n4. 建议: 为获得更稳定的结果，建议对连续3-6小时的分析结果取平均值。');
         });
-
-        // --- 自动加载模型 ---
-        loadModel();
     });
     </script>
 </body>
