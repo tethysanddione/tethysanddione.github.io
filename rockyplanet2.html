@@ -112,6 +112,8 @@
                 <option value="ice">坚冰 (Sheet)</option>
                 <option value="dune">土丘 (Dune)</option>
                 <option value="stone">岩冰 (Shell)</option>
+                <option value="desert">荒漠 (Desert)</option>
+                <option value="silicate">硅酸盐 (Silicate)</option>
                 <option value="custom">自定义...</option>
             </select>
             <input type="file" id="texture-file" style="display: none; margin-top: 5px;" accept="image/*">
@@ -219,7 +221,9 @@
                     rock: 'textures/marble.png',
                     ice: 'textures/sheet.png',
                     dune: 'textures/dune.png',
-                    stone: 'textures/stone.png'
+                    stone: 'textures/stone.png',
+                    desert: 'textures/desert.png',
+                    silicate: 'textures/silicate.png'
                 };
                 const img = new Image();
                 img.onload = () => {
