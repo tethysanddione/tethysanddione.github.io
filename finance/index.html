@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <title>金融分析工具集</title>
     <style>
         /* --- 全局样式 --- */
@@ -76,9 +76,9 @@
         }
         /* --- 社交媒体/外部链接按钮样式 --- */
         .social-btn {
-            display: inline-flex; /* 让图标和文字在同一行并垂直居中 */
+            display: inline-flex;
             align-items: center;
-            gap: 8px; /* 图标和文字之间的间距 */
+            gap: 8px;
             text-decoration: none;
             border: 1px solid #404040;
             color: #A0A0A0;
@@ -87,19 +87,15 @@
             border-radius: 6px;
             cursor: pointer;
             transition: all 0.3s ease;
-            vertical-align: middle; /* 与旁边的按钮对齐 */
+            vertical-align: middle;
         }
-
-        /* YouTube 按钮的悬停效果 */
         .social-btn.youtube-btn:hover {
-            background-color: #FF0000; /* YouTube 红色 */
+            background-color: #FF0000;
             border-color: #FF0000;
             color: #FFFFFF;
         }
-
-        /* 图标样式 */
         .social-btn i {
-            font-size: 1.2em; /* 让图标比文字稍大一点 */
+            font-size: 1.2em;
         }
 
         /* --- 标题和副标题 --- */
@@ -109,7 +105,6 @@
             color: #FFFFFF;
             margin-bottom: 10px;
         }
-
         .subtitle {
             font-size: 1.2em;
             color: #A0A0A0;
@@ -125,8 +120,6 @@
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 25px;
         }
-
-        /* --- 单个工具卡片样式 --- */
         .tool-card {
             background-color: #282828;
             border: 1px solid #404040;
@@ -137,25 +130,106 @@
             color: inherit;
             transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
         }
-
         .tool-card:hover {
             transform: translateY(-8px);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             border-color: #686868;
         }
-
         .tool-card h3 {
             margin-top: 0;
             margin-bottom: 12px;
             color: #FFFFFF;
             font-size: 1.4em;
         }
-
         .tool-card p {
             margin: 0;
             color: #B0B0B0;
             line-height: 1.6;
             font-size: 1em;
+        }
+
+        /* --- 分隔线样式 --- */
+        .section-divider {
+            width: 100px;
+            height: 1px;
+            background-color: #404040;
+            margin: 60px auto;
+        }
+
+        /* --- 新增的博客/文章区样式 --- */
+        .blog-section {
+            margin-top: 40px;
+        }
+        .section-title {
+            font-size: 2.2em;
+            font-weight: 600;
+            color: #FFFFFF;
+            margin-bottom: 40px;
+        }
+        .blog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+        }
+        .blog-card {
+            background-color: #282828;
+            border: 1px solid #404040;
+            border-radius: 12px;
+            text-align: left;
+            text-decoration: none;
+            color: inherit;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+        .blog-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border-color: #686868;
+        }
+        .blog-card-img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+        }
+        .blog-card-content {
+            padding: 25px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .blog-card h3 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: #FFFFFF;
+            font-size: 1.3em;
+        }
+        .blog-card p {
+            margin: 0;
+            color: #B0B0B0;
+            line-height: 1.6;
+            font-size: 0.95em;
+            flex-grow: 1;
+        }
+        .blog-card-date {
+            margin-top: 15px;
+            font-size: 0.8em;
+            color: #606060;
+        }
+        .more-btn {
+            display: inline-block;
+            margin-top: 40px;
+            background-color: #007BFF;
+            color: #FFFFFF;
+            padding: 12px 30px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+        .more-btn:hover {
+            background-color: #0056b3;
         }
 
         /* --- 底部署名样式 --- */
@@ -168,17 +242,14 @@
             color: #606060;
             text-align: center;
         }
-
-        /* --- 页脚链接样式 --- */
         .footer-link {
             color: #606060;
             text-decoration: none;
-            margin: 0 15px; /* 与其他内容保持间距 */
+            margin: 0 15px;
             transition: color 0.3s ease;
         }
-
         .footer-link:hover {
-            color: #A0A0A0; /* 悬停时变亮 */
+            color: #A0A0A0;
             text-decoration: underline;
         }
 
@@ -188,9 +259,9 @@
             .container { margin-top: 40px; }
             h1 { font-size: 2.2em; }
             .subtitle { font-size: 1em; margin-bottom: 30px;}
-            .tool-card { padding: 20px; }
-            .tool-card h3 { font-size: 1.2em; }
-            .tools-grid { gap: 15px; }
+            .tool-card, .blog-card { padding: 20px; }
+            .tool-card h3, .blog-card h3 { font-size: 1.2em; }
+            .tools-grid, .blog-grid { gap: 15px; }
         }
     </style>
 </head>
@@ -201,14 +272,13 @@
     </div>
 
     <div class="container">
-        
         <div class="lang-switcher">
             <button class="lang-btn" data-lang="zh-CN">简体中文</button>
             <button class="lang-btn" data-lang="zh-TW">繁體中文</button>
             <button class="lang-btn" data-lang="en">English</button>
             <a href="https://www.youtube.com/@MeowFin_Global" target="_blank" class="social-btn youtube-btn">
                 <i class="fa-brands fa-youtube"></i>
-                <span>YouTube 频道</span>
+                <span class="i18n" data-key="youtube_btn">YouTube 频道</span>
             </a>
         </div>
 
@@ -220,33 +290,67 @@
                 <h3 data-key="card1_title" class="i18n">前瞻估值计算器</h3>
                 <p data-key="card1_desc" class="i18n">基于分析师盈利预测和行业增长率，快速计算未来1-3年的动态市盈率(PE)和市销率(PS)，评估成长性价值。</p>
             </a>
-
             <a href="DCF.html" class="tool-card">
                 <h3 data-key="card2_title" class="i18n">DCF 估值模型</h3>
                 <p data-key="card2_desc" class="i18n">通过预测公司未来的自由现金流并进行折现，计算企业的内在价值。支持自定义增长率、折现率等核心参数。</p>
             </a>
-
             <a href="SPD.html" class="tool-card">
                 <h3 data-key="card3_title" class="i18n">期权SPD分析工具</h3>
                 <p data-key="card3_desc" class="i18n">输入期权链数据，生成基于市场隐含波动的股价未来概率密度分布图(SPD)，直观评估市场情绪与潜在股价区间。</p>
             </a>
-
             <a href="monte_carlo.html" class="tool-card">
                 <h3 data-key="card4_title" class="i18n">蒙特卡洛模拟投资组合预测</h3>
                 <p data-key="card4_desc" class="i18n">通过在一系列可能的市场条件下生成随机的结果样本，蒙特卡罗模拟可以解答关于投资组合平均表现和最坏表现。</p>
             </a>
         </div>
+
+        <!-- 新增博客栏目 -->
+        <div class="section-divider"></div>
+        <div class="blog-section">
+            <h2 data-key="blog_title" class="i18n section-title">交易碎碎念</h2>
+            <div class="blog-grid">
+                <!-- 文章1 -->
+                <a href="#" class="blog-card">
+                    <img src="https://placehold.co/600x400/1E1E1E/FFFFFF?text=Post1" alt="文章1图片" class="blog-card-img">
+                    <div class="blog-card-content">
+                        <h3 data-key="post1_title" class="i18n">如何看待当前的市场波动？</h3>
+                        <p data-key="post1_excerpt" class="i18n">近期市场波动加剧，是风险还是机会？本文将从宏观角度进行解读...</p>
+                        <span class="blog-card-date">2025年9月10日</span>
+                    </div>
+                </a>
+                <!-- 文章2 -->
+                <a href="#" class="blog-card">
+                    <img src="https://placehold.co/600x400/282828/FFFFFF?text=Post2" alt="文章2图片" class="blog-card-img">
+                    <div class="blog-card-content">
+                        <h3 data-key="post2_title" class="i18n">DCF估值模型的常见误区</h3>
+                        <p data-key="post2_excerpt" class="i18n">DCF是强大的工具，但错误的参数输入会导致巨大偏差。本文总结了三个最常见的误区...</p>
+                        <span class="blog-card-date">2025年9月8日</span>
+                    </div>
+                </a>
+                <!-- 文章3 -->
+                <a href="#" class="blog-card">
+                    <img src="https://placehold.co/600x400/404040/FFFFFF?text=Post3" alt="文章3图片" class="blog-card-img">
+                    <div class="blog-card-content">
+                        <h3 data-key="post3_title" class="i18n">期权交易入门：从IV到SPD</h3>
+                        <p data-key="post3_excerpt" class="i18n">隐含波动率（IV）是期权交易的核心。本文将解释如何从IV数据进一步理解SPD...</p>
+                        <span class="blog-card-date">2025年9月5日</span>
+                    </div>
+                </a>
+            </div>
+            <a href="blog.html" class="more-btn i18n" data-key="more_btn_text">更多文章</a>
+        </div>
     </div>
 
     <div class="credit">
         <span>&copy; 2025 MeowFin_Global</span>
-        <a href="pr.html" class="footer-link">隐私政策</a>
+        <a href="pr.html" class="footer-link i18n" data-key="privacy_policy">隐私政策</a>
     </div>
 
 <script>
     // 1. 语言字典
     const translations = {
         'zh-CN': {
+            youtube_btn: 'YouTube 频道',
             title: '金融分析工具集',
             subtitle: '精选专业模型，洞察市场内在价值',
             card1_title: '前瞻估值计算器',
@@ -256,9 +360,19 @@
             card3_title: '期权SPD分析工具',
             card3_desc: '输入期权链数据，生成基于市场隐含波动的股价未来概率密度分布图(SPD)，直观评估市场情绪与潜在股价区间。',
             card4_title: '蒙特卡洛模拟投资组合预测',
-            card4_desc: '通过在一系列可能的市场条件下生成随机的结果样本，蒙特卡罗模拟可以解答关于投资组合平均表现和最坏表现。'
+            card4_desc: '通过在一系列可能的市场条件下生成随机的结果样本，蒙特卡罗模拟可以解答关于投资组合平均表现和最坏表现。',
+            blog_title: '交易碎碎念',
+            post1_title: '如何看待当前的市场波动？',
+            post1_excerpt: '近期市场波动加剧，是风险还是机会？本文将从宏观角度进行解读...',
+            post2_title: 'DCF估值模型的常见误区',
+            post2_excerpt: 'DCF是强大的工具，但错误的参数输入会导致巨大偏差。本文总结了三个最常见的误区...',
+            post3_title: '期权交易入门：从IV到SPD',
+            post3_excerpt: '隐含波动率（IV）是期权交易的核心。本文将解释如何从IV数据进一步理解SPD...',
+            more_btn_text: '更多文章',
+            privacy_policy: '隐私政策'
         },
         'zh-TW': {
+            youtube_btn: 'YouTube 頻道',
             title: '金融分析工具集',
             subtitle: '精選專業模型，洞察市場內在價值',
             card1_title: '前瞻估值計算器',
@@ -268,9 +382,19 @@
             card3_title: '期權SPD分析工具',
             card3_desc: '輸入期權鏈數據，生成基於市場隱含波動的股價未來概率密度分佈圖(SPD)，直觀評估市場情緒與潛在股價區間。',
             card4_title: '蒙地卡羅模擬投資組合預測',
-            card4_desc: '透過在一系列可能的市場條件下生成隨機的結果樣本，蒙地卡羅模擬可以解答關於投資組合平均表現和最壞表現。'
+            card4_desc: '透過在一系列可能的市場條件下生成隨機的結果樣本，蒙地卡羅模擬可以解答關於投資組合平均表現和最壞表現。',
+            blog_title: '交易碎碎念',
+            post1_title: '如何看待當前的市場波動？',
+            post1_excerpt: '近期市場波動加劇，是風險還是機會？本文將從宏觀角度進行解讀...',
+            post2_title: 'DCF估值模型的常見誤區',
+            post2_excerpt: 'DCF是強大的工具，但錯誤的參數輸入會導致巨大偏差。本文總結了三個最常見的誤區...',
+            post3_title: '期權交易入門：從IV到SPD',
+            post3_excerpt: '隱含波動率（IV）是期權交易的核心。本文將解釋如何從IV數據進一步理解SPD...',
+            more_btn_text: '更多文章',
+            privacy_policy: '隱私政策'
         },
         'en': {
+            youtube_btn: 'YouTube Channel',
             title: 'Financial Analysis Toolkit',
             subtitle: 'Insight into Market Value with Curated Professional Models',
             card1_title: 'Forward Valuation Calculator',
@@ -280,24 +404,28 @@
             card3_title: 'Options SPD Analysis Tool',
             card3_desc: 'Generate a stock price probability density (SPD) chart based on market-implied volatility from option chain data to assess market sentiment.',
             card4_title: 'Monte Carlo Portfolio Simulation',
-            card4_desc: 'By generating random samples under various market conditions, Monte Carlo simulation can answer questions about the average and worst-case portfolio performance.'
+            card4_desc: 'By generating random samples under various market conditions, Monte Carlo simulation can answer questions about the average and worst-case portfolio performance.',
+            blog_title: 'Trading Thoughts',
+            post1_title: 'How to View Current Market Volatility?',
+            post1_excerpt: 'Recent market volatility has intensified. Is it a risk or an opportunity? This article provides a macro perspective...',
+            post2_title: 'Common Pitfalls of DCF Valuation',
+            post2_excerpt: 'DCF is a powerful tool, but incorrect inputs can lead to significant deviations. This article summarizes the three most common mistakes...',
+            post3_title: 'Intro to Options Trading: From IV to SPD',
+            post3_excerpt: 'Implied Volatility (IV) is at the core of options trading. This article explains how to further understand SPD from IV data...',
+            more_btn_text: 'More Articles',
+            privacy_policy: 'Privacy Policy'
         }
     };
 
     // 2. 切换语言的函数
     const changeLanguage = (lang) => {
-        // 更新所有带 data-key 的元素
         document.querySelectorAll('.i18n').forEach(element => {
             const key = element.getAttribute('data-key');
             if (translations[lang] && translations[lang][key]) {
                 element.innerHTML = translations[lang][key];
             }
         });
-        
-        // 更新HTML文档的lang属性
         document.documentElement.lang = lang;
-        
-        // 更新按钮的激活状态
         document.querySelectorAll('.lang-btn').forEach(btn => {
             if (btn.getAttribute('data-lang') === lang) {
                 btn.classList.add('active');
@@ -305,8 +433,6 @@
                 btn.classList.remove('active');
             }
         });
-
-        // 将用户的语言选择保存到localStorage
         localStorage.setItem('userLanguage', lang);
     };
 
@@ -321,9 +447,7 @@
     // 4. 页面加载时，检查localStorage中是否有保存的语言设置
     document.addEventListener('DOMContentLoaded', () => {
         const savedLang = localStorage.getItem('userLanguage');
-        // 尝试获取浏览器默认语言作为备选
         const browserLang = navigator.language.startsWith('zh-TW') ? 'zh-TW' : (navigator.language.startsWith('zh') ? 'zh-CN' : 'en');
-        // 优先使用保存的语言，否则使用浏览器语言
         const initialLang = savedLang || browserLang;
         changeLanguage(initialLang);
     });
