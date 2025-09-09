@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>程序化云层生成器 (Canvas)</title>
+    <style>
+        :root {
+            --bg-color: #1a1e23; --panel-bg: #2a2f36; --text-color: #e0e6ec;
+            --header-color: #ffffff; --border-color: #404853; --accent-color: #00aaff;
+            --accent-hover: #0088cc; --green-color: #28a745; --input-bg: #3c424a;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color); color: var(--text-color); margin: 0;
+            padding: 20px; display: flex; justify-content: center; align-items: flex-start;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 1600px;
+        }
+        .controls {
+            background-color: var(--panel-bg); padding: 25px; border-radius: 8px;
+            width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); border: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+        .preview-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-width: 512px;
+        }
+        @media (max-width: 1000px) {
+            .container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .controls, .preview-area {
+                width: 100%;
+                min-width: auto;
+            }
+        }
+        .canvas-container { border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; background-color: #000; }
+        canvas { 
+            width: 100%; 
+            height: auto; 
+            border-radius: 4px; 
+            background-color: #111; 
+            image-rendering: pixelated; 
+            image-rendering: -moz-crisp-edges;
+        }
+        h1, h2 { color: var(--header-color); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 0; }
+        h2 { margin-top: 25px; }
+        .control-group { margin-bottom: 18px; }
+        label, .label {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: bold; color: #ccc;
+        }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        input[type="number"], select, input[type="file"], input[type="color"] {
+            width: 100%; box-sizing: border-box; padding: 8px; border-radius: 4px;
+            border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);
+        }
+        .value-display { font-family: monospace; font-size: 14px; background-color: var(--bg-color); padding: 2px 6px; border-radius: 4px; }
+        button {
+            width: 100%; padding: 12px; border: none; border-radius: 5px; font-size: 16px;
+            font-weight: bold; cursor: pointer; transition: background-color 0.2s; margin-top: 10px;
+        }
+        .btn-generate { background-color: var(--accent-color); color: white; }
+        .btn-generate:hover { background-color: var(--accent-hover); }
+        .btn-download { background-color: var(--green-color); color: white; margin-top: 5px;}
+        .btn-download:hover { background-color: #1e7e34; }
+        .loader {
+            display: none; text-align: center; padding: 20px; font-size: 18px;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.7); color: white; border-radius: 10px; z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="controls">
+        <h1>云层参数</h1>
+        
+        <h2>生成参数</h2>
+        <div class="control-group">
+            <label for="seed">随机种子 <span class="value-display" id="seed-value">123</span></label>
+            <input type="number" id="seed" value="123">
+        </div>
+        
+        <!-- 新增点: 图形大小选择 -->
+        <div class="control-group">
+            <label for="image-size">图形大小</label>
+            <select id="image-size">
+                <option value="1024" selected>1K (1024x512)</option>
+                <option value="2048">2K (2048x1024)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="scale">云层缩放 <span class="value-display" id="scale-value">6</span></label>
+            <input type="range" id="scale" min="1" max="12" step="1" value="6">
+        </div>
+        <div class="control-group">
+            <label for="octaves">云层细节 (Octaves) <span class="value-display" id="octaves-value">7</span></label>
+            <input type="range" id="octaves" min="1" max="12" step="1" value="7">
+        </div>
+        <div class="control-group">
+            <label for="density">云层密度 <span class="value-display" id="density-value">0.50</span></label>
+            <input type="range" id="density" min="0" max="1" step="0.01" value="0.50">
+        </div>
+        <div class="control-group">
+            <label for="opacity">云层不透明度 <span class="value-display" id="opacity-value">1.00</span></label>
+            <input type="range" id="opacity" min="0" max="1" step="0.01" value="1">
+        </div>
+        
+        <h2>气旋参数</h2>
+        <div class="control-group">
+            <label for="num-cyclones">气旋数量 <span class="value-display" id="num-cyclones-value">1</span></label>
+            <input type="range" id="num-cyclones" min="0" max="20" step="1" value="1">
+        </div>
+        <div class="control-group">
+            <label for="cyclone-strength">气旋强度 <span class="value-display" id="cyclone-strength-value">0.75</span></label>
+            <input type="range" id="cyclone-strength" min="0" max="2" step="0.01" value="0.75">
+        </div>
+
+        <h2>颜色参数</h2>
+        <div class="control-group">
+            <label for="cloud-color">云层颜色 <input type="color" id="cloud-color" value="#FFFFFF"></label>
+        </div>
+        <div class="control-group">
+            <label for="bg-color">背景颜色 (仅预览) <input type="color" id="bg-color" value="#2A4556"></label>
+        </div>
+        
+        <button id="generate-btn" class="btn-generate">生成云层</button>
+    </div>
+
+    <div class="preview-area">
+        <div class="canvas-container">
+            <h3>云层贴图 (Albedo)</h3>
+            <canvas id="cloud-canvas" width="1024" height="512"></canvas>
+            <button id="download-cloud-btn" class="btn-download">下载云层贴图 (透明背景)</button>
+        </div>
+    </div>
+</div>
+
+<div class="loader" id="loader">
+    <p>正在生成云层...</p>
+    <p>这可能需要几秒钟 ✨</p>
+</div>
+
+<script type="module">
+    import { createNoise3D } from 'https://cdn.jsdelivr.net/npm/simplex-noise@4.0.1/dist/esm/simplex-noise.js';
+
+    function Alea(seed) {
+        let s0 = 0, s1 = 0, s2 = 0, c = 1;
+        const mash = (data) => {
+            data = data.toString();
+            let n = 0xefc8249d;
+            for (let i = 0; i < data.length; i++) {
+                n += data.charCodeAt(i);
+                let h = 0.02519603282416938 * n;
+                n = h >>> 0;
+                h -= n;
+                h *= n;
+                n = h >>> 0;
+                h -= n;
+                n += h * 0x100000000;
+            }
+            return (n >>> 0) * 2.3283064365386963e-10;
+        };
+        s0 = mash(' '); s1 = mash(' '); s2 = mash(' ');
+        s0 -= mash(seed); if (s0 < 0) { s0 += 1; }
+        s1 -= mash(seed); if (s1 < 0) { s1 += 1; }
+        s2 -= mash(seed); if (s2 < 0) { s2 += 1; }
+        return function() {
+            const t = 2091639 * s0 + c * 2.3283064365386963e-10;
+            s0 = s1; s1 = s2;
+            return s2 = t - (c = t | 0);
+        };
+    }
+    
+    // --- Helper Functions ---
+    const smoothstep = (edge0, edge1, x) => {
+        x = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+        return x * x * (3 - 2 * x);
+    };
+
+    function mapToSphere(x, y, width, height) {
+        const lonRad = (x / width) * 2 * Math.PI;
+        const latRad = (y / height) * Math.PI - Math.PI / 2;
+        return {
+            x: Math.cos(latRad) * Math.cos(lonRad),
+            y: Math.cos(latRad) * Math.sin(lonRad),
+            z: Math.sin(latRad)
+        };
+    }
+    
+    const cross = (a, b) => ({
+        x: a.y * b.z - a.z * b.y,
+        y: a.z * b.x - a.x * b.z,
+        z: a.x * b.y - a.y * b.x
+    });
+
+    const normalize = (v) => {
+        const len = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+        if (len === 0) return { x: 0, y: 0, z: 0 };
+        return { x: v.x / len, y: v.y / len, z: v.z / len };
+    };
+
+    // --- Core Generation Logic ---
+    let noiseGenerator = null;
+    let currentSeed = null;
+    let cyclones = [];
+
+    function initializeNoise(seedValue) {
+        if (noiseGenerator === null || currentSeed !== seedValue) {
+             const seededRandom = Alea(seedValue.toString());
+            noiseGenerator = createNoise3D(seededRandom);
+            currentSeed = seedValue;
+        }
+    }
+    
+    function generateCyclones(seedValue) {
+        const numCyclones = parseInt(controls['num-cyclones'].value);
+        const rand = Alea(seedValue.toString() + 'cyclone');
+        cyclones = [];
+        for (let i = 0; i < numCyclones; i++) {
+            const u = rand() * 2 - 1;
+            const theta = rand() * 2 * Math.PI;
+            const r = Math.sqrt(1 - u * u);
+            const center = { x: r * Math.cos(theta), y: r * Math.sin(theta), z: u };
+            const direction = center.z >= 0 ? 1 : -1;
+            const falloffPower = 2.0 + rand() * 2.5; 
+
+            cyclones.push({
+                center: center,
+                strength: parseFloat(controls['cyclone-strength'].value) * (0.5 + rand() * 0.5),
+                radius: 0.2 + rand() * 0.4,
+                direction: direction,
+                falloffPower: falloffPower,
+            });
+        }
+    }
+    
+    function generateCloudData(transparentBg = false) {
+        const { width, height } = canvas;
+        const imageData = new ImageData(width, height);
+        const data = imageData.data;
+        
+        const scale = parseFloat(controls.scale.value);
+        const octaves = parseInt(controls.octaves.value);
+        const density = parseFloat(controls.density.value);
+        const opacity = parseFloat(controls.opacity.value);
+        const cloudColor = hexToRgb(document.getElementById('cloud-color').value);
+        const bgColor = hexToRgb(document.getElementById('bg-color').value);
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const sp = mapToSphere(x, y, width, height);
+                let spModified = { ...sp };
+                
+                for (const cyclone of cyclones) {
+                    const dx = sp.x - cyclone.center.x;
+                    const dy = sp.y - cyclone.center.y;
+                    const dz = sp.z - cyclone.center.z;
+                    const distSq = dx*dx + dy*dy + dz*dz;
+                    const radiusSq = cyclone.radius * cyclone.radius;
+
+                    if (distSq < radiusSq) {
+                        const dist = Math.sqrt(distSq);
+                        const normalizedDist = dist / cyclone.radius;
+                        const V = { x: dx, y: dy, z: dz };
+                        const axis = cyclone.center;
+                        const swirlVector = cross(V, axis);
+                        const falloff = Math.pow(1 - normalizedDist, cyclone.falloffPower);
+                        const displacement = cyclone.strength * 1.2 * falloff;
+                        
+                        spModified.x += cyclone.direction * swirlVector.x * displacement;
+                        spModified.y += cyclone.direction * swirlVector.y * displacement;
+                        spModified.z += cyclone.direction * swirlVector.z * displacement;
+                        spModified = normalize(spModified);
+                    }
+                }
+
+                let totalNoise = 0, amplitude = 1, frequency = 1, maxValue = 0;
+                for (let i = 0; i < octaves; i++) {
+                    totalNoise += noiseGenerator(spModified.x * frequency * scale,
+                                                 spModified.y * frequency * scale,
+                                                 spModified.z * frequency * scale) * amplitude;
+                    maxValue += amplitude;
+                    amplitude *= 0.5;
+                    frequency *= 2;
+                }
+
+                const normalizedNoise = (totalNoise / maxValue + 1) / 2;
+                const alpha = smoothstep(density - 0.15, density + 0.15, normalizedNoise);
+                const finalAlpha = alpha * opacity;
+                const index = (y * width + x) * 4;
+
+                if (transparentBg) {
+                    data[index]     = cloudColor[0];
+                    data[index + 1] = cloudColor[1];
+                    data[index + 2] = cloudColor[2];
+                    data[index + 3] = finalAlpha * 255;
+                } else {
+                    const oneMinusAlpha = 1.0 - finalAlpha;
+                    data[index]     = cloudColor[0] * finalAlpha + bgColor[0] * oneMinusAlpha;
+                    data[index + 1] = cloudColor[1] * finalAlpha + bgColor[1] * oneMinusAlpha;
+                    data[index + 2] = cloudColor[2] * finalAlpha + bgColor[2] * oneMinusAlpha;
+                    data[index + 3] = 255;
+                }
+            }
+        }
+        return imageData;
+    }
+
+    function regenerateCloudMap() {
+        const ctx = canvas.getContext('2d');
+        const imageDataWithBg = generateCloudData(false);
+        ctx.putImageData(imageDataWithBg, 0, 0);
+    };
+
+    // --- Application Logic and UI Wiring ---
+    const controls = {}, displays = {};
+    const inputIds = ['seed', 'scale', 'octaves', 'density', 'opacity', 'num-cyclones', 'cyclone-strength'];
+
+    inputIds.forEach(id => {
+        controls[id] = document.getElementById(id);
+        if (id !== 'image-size') {
+            displays[id + '-value'] = document.getElementById(id + '-value');
+        }
+        const updateDisplay = () => {
+            if (displays[id + '-value']) {
+                displays[id + '-value'].textContent = controls[id].type === 'number' ? controls[id].value : parseFloat(controls[id].value).toFixed(2);
+            }
+        };
+        controls[id].addEventListener('input', updateDisplay);
+        updateDisplay();
+    });
+    
+    const regenerateWithNewSeed = () => {
+        const seedValue = parseInt(controls.seed.value);
+        initializeNoise(seedValue);
+        generateCyclones(seedValue);
+        regenerateCloudMap();
+    };
+
+    controls.seed.addEventListener('input', regenerateWithNewSeed);
+    
+    controls['num-cyclones'].addEventListener('input', () => {
+       const seedValue = parseInt(controls.seed.value);
+       generateCyclones(seedValue);
+       regenerateCloudMap();
+    });
+
+    controls['cyclone-strength'].addEventListener('input', () => {
+       const seedValue = parseInt(controls.seed.value);
+       generateCyclones(seedValue);
+       regenerateCloudMap();
+    });
+
+    ['scale', 'octaves', 'density', 'opacity'].forEach(id => {
+        controls[id].addEventListener('input', regenerateCloudMap);
+    });
+
+    const generateBtn = document.getElementById('generate-btn');
+    const downloadBtn = document.getElementById('download-cloud-btn');
+    const loader = document.getElementById('loader');
+    const canvas = document.getElementById('cloud-canvas');
+    const imageSizeSelect = document.getElementById('image-size'); // 新增点
+
+    const hexToRgb = (hex) => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return [r, g, b];
+    };
+    
+    // 新增点: 更新画布尺寸的函数
+    const updateCanvasSize = () => {
+        const newWidth = parseInt(imageSizeSelect.value, 10);
+        const newHeight = newWidth / 2;
+        if (canvas.width !== newWidth) {
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+        }
+    };
+    
+    // 新增点: 为尺寸选择器添加事件监听
+    imageSizeSelect.addEventListener('change', () => {
+        loader.style.display = 'block';
+        setTimeout(() => {
+            updateCanvasSize();
+            regenerateCloudMap();
+            loader.style.display = 'none';
+        }, 10);
+    });
+    
+    document.getElementById('cloud-color').addEventListener('input', regenerateCloudMap);
+    document.getElementById('bg-color').addEventListener('input', regenerateCloudMap);
+
+    generateBtn.addEventListener('click', () => {
+        loader.style.display = 'block';
+        setTimeout(() => {
+            try {
+                regenerateWithNewSeed();
+            } catch (error) {
+                console.error("Generation Failed:", error);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }, 10);
+    });
+
+    downloadBtn.addEventListener('click', () => {
+        loader.style.display = 'block';
+        setTimeout(() => {
+            try {
+                const imageDataTransparent = generateCloudData(true);
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.putImageData(imageDataTransparent, 0, 0);
+
+                const link = document.createElement('a');
+                link.download = `cloud_${controls.seed.value}_${tempCanvas.width}x${tempCanvas.height}.png`;
+                link.href = tempCanvas.toDataURL('image/png');
+                link.click();
+            } catch(e) {
+                console.error("Download failed", e);
+            } finally {
+                loader.style.display = 'none';
+            }
+        }, 10);
+    });
+
+    window.onload = () => {
+        updateCanvasSize(); // 新增点: 页面加载时设置初始尺寸
+        generateBtn.click();
+    };
+</script>
+</body>
+</html>
+
