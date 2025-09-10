@@ -86,7 +86,7 @@ function mapToSphere(x, y, width, height) {
 
     // 引入一个拉伸因子来调整赤道附近的比例
     // 0.5 到 1.0 之间的值通常效果较好，越小越平坦
-    const stretchFactor = 0.65; // 你可以调整这个值
+    const stretchFactor = 1.0; // 你可以调整这个值
 
     // 根据拉伸因子调整 y 的贡献，使其更均匀
     const adjustedY = (y / height - 0.5) * stretchFactor + 0.5;
