@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S&P 500 指数指标</title>
+    <style>
+        /* 样式代码不变 */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            background-color: #fff;
+            padding: 40px 60px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        #data-display {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #3498db;
+            margin-top: 20px;
+        }
+        .label {
+            font-size: 1em;
+            color: #7f8c8d;
+            margin-top: 10px;
+        }
+        #loading {
+            color: #e67e22;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>标普500指数 NEW0 指标</h1>
+        <div id="loading">正在加载数据...</div>
+        <div id="data-display" style="display: none;">
+            <p class="label">最新 NEW0 值:</p>
+            <p id="new0-value"></p>
+        </div>
+        <p class="label" id="last-updated"></p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const loadingElement = document.getElementById('loading');
+            const dataDisplay = document.getElementById('data-display');
+            const new0ValueElement = document.getElementById('new0-value');
+            const lastUpdatedElement = document.getElementById('last-updated');
+
+            // TODO: 替换为您的 Cloud Run 服务URL
+            const CLOUD_RUN_URL = "https://stock-index-service-712102610138.us-central1.run.app/api/indicator";
+
+            fetch(CLOUD_RUN_URL)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`网络响应不正常: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    loadingElement.style.display = 'none';
+                    dataDisplay.style.display = 'block';
+
+                    if (data && 'NEW0' in data) {
+                        new0ValueElement.textContent = data.NEW0.toFixed(2);
+                        lastUpdatedElement.textContent = '数据更新时间: ' + new Date().toLocaleString();
+                    } else {
+                        new0ValueElement.textContent = '数据无效或不完整';
+                    }
+                })
+                .catch(error => {
+                    loadingElement.textContent = `加载失败: ${error.message}`;
+                    console.error('Fetch error:', error);
+                });
+        });
+    </script>
+</body>
+</html>
