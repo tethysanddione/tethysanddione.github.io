@@ -100,7 +100,7 @@ function generateHeightMap(params, noise3D, prng) {
         if (r > 1.0) return 0;
         // A more realistic profile with a central peak
         const depression = -depth * Math.exp(-Math.pow(r * 3, 2));
-        const rim = depth * 0.4 * Math.exp(-Math.pow((r - 0.9) * 5, 2));
+        const rim = depth * 0.2 * Math.exp(-Math.pow((r - 0.9) * 5, 2));
         return depression + rim;
     }
 
