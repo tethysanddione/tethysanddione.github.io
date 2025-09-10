@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>S&P 500 指数指标</title>
+    <title>MeowFin 美股大盘冷暖指数</title>
     <style>
-        /* 样式代码不变 */
         body {
             font-family: Arial, sans-serif;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
@@ -22,6 +22,7 @@
             padding: 40px 60px;
             border-radius: 10px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
         }
         h1 {
             color: #2c3e50;
@@ -41,27 +42,39 @@
         #loading {
             color: #e67e22;
         }
+        #status-indicator {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .disclaimer {
+            font-size: 0.8em;
+            color: #999;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>标普500指数 NEW0 指标</h1>
+        <h1>MeowFin 美股大盘冷暖指数 Weather Index</h1>
         <div id="loading">正在加载数据...</div>
         <div id="data-display" style="display: none;">
-            <p class="label">最新 NEW0 值:</p>
+            <p class="label">最新 指数 值:</p>
             <p id="new0-value"></p>
+            <p id="status-indicator"></p>
         </div>
         <p class="label" id="last-updated"></p>
     </div>
+    <p class="disclaimer">自编指标 仅供参考</p>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const loadingElement = document.getElementById('loading');
             const dataDisplay = document.getElementById('data-display');
             const new0ValueElement = document.getElementById('new0-value');
+            const statusIndicatorElement = document.getElementById('status-indicator');
             const lastUpdatedElement = document.getElementById('last-updated');
 
-            // TODO: 替换为您的 Cloud Run 服务URL
             const CLOUD_RUN_URL = "https://stock-index-service-712102610138.us-central1.run.app/api/indicator";
 
             fetch(CLOUD_RUN_URL)
@@ -75,16 +88,41 @@
                     loadingElement.style.display = 'none';
                     dataDisplay.style.display = 'block';
 
-                    if (data && 'NEW0' in data) {
-                        new0ValueElement.textContent = data.NEW0.toFixed(2);
-                        lastUpdatedElement.textContent = '数据更新时间: ' + new Date().toLocaleString();
+                    if (data && 'NEW0' in data && 'last_updated' in data) {
+                        const new0Value = parseFloat(data.NEW0);
+                        new0ValueElement.textContent = new0Value.toFixed(2);
+                        
+                        // 根据 NEW0 值设置状态
+                        let statusText = '';
+                        let statusColor = '';
+                        if (new0Value > 80) {
+                            statusText = '过热';
+                            statusColor = '#e74c3c'; // 红色
+                        } else if (new0Value >= 50 && new0Value <= 80) {
+                            statusText = '偏暖';
+                            statusColor = '#f1c40f'; // 黄色
+                        } else if (new0Value > 20 && new0Value < 50) {
+                            statusText = '偏冷';
+                            statusColor = '#3498db'; // 蓝色
+                        } else {
+                            statusText = '过冷';
+                            statusColor = '#2c3e50'; // 深蓝色
+                        }
+                        statusIndicatorElement.textContent = `状态：${statusText}`;
+                        statusIndicatorElement.style.color = statusColor;
+
+                        // 将 ISO 格式的时间字符串转换为可读格式
+                        const updateTime = new Date(data.last_updated);
+                        lastUpdatedElement.textContent = '数据更新时间: ' + updateTime.toLocaleString();
                     } else {
                         new0ValueElement.textContent = '数据无效或不完整';
+                        statusIndicatorElement.textContent = '';
                     }
                 })
                 .catch(error => {
                     loadingElement.textContent = `加载失败: ${error.message}`;
                     console.error('Fetch error:', error);
+                    statusIndicatorElement.textContent = '';
                 });
         });
     </script>
