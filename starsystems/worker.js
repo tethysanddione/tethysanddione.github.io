@@ -99,7 +99,7 @@ function generateHeightMap(params, noise3D, prng) {
     function craterProfile(r, depth) {
         if (r > 1.0) return 0;
         // A more realistic profile with a central peak
-        const depression = -depth * Math.exp(-Math.pow(r * 5, 2));
+        const depression = -depth * Math.exp(-Math.pow(r * 2, 2));
         const rim = depth * 0.1 * Math.exp(-Math.pow((r - 0.9) * 3, 2));
         return depression + rim;
     }
