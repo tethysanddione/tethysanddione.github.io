@@ -182,7 +182,7 @@
          #savedPlanetsContainer .planet-actions button {
             font-size: 12px;
             padding: 5px 10px;
-         }
+        }
     </style>
 </head>
 <body>
@@ -209,6 +209,10 @@
                 <label for="planetName" data-lang-key="planetNameLabel">Planet Name</label>
                 <input type="text" id="planetName" value="B">
             </div>
+            <div class="input-group">
+                <label for="semiMajorAxisInput" data-lang-key="semiMajorAxisLabel">Semi-major Axis (AU)</label>
+                <input type="number" id="semiMajorAxisInput" step="0.1" min="0.01" placeholder="Leave empty for random" data-lang-placeholder-key="semiMajorAxisPlaceholder">
+            </div>
             <div class="button-group">
                 <button id="generatePlanetBtn" class="btn-primary" data-lang-key="addPlanetBtn">Add Planet</button>
                 <button id="clearPlanetsBtn" class="btn-danger" data-lang-key="clearPlanetsBtn">Clear Planets</button>
@@ -232,6 +236,8 @@ const translations = {
         copyStarBtn: "Copy Star Code",
         planetGeneratorTitle: "Planet Generator",
         planetNameLabel: "Planet Name",
+        semiMajorAxisLabel: "Semi-major Axis (AU)",
+        semiMajorAxisPlaceholder: "Leave empty for random",
         addPlanetBtn: "Add Planet",
         clearPlanetsBtn: "Clear Planets",
         copyPlanetBtn: "Copy Planet Code",
@@ -252,7 +258,7 @@ const translations = {
         starDescBrighter: "brighter",
         starDescDimmer: "dimmer",
         starDescAbsMag: "than the Sun, with an absolute magnitude of",
-        starDescDistance: "It is located at a distance of",
+        starDescDistance: ". It is located at a distance of",
         starDescDistanceUnit: "light-years from us.",
         starTypeO: "a massive and extremely hot blue star",
         starTypeB: "a very hot and bright blue-white star",
@@ -269,6 +275,8 @@ const translations = {
         copyStarBtn: "复制恒星代码",
         planetGeneratorTitle: "行星生成器",
         planetNameLabel: "行星名称",
+        semiMajorAxisLabel: "半长轴 (天文单位)",
+        semiMajorAxisPlaceholder: "留空则随机生成",
         addPlanetBtn: "添加行星",
         clearPlanetsBtn: "清空行星",
         copyPlanetBtn: "复制行星代码",
@@ -312,6 +320,12 @@ function setLanguage(lang) {
         const key = el.dataset.langKey;
         if (translations[lang][key]) {
             el.textContent = translations[lang][key];
+        }
+    });
+    document.querySelectorAll('[data-lang-placeholder-key]').forEach(el => {
+        const key = el.dataset.langPlaceholderKey;
+        if (translations[lang] && translations[lang][key]) {
+            el.placeholder = translations[lang][key];
         }
     });
     if (lastStarData.mass) {
@@ -398,9 +412,15 @@ function formatStarCode(data) {
 // --- PLANET GENERATOR ---
 function generatePlanetData(star_name, star_mass) {
     const radius = Math.floor(Math.random() * (70000 - 6000) + 6000);
-    const semi_major_axis = parseFloat((Math.random() * (15.0 - 0.1) + 0.1).toFixed(4));
+    
+    const semiMajorAxisInput = document.getElementById('semiMajorAxisInput');
+    const customSemiMajorAxis = parseFloat(semiMajorAxisInput.value);
+    const semi_major_axis = !isNaN(customSemiMajorAxis) && customSemiMajorAxis > 0.0
+        ? customSemiMajorAxis
+        : parseFloat((Math.random() * (15.0 - 0.1) + 0.1).toFixed(4));
+
     const orbital_period = parseFloat(Math.sqrt(Math.pow(semi_major_axis, 3) / star_mass).toFixed(4));
-    const eccentricity = parseFloat((Math.random() * 0.199 + 0.001).toFixed(4));
+    const eccentricity = parseFloat((Math.random()**2 * 0.25 + 0.001).toFixed(4));
     
     const atmosphere_types = {
         earth_like: { sky: [0.2, 0.6, 1.0], sunset: [1.0, 0.5, 0.2], rayleigh: [0.001, 0.0035, 0.008] },
@@ -416,7 +436,7 @@ function generatePlanetData(star_name, star_mass) {
         planet_name: document.getElementById('planetName').value || "B",
         star_name,
         radius, orbital_period, semi_major_axis, eccentricity,
-        inclination_orbit: parseFloat((Math.random() * 180).toFixed(4)),
+        inclination_orbit: parseFloat((Math.random()**2 * 180).toFixed(4)),
         ascending_node_orbit: parseFloat((Math.random() * 360).toFixed(4)),
         arg_of_pericenter: parseFloat((Math.random() * 360).toFixed(4)),
         mean_anomaly: parseFloat((Math.random() * 360).toFixed(4)),
@@ -567,6 +587,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSavedPlanets();
         drawOrbit(orbitCanvas, savedPlanets, lastStarData);
         document.getElementById('planetName').value = "B";
+        document.getElementById('semiMajorAxisInput').value = "";
     });
 
     document.getElementById('copyStarBtn').addEventListener('click', () => {
@@ -593,6 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSavedPlanets();
         drawOrbit(orbitCanvas, savedPlanets, lastStarData);
         document.getElementById('planetName').value = "B";
+        document.getElementById('semiMajorAxisInput').value = "";
     });
 
     document.getElementById('planetsList').addEventListener('click', (e) => {
@@ -620,4 +642,3 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
-
