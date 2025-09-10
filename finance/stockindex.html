@@ -16,13 +16,14 @@
             color: #333;
             margin: 0;
         }
-        .container {
+        #container {
             text-align: center;
             background-color: #fff;
             padding: 40px 60px;
             border-radius: 10px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
+            transition: background-color 0.5s ease; /* 添加平滑过渡效果 */
         }
         h1 {
             color: #2c3e50;
@@ -95,18 +96,24 @@
                         // 根据 NEW0 值设置状态
                         let statusText = '';
                         let statusColor = '';
+                        let containerBgColor = '';
+
                         if (new0Value > 80) {
                             statusText = '过热';
                             statusColor = '#e74c3c'; // 红色
+                            containerBgColor = '#f5e9e9'; // 淡红色
                         } else if (new0Value >= 50 && new0Value <= 80) {
                             statusText = '偏暖';
                             statusColor = '#f1c40f'; // 黄色
+                            containerBgColor = '#fff5e6'; // 淡橙色
                         } else if (new0Value > 20 && new0Value < 50) {
                             statusText = '偏冷';
                             statusColor = '#3498db'; // 蓝色
+                            containerBgColor = '#e9f5ff'; // 淡蓝色
                         } else {
                             statusText = '过冷';
                             statusColor = '#2c3e50'; // 深蓝色
+                            containerBgColor = '#f0f0f0'; // 淡墨色
                         }
                         statusIndicatorElement.textContent = `状态：${statusText}`;
                         statusIndicatorElement.style.color = statusColor;
