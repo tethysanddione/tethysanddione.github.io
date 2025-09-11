@@ -136,73 +136,90 @@
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // --- 模拟的文章数据 ---
-            // 在实际应用中，您可能会从服务器API获取这些数据
-            const allArticles = [
-                { title: '如何保护自己的仓位？基础对冲方法介绍｜6月杂谈', url: 'article-detail.html?id=1' },
-            ];
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const articlesPerPage = 10;
+        let currentPage = 1;
+        let allArticles = []; // 创建一个空数组来存放获取到的数据
 
-            const articlesPerPage = 10;
-            let currentPage = 1;
+        const listContainer = document.getElementById('article-list-container');
+        const paginationContainer = document.getElementById('pagination-container');
 
-            const listContainer = document.getElementById('article-list-container');
-            const paginationContainer = document.getElementById('pagination-container');
-
-            function displayArticles(page) {
-                currentPage = page;
-                listContainer.innerHTML = ''; // 清空当前列表
-
-                const startIndex = (page - 1) * articlesPerPage;
-                const endIndex = startIndex + articlesPerPage;
-                const paginatedArticles = allArticles.slice(startIndex, endIndex);
-
-                paginatedArticles.forEach(article => {
-                    const listItem = document.createElement('li');
-                    const link = document.createElement('a');
-                    link.href = article.url;
-                    link.textContent = article.title;
-                    listItem.appendChild(link);
-                    listContainer.appendChild(listItem);
-                });
-                
-                updatePaginationButtons();
-            }
-
-            function setupPagination() {
-                paginationContainer.innerHTML = ''; // 清空分页控件
-                const pageCount = Math.ceil(allArticles.length / articlesPerPage);
-
-                for (let i = 1; i <= pageCount; i++) {
-                    const pageLink = document.createElement('a');
-                    pageLink.href = '#';
-                    pageLink.textContent = i;
-                    
-                    pageLink.addEventListener('click', function(event) {
-                        event.preventDefault(); // 阻止链接的默认跳转行为
-                        displayArticles(i);
-                    });
-
-                    paginationContainer.appendChild(pageLink);
+        // 使用 fetch 异步获取文章数据
+        fetch('articles.json')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('网络响应错误');
                 }
-            }
-            
-            function updatePaginationButtons() {
-                const pageLinks = paginationContainer.querySelectorAll('a');
-                pageLinks.forEach(link => {
-                    link.classList.remove('active');
-                    if (parseInt(link.textContent) === currentPage) {
-                        link.classList.add('active');
-                    }
-                });
-            }
+                return response.json();
+            })
+            .then(data => {
+                allArticles = data.sort((a, b) => new Date(b.date) - new Date(a.date)); // 按日期降序排序
+                
+                // 数据加载成功后，初始化页面
+                if(allArticles.length > 0) {
+                    setupPagination();
+                    displayArticles(1);
+                } else {
+                    listContainer.innerHTML = '<li>暂无文章。</li>';
+                }
+            })
+            .catch(error => {
+                console.error('获取文章列表失败:', error);
+                listContainer.innerHTML = '<li>加载文章失败，请稍后重试。</li>';
+            });
 
-            // --- 初始化页面 ---
-            setupPagination();
-            displayArticles(1); 
-        });
-    </script>
+        function displayArticles(page) {
+            currentPage = page;
+            listContainer.innerHTML = ''; // 清空当前列表
+
+            const startIndex = (page - 1) * articlesPerPage;
+            const endIndex = startIndex + articlesPerPage;
+            const paginatedArticles = allArticles.slice(startIndex, endIndex);
+
+            paginatedArticles.forEach(article => {
+                const listItem = document.createElement('li');
+                const link = document.createElement('a');
+                // 构造指向详情页的链接
+                link.href = `article-detail.html?id=${article.id}`; 
+                link.textContent = article.title;
+                listItem.appendChild(link);
+                listContainer.appendChild(listItem);
+            });
+            
+            updatePaginationButtons();
+        }
+
+        function setupPagination() {
+            paginationContainer.innerHTML = '';
+            const pageCount = Math.ceil(allArticles.length / articlesPerPage);
+
+            for (let i = 1; i <= pageCount; i++) {
+                const pageLink = document.createElement('a');
+                pageLink.href = '#';
+                pageLink.textContent = i;
+                
+                pageLink.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    displayArticles(i);
+                    window.scrollTo(0, 0); // 翻页后回到页面顶部
+                });
+
+                paginationContainer.appendChild(pageLink);
+            }
+        }
+        
+        function updatePaginationButtons() {
+            const pageLinks = paginationContainer.querySelectorAll('a');
+            pageLinks.forEach(link => {
+                link.classList.remove('active');
+                if (parseInt(link.textContent) === currentPage) {
+                    link.classList.add('active');
+                }
+            });
+        }
+    });
+</script>
 
 </body>
 </html>
