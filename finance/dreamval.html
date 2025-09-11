@@ -1,1 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>“市梦率”估值模型</title>
+    <style>
+        /* --- 全局样式 --- */
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #121212;
+            color: #E0E0E0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* --- 主容器 --- */
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        /* --- 标题和副标题 --- */
+        h1 {
+            font-size: 2.8em;
+            font-weight: 600;
+            color: #FFFFFF;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            color: #A0A0A0;
+            margin-bottom: 50px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+        }
+
+        /* --- 计算器主布局 --- */
+        .calculator-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* 左右两栏 */
+            gap: 30px;
+            text-align: left;
+        }
+
+        /* --- 卡片样式 --- */
+        .card {
+            background-color: #1E1E1E;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .input-section .card {
+            margin-bottom: 20px;
+        }
+        
+        .card h3 {
+            margin-top: 0;
+            margin-bottom: 25px;
+            color: #FFFFFF;
+            font-size: 1.4em;
+            border-bottom: 1px solid #404040;
+            padding-bottom: 15px;
+        }
+
+        /* --- 表单元素样式 --- */
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #B0B0B0;
+        }
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px;
+            background-color: #282828;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: #E0E0E0;
+            font-size: 1em;
+            box-sizing: border-box;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #007BFF;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+        }
+
+        /* --- 按钮样式 --- */
+        .calc-button {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #FFFFFF;
+            background: linear-gradient(45deg, #007BFF, #0056b3);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+            margin-top: 10px;
+        }
+        .calc-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 123, 255, 0.3);
+        }
+
+        /* --- 结果展示区样式 --- */
+        .results-card h3 {
+             color: #28a745; /* 绿色标题 */
+        }
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid #333;
+            font-size: 1.1em;
+        }
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        .result-item .label {
+            color: #B0B0B0;
+        }
+        .result-item .value {
+            color: #FFFFFF;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        /* 主结果突出显示 */
+        .result-item.primary-result .value {
+            font-size: 2em;
+            color: #28a745;
+        }
+         .result-item.secondary-result .value {
+            font-size: 1.5em;
+            color: #00A0FF;
+        }
+        .result-item .sub-value {
+           font-size: 1.1em;
+           font-weight: normal;
+           color: #A0A0A0;
+           text-align: right;
+        }
+        .value span {
+            font-size: 0.7em;
+            font-weight: normal;
+            color: #888;
+            margin-left: 5px;
+        }
+
+        /* --- 响应式布局 --- */
+        @media (max-width: 900px) {
+            .calculator-layout {
+                grid-template-columns: 1fr; /* 手机上变为单栏 */
+            }
+            h1 { font-size: 2em; }
+            .subtitle { font-size: 1em; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>“市梦率” (Price-to-Dream) 估值模型</h1>
+        <p class="subtitle">基于时间衰减期望模型，量化高风险、长周期项目的内在价值 (“梦值”)，并与市场为之付出的溢价进行对比。</p>
+
+        <div class="calculator-layout">
+            <div class="input-section">
+                <!-- 梦想参数卡片 -->
+                <div class="card">
+                    <h3>1. 定义梦想 (The Dream)</h3>
+                    <div class="input-group">
+                        <label for="idealFv">理想终值市值 (万亿)</label>
+                        <input type="number" id="idealFv" placeholder="例如: 2" value="2">
+                    </div>
+                    <div class="input-group">
+                        <label for="timeframeN">实现年限 (年)</label>
+                        <input type="number" id="timeframeN" placeholder="例如: 20" value="20">
+                    </div>
+                </div>
+
+                <!-- 风险评估卡片 -->
+                <div class="card">
+                    <h3>2. 风险评估 (Risk Assessment)</h3>
+                    <div class="input-group">
+                        <label for="attritionRateAlpha">领域风险等级 (年度损耗率 α)</label>
+                        <select id="attritionRateAlpha">
+                            <option value="0.15">基础科学突破 (15%)</option>
+                            <option value="0.10" selected>颠覆性工程应用 (10%)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="capmRate">时间价值折现率CAPM (%)</label>
+                        <input type="number" id="capmRate" placeholder="例如: 13" value="13">
+                    </div>
+                </div>
+                
+                <!-- 市场对比卡片 -->
+                <div class="card">
+                    <h3>3. 市场对比 (Market Comparison)</h3>
+                    <div class="input-group">
+                        <label for="totalMarketCap">公司当前总市值 (亿)</label>
+                        <input type="number" id="totalMarketCap" placeholder="例如: 8000">
+                    </div>
+                    <div class="input-group">
+                        <label for="matureBusinessValue">成熟业务估值 (亿)</label>
+                        <input type="number" id="matureBusinessValue" placeholder="例如: 3000">
+                    </div>
+                </div>
+                <button id="calculateBtn" class="calc-button">计 算</button>
+            </div>
+
+            <div class="output-section">
+                <div class="card results-card">
+                    <h3>估值结果</h3>
+                    <div class="result-item primary-result">
+                        <span class="label">梦值 (Dream Value)</span>
+                        <span class="value" id="dreamValueResult">-</span>
+                    </div>
+                    <div class="result-item secondary-result">
+                        <span class="label">市梦率 (P/D Ratio)</span>
+                        <span class="value" id="pdRatioResult">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">市场溢价 (Market Premium)</span>
+                        <span class="value sub-value" id="marketPremiumResult">待计算</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">期望比例 (Exp. Factor)</span>
+                        <span class="value sub-value" id="expectedFactorResult">待计算</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">期望终值 (E. Future Value)</span>
+                        <span class="value sub-value" id="expectedFvResult">待计算</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="label">年度损耗率 (α)</span>
+                        <span class="value sub-value" id="alphaResult">待计算</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    document.getElementById('calculateBtn').addEventListener('click', function() {
+        // --- 1. 获取所有输入值 ---
+        const idealFvTrillion = parseFloat(document.getElementById('idealFv').value) || 0;
+        const timeframeN = parseInt(document.getElementById('timeframeN').value) || 0;
+        const attritionRateAlpha = parseFloat(document.getElementById('attritionRateAlpha').value) || 0;
+        const capmRate = (parseFloat(document.getElementById('capmRate').value) || 0) / 100;
+        const totalMarketCap = parseFloat(document.getElementById('totalMarketCap').value) || 0;
+        const matureBusinessValue = parseFloat(document.getElementById('matureBusinessValue').value) || 0;
+
+        // --- 2. 核心计算逻辑 ---
+        
+        // 将万亿转换为亿
+        const idealFvBillion = idealFvTrillion * 10000;
+
+        // 计算期望比例 (Expected Value Factor)
+        const realizationFactor = 1 - attritionRateAlpha;
+        const expectedValueFactor = Math.pow(realizationFactor, timeframeN);
+
+        // 计算期望终值 E(FV)
+        const expectedFv = idealFvBillion * expectedValueFactor;
+
+        // 折现计算“梦值” (Dream Value - PV)
+        let dreamValuePv = 0;
+        if (capmRate > -1) { // 避免 (1+r) 为0或负数
+             dreamValuePv = expectedFv / Math.pow(1 + capmRate, timeframeN);
+        }
+
+        // 计算市场溢价 (Market Premium)
+        const marketPremium = totalMarketCap - matureBusinessValue;
+
+        // 计算市梦率 (P/D Ratio)
+        const pdRatio = (marketPremium > 0 && dreamValuePv > 0) ? (marketPremium / dreamValuePv) : 0;
+
+        // --- 3. 更新UI显示结果 ---
+        const formatBillion = (num) => {
+             if (num === 0 || !isFinite(num)) return '-';
+             return `${num.toFixed(2)} <span>亿</span>`;
+        };
+
+        document.getElementById('dreamValueResult').innerHTML = formatBillion(dreamValuePv);
+        document.getElementById('pdRatioResult').textContent = pdRatio > 0 ? pdRatio.toFixed(2) : 'N/A';
+        
+        document.getElementById('marketPremiumResult').innerHTML = formatBillion(marketPremium);
+        document.getElementById('expectedFactorResult').textContent = `${(expectedValueFactor * 100).toFixed(2)} %`;
+        document.getElementById('expectedFvResult').innerHTML = formatBillion(expectedFv);
+        document.getElementById('alphaResult').textContent = `${(attritionRateAlpha * 100)} %`;
+    });
+
+    // 页面加载后自动触发一次计算，显示默认值的结果
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('calculateBtn').click();
+    });
+
+</script>
+</body>
+</html>
 
