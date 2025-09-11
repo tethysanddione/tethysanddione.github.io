@@ -6,137 +6,212 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <title>MeowFin 美股大盘冷暖指数</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@700&display=swap');
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Noto Sans SC', Arial, sans-serif;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            background-color: #f0f2f5;
-            color: #333;
+            min-height: 100vh;
+            color: #ffffff;
             margin: 0;
-            transition: background-color 0.5s ease; /* 添加平滑过渡效果 */
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #121212; /* 固定的深色背景 */
         }
-        /* 给容器添加一个 ID，方便JS操作 */
-        #container {
+
+        .infographic-container {
             text-align: center;
-            background-color: #fff;
-            padding: 40px 60px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-            transition: background-color 0.5s ease; /* 添加平滑过渡效果 */
+            width: 100%;
+            max-width: 600px;
+            padding: 50px 30px;
+            border-radius: 20px;
+            background-color: #34495e; /* 默认背景色 */
+            transition: background-color 0.8s ease;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
         }
+
+        .index-value-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        #new0-value {
+            font-size: 12em;
+            font-weight: 700;
+            line-height: 1;
+            letter-spacing: -5px;
+        }
+
+        #trend-indicator {
+            font-size: 8em;
+            line-height: 1;
+        }
+
         h1 {
-            color: #2c3e50;
-            margin-bottom: 20px;
-        }
-        #data-display {
             font-size: 2.5em;
-            font-weight: bold;
-            color: #3498db;
-            margin-top: 20px;
+            font-weight: 700;
+            margin: 0;
         }
-        .label {
+
+        .date-display {
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #000;
+            padding: 10px 30px;
+            border-radius: 50px;
+            font-size: 2em;
+            font-weight: 700;
+            margin: 25px 0;
+            display: inline-block;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-display {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 15px; /* 调整间距 */
+        }
+        
+        .last-updated-text {
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 40px;
+        }
+
+        .footer {
             font-size: 1em;
-            color: #7f8c8d;
-            margin-top: 10px;
+            color: rgba(255, 255, 255, 0.8);
         }
+
+        .footer hr {
+            border: 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.5);
+            width: 80%;
+            max-width: 400px;
+            margin: 0 auto 15px;
+        }
+        
         #loading {
-            color: #e67e22;
-        }
-        #status-indicator {
             font-size: 1.5em;
-            font-weight: bold;
-            margin-top: 10px;
         }
-        .disclaimer {
-            font-size: 0.8em;
-            color: #999;
-            margin-top: 20px;
+        
+        /* 响应式设计 */
+        @media (max-width: 600px) {
+            #new0-value { font-size: 8em; }
+            #trend-indicator { font-size: 5em; }
+            h1 { font-size: 1.8em; }
+            .date-display { font-size: 1.5em; padding: 8px 25px; }
+            .status-display { font-size: 1.8em; }
+            .infographic-container { padding: 40px 20px; }
         }
+
     </style>
 </head>
 <body>
-    <div id="container">
-        <h1>MeowFin 美股大盘冷暖指数 Weather Index</h1>
-        <div id="loading">正在加载数据...</div>
-        <div id="data-display" style="display: none;">
-            <p class="label">——最新指数值——</p>
-            <p id="new0-value"></p>
-            <p id="status-indicator"></p>
+    <div id="loading">正在加载数据...</div>
+    
+    <div id="content-container" class="infographic-container" style="display: none;">
+        <div class="index-value-container">
+            <span id="new0-value">--</span>
+            <span id="trend-indicator"></span>
         </div>
-        <p class="label" id="last-updated"></p>
+        <h1>美股大盘冷暖指数</h1>
+        <div id="date-display" class="date-display">--月--日 (-)</div>
+        <div id="status-display" class="status-display">状态 - --</div>
+        <p id="last-updated" class="last-updated-text"></p>
+        <div class="footer">
+            <hr>
+            <p>@喵财经MeowFin</p>
+            <p>自编指标，仅供参考</p>
+        </div>
     </div>
-    <p class="disclaimer">自编指标 仅供参考</p>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const containerElement = document.getElementById('container');
             const loadingElement = document.getElementById('loading');
-            const dataDisplay = document.getElementById('data-display');
+            const contentContainer = document.getElementById('content-container');
             const new0ValueElement = document.getElementById('new0-value');
-            const statusIndicatorElement = document.getElementById('status-indicator');
-            const lastUpdatedElement = document.getElementById('last-updated');
+            const trendIndicatorElement = document.getElementById('trend-indicator');
+            const dateElement = document.getElementById('date-display');
+            const statusElement = document.getElementById('status-display');
+            const lastUpdatedElement = document.getElementById('last-updated'); // 新增
 
             const CLOUD_RUN_URL = "https://stock-index-service-712102610138.us-central1.run.app/api/indicator";
 
             fetch(CLOUD_RUN_URL)
                 .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`网络响应不正常: ${response.status}`);
-                    }
+                    if (!response.ok) throw new Error(`网络响应不正常: ${response.status}`);
                     return response.json();
                 })
                 .then(data => {
                     loadingElement.style.display = 'none';
-                    dataDisplay.style.display = 'block';
+                    contentContainer.style.display = 'block';
 
                     if (data && 'NEW0' in data && 'last_updated' in data) {
                         const new0Value = parseFloat(data.NEW0);
-                        new0ValueElement.textContent = new0Value.toFixed(2);
+                        new0ValueElement.textContent = Math.round(new0Value); // 显示整数
                         
                         let statusText = '';
-                        let statusColor = '';
                         let containerBgColor = '';
+                        let dateBgColor = '#ffffff';
+                        let dateColor = '#000000';
 
                         if (new0Value > 80) {
                             statusText = '过热';
-                            statusColor = '#e74c3c'; // 红色
-                            containerBgColor = '#f5e9e9'; // 淡红色
+                            containerBgColor = '#e74c3c'; // 红色
                         } else if (new0Value >= 50 && new0Value <= 80) {
                             statusText = '偏暖';
-                            statusColor = '#f1c40f'; // 黄色
-                            containerBgColor = '#fff5e6'; // 淡橙色
+                            containerBgColor = '#f39c12'; // 橙色
                         } else if (new0Value > 20 && new0Value < 50) {
                             statusText = '偏冷';
-                            statusColor = '#3498db'; // 蓝色
-                            containerBgColor = '#e9f5ff'; // 淡蓝色
+                            containerBgColor = '#3498db'; // 蓝色
                         } else {
                             statusText = '过冷';
-                            statusColor = '#2c3e50'; // 深蓝色
-                            containerBgColor = '#f0f0f0'; // 淡墨色
+                            containerBgColor = '#34495e'; // 深灰蓝
                         }
                         
-                        statusIndicatorElement.textContent = `状态：${statusText}`;
-                        statusIndicatorElement.style.color = statusColor;
-                        containerElement.style.backgroundColor = containerBgColor; // 设置背景色
-
+                        contentContainer.style.backgroundColor = containerBgColor;
+                        statusElement.textContent = `状态 - ${statusText}`;
+                        trendIndicatorElement.textContent = new0Value >= 50 ? '▲' : '▼';
+                        
+                        // --- 日期格式化 ---
                         const updateTime = new Date(data.last_updated);
-                        lastUpdatedElement.textContent = '数据更新时间: ' + updateTime.toLocaleString();
+                        const month = updateTime.getMonth() + 1;
+                        const day = updateTime.getDate();
+                        const weekday = ['日', '一', '二', '三', '四', '五', '六'][updateTime.getDay()];
+                        dateElement.textContent = `${month}月${day}日 (${weekday})`;
+                        dateElement.style.backgroundColor = dateBgColor;
+                        dateElement.style.color = dateColor;
+
+                        // --- 最后更新时间格式化 ---
+                        const options = {
+                            year: 'numeric', month: 'numeric', day: 'numeric',
+                            hour: '2-digit', minute: '2-digit', second: '2-digit',
+                            hour12: false,
+                            timeZone: 'Asia/Shanghai'
+                        };
+                        const formatter = new Intl.DateTimeFormat('zh-CN', options);
+                        const formattedTime = formatter.format(updateTime);
+                        lastUpdatedElement.textContent = `最后更新: ${formattedTime} (UTC+8)`;
+
+
                     } else {
-                        new0ValueElement.textContent = '数据无效或不完整';
-                        statusIndicatorElement.textContent = '';
+                       new0ValueElement.textContent = 'N/A';
+                       statusElement.textContent = '数据无效或不完整';
                     }
                 })
                 .catch(error => {
                     loadingElement.textContent = `加载失败: ${error.message}`;
                     console.error('Fetch error:', error);
-                    statusIndicatorElement.textContent = '';
                 });
         });
     </script>
     <script src="nav.js" defer></script>
 </body>
 </html>
+
