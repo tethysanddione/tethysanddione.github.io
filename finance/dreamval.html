@@ -80,7 +80,8 @@
             margin-bottom: 20px;
         }
         .input-group label {
-            display: block;
+            display: flex; /* 使用flex布局对齐 */
+            align-items: center; /* 垂直居中对齐 */
             margin-bottom: 8px;
             font-weight: 500;
             color: #B0B0B0;
@@ -101,6 +102,62 @@
             border-color: #007BFF;
             box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
         }
+
+        /* --- 提示工具 (Tooltip) 样式 --- */
+        .tooltip {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 8px;
+        }
+        .tooltip-icon {
+            width: 16px;
+            height: 16px;
+            background-color: #4a4a4a;
+            color: #E0E0E0;
+            border-radius: 50%;
+            font-size: 12px;
+            line-height: 16px;
+            text-align: center;
+            cursor: help;
+            font-style: normal;
+        }
+        .tooltip-text {
+            visibility: hidden;
+            opacity: 0;
+            width: 280px;
+            background-color: #333;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 12px;
+            position: absolute;
+            z-index: 1;
+            bottom: 150%;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            line-height: 1.5;
+            font-weight: normal;
+            font-size: 0.9em;
+        }
+        .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
 
         /* --- 按钮样式 --- */
         .calc-button {
@@ -189,11 +246,23 @@
                 <div class="card">
                     <h3>1. 定义梦想 (The Dream)</h3>
                     <div class="input-group">
-                        <label for="idealFv">理想终值市值 (万亿)</label>
+                        <label for="idealFv">
+                            理想终值市值 (万亿)
+                            <div class="tooltip">
+                                <i class="tooltip-icon">?</i>
+                                <span class="tooltip-text">指公司在完全成功、兑现其所有潜力后，在成熟期可能达到的市场总值。这是对“梦想”大小的终极量化。</span>
+                            </div>
+                        </label>
                         <input type="number" id="idealFv" placeholder="例如: 2" value="2">
                     </div>
                     <div class="input-group">
-                        <label for="timeframeN">实现年限 (年)</label>
+                        <label for="timeframeN">
+                            实现年限 (年)
+                            <div class="tooltip">
+                                <i class="tooltip-icon">?</i>
+                                <span class="tooltip-text">预估公司从现在开始，到实现上述“理想终值市值”所需要的时间。时间越长，不确定性越大，折现也越严重。</span>
+                            </div>
+                        </label>
                         <input type="number" id="timeframeN" placeholder="例如: 20" value="20">
                     </div>
                 </div>
@@ -316,7 +385,5 @@
     });
 
 </script>
-<script src="nav.js" defer></script>
 </body>
 </html>
-
