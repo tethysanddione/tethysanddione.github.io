@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 引入 Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <title>文章详情 - MeowFin Global</title>
+    <style>
+        /* --- 全局样式 --- */
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #121212;
+            color: #E0E0E0;
+            box-sizing: border-box;
+            position: relative;
+            padding-top: 1px;
+        }
+        /* --- Banner 样式 --- */
+        .banner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 400px;
+            z-index: 1;
+            opacity: 0.25;
+            overflow: hidden;
+        }
+        .banner img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+        /* --- 主容器 --- */
+        .container {
+            width: 100%;
+            max-width: 800px; /* 保持与列表页一致的宽度以获得更好阅读体验 */
+            text-align: left;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            position: relative;
+            z-index: 2;
+            margin: 60px auto 40px auto;
+            background-color: rgba(18, 18, 18, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+            color: #B0B0B0;
+            margin-bottom: 25px;
+            font-size: 1.1em;
+            transition: color 0.3s ease;
+        }
+        .back-link:hover {
+            color: #FFFFFF;
+        }
+        .back-link i {
+            margin-right: 8px;
+        }
+        h1 {
+            font-size: 2.5em;
+            font-weight: 600;
+            color: #FFFFFF;
+            margin-top: 0;
+            margin-bottom: 10px;
+            line-height: 1.3;
+        }
+        .article-meta {
+            font-size: 0.9em;
+            color: #888;
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+        }
+        .article-content p, .article-content li {
+            font-size: 1.1em;
+            line-height: 1.8;
+            color: #B0B0B0;
+            margin-bottom: 20px;
+        }
+        .article-content h2, .article-content h3 {
+            font-weight: 600;
+            color: #FFFFFF;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007BFF;
+            padding-left: 15px;
+        }
+        .article-content h2 { font-size: 1.8em; }
+        .article-content h3 { font-size: 1.5em; }
+        .article-content ul, .article-content ol {
+            padding-left: 25px;
+            margin-bottom: 20px;
+        }
+        .article-content strong {
+            color: #FFFFFF;
+        }
+        .credit {
+            position: relative;
+            z-index: 2;
+            margin-bottom: 40px;
+            font-size: 0.9em;
+            color: #606060;
+            text-align: center;
+        }
+        .credit a {
+            color: #606060;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+        .credit a:hover {
+            color: #E0E0E0;
+        }
+        @media (max-width: 768px) {
+            .container { margin-top: 40px; }
+            h1 { font-size: 2em; }
+            .article-content p, .article-content li { font-size: 1em; }
+            .article-content h2 { font-size: 1.5em; }
+            .article-content h3 { font-size: 1.3em; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="banner">
+        <!-- 使用一个通用的占位图作为背景 -->
+        <img src="https://placehold.co/1200x400/1A1A1A/333333?text=MeowFin" alt="文章背景图" onerror="this.style.display='none'">
+    </div>
+
+    <div class="container">
+        <!-- 返回链接指向文章列表页 -->
+        <a href="articles_page.html" class="back-link"><i class="fas fa-arrow-left"></i>返回文章列表</a>
+
+        <!-- 文章标题 -->
+        <h1 id="article-title">正在加载...</h1>
+        <!-- 文章元数据：日期和作者 -->
+        <p class="article-meta">
+            <span id="article-date"></span>&nbsp;By&nbsp;<span id="article-author"></span>
+        </p>
+        
+        <!-- 文章正文内容 -->
+        <div class="article-content" id="article-content">
+            <p>内容正在加载中...</p>
+        </div>
+    </div>
+    
+    <div class="credit">
+        <span>&copy; 2025 MeowFin_Global</span>
+        <a href="privacy_policy.html" class="footer-link">隐私政策</a>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const titleEl = document.getElementById('article-title');
+            const dateEl = document.getElementById('article-date');
+            const authorEl = document.getElementById('article-author');
+            const contentEl = document.getElementById('article-content');
+
+            // 1. 从URL中获取文章ID
+            const params = new URLSearchParams(window.location.search);
+            const articleId = params.get('id');
+
+            if (articleId) {
+                // 2. 异步获取JSON文件中的数据
+                fetch('articles.json')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('网络响应错误');
+                        }
+                        return response.json();
+                    })
+                    .then(allArticles => {
+                        // 3. 根据ID查找对应的文章数据
+                        const article = allArticles.find(art => art.id === articleId);
+
+                        // 4. 将文章数据显示在页面上
+                        if (article) {
+                            document.title = article.title + " - MeowFin Global"; // 更新浏览器标签页标题
+                            titleEl.textContent = article.title;
+                            dateEl.textContent = article.date;
+                            authorEl.textContent = article.author;
+                            contentEl.innerHTML = article.content; // 使用innerHTML来正确渲染HTML标签
+                        } else {
+                            handleArticleNotFound();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('获取文章详情失败:', error);
+                        handleArticleError();
+                    });
+            } else {
+                handleInvalidLink();
+            }
+
+            function handleArticleNotFound() {
+                document.title = "文章未找到 - MeowFin Global";
+                titleEl.textContent = '文章未找到';
+                contentEl.innerHTML = '<p>抱歉，我们无法找到您要查找的文章。请检查URL是否正确，或返回文章列表重新选择。</p>';
+                dateEl.parentElement.style.display = 'none'; // 隐藏元数据
+            }
+
+            function handleArticleError() {
+                document.title = "加载失败 - MeowFin Global";
+                titleEl.textContent = '加载失败';
+                contentEl.innerHTML = '<p>无法加载文章内容，请检查网络连接或稍后重试。</p>';
+                dateEl.parentElement.style.display = 'none';
+            }
+
+            function handleInvalidLink() {
+                document.title = "无效链接 - MeowFin Global";
+                titleEl.textContent = '无效的文章链接';
+                contentEl.innerHTML = '<p>链接缺少必要的文章ID参数，无法加载内容。</p>';
+                dateEl.parentElement.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
+
