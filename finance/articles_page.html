@@ -1,1 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章列表 - 金融分析工具集</title>
+    <style>
+        /* --- 全局样式 (与您的主页保持一致) --- */
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            background-color: #121212;
+            color: #E0E0E0;
+            box-sizing: border-box;
+            position: relative;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 800px;
+            text-align: left;
+            padding: 40px;
+            box-sizing: border-box;
+            position: relative;
+            z-index: 2;
+            margin: 60px auto;
+            background-color: rgba(28, 28, 28, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+        }
+        h1, h2 {
+            color: #FFFFFF;
+            border-bottom: 1px solid #404040;
+            padding-bottom: 10px;
+        }
+        p, li {
+            line-height: 1.8;
+            color: #B0B0B0;
+        }
+        a {
+            color: #0099ff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .home-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 15px;
+            background-color: #007BFF;
+            color: #FFFFFF;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background-color 0.3s ease;
+        }
+        .home-link:hover {
+            background-color: #0056b3;
+            text-decoration: none;
+        }
+
+        /* --- 文章列表与分页专属样式 --- */
+        .article-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0 0 0;
+        }
+        .article-list li {
+            padding: 15px 5px;
+            border-bottom: 1px solid #303030;
+            transition: background-color 0.3s ease;
+            border-radius: 4px;
+        }
+        .article-list li:last-child {
+            border-bottom: none;
+        }
+        .article-list li:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        .article-list a {
+            color: #E0E0E0; /* 标题使用更亮的颜色以突出 */
+            font-size: 1.1em;
+            text-decoration: none;
+            display: block; /* 让整个区域可点击 */
+        }
+        .article-list a:hover {
+            color: #0099ff;
+            text-decoration: none; /* 悬停时标题变色，而不是下划线 */
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        .pagination a {
+            color: #E0E0E0;
+            padding: 8px 16px;
+            text-decoration: none;
+            transition: background-color .3s;
+            border: 1px solid #404040;
+            margin: 4px;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+        .pagination a.active {
+            background-color: #007BFF;
+            color: white;
+            border-color: #007BFF;
+            cursor: default;
+        }
+        .pagination a:hover:not(.active) {
+            background-color: #333;
+            border-color: #555;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <a href="index.html" class="home-link">← 返回首页</a>
+
+        <h1>文章列表</h1>
+
+        <!-- 文章列表将通过JS动态插入这里 -->
+        <ul class="article-list" id="article-list-container">
+            <!-- <li><a href="#">文章标题示例</a></li> -->
+        </ul>
+
+        <!-- 分页控件将通过JS动态插入这里 -->
+        <div class="pagination" id="pagination-container">
+            <!-- <a href="#" class="active">1</a> -->
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- 模拟的文章数据 ---
+            // 在实际应用中，您可能会从服务器API获取这些数据
+            const allArticles = [
+                { title: '深入解读最新财报：关键指标分析与投资启示', url: 'article-detail.html?id=1' },
+                { title: '期权交易入门：从基本概念到常用策略', url: 'article-detail.html?id=2' },
+                { title: '技术分析核心：如何运用移动平均线(MA)进行趋势判断', url: 'article-detail.html?id=3' },
+                { title: '价值投资的艺术：如何发现被市场低估的优质公司', url: 'article-detail.html?id=4' },
+                { title: '美联储利率决议深度解析：对股市、债市和汇市的影响', url: 'article-detail.html?id=5' },
+                { title: '构建你的第一个投资组合：资产配置原则与实践', url: 'article-detail.html?id=6' },
+                { title: '风险管理：投资者必修的资金保护课', url: 'article-detail.html?id=7' },
+                { title: '行为金融学：洞察导致投资亏损的心理陷阱', url: 'article-detail.html?id=8' },
+                { title: 'ETF投资指南：轻松实现全球资产配置', url: 'article-detail.html?id=9' },
+                { title: '解密华尔街：对冲基金的运作模式与策略', url: 'article-detail.html?id=10' },
+                { title: '股票估值方法大全：DCF、市盈率、市净率模型详解', url: 'article-detail.html?id=11' },
+                { title: '如何通过阅读研报，提升个股分析能力', url: 'article-detail.html?id=12' },
+                { title: '“黑天鹅”与“灰犀牛”：如何应对金融市场的极端风险', url: 'article-detail.html?id=13' },
+                { title: '科技股投资地图：AI、云计算、半导体赛道分析', url: 'article-detail.html?id=14' },
+                { title: '量化交易初探：模型、策略与工具', url: 'article-detail.html?id=15' },
+                { title: '股息增长投资策略：构建持续的被动收入流', url: 'article-detail.html?id=16' },
+                { title: '市场周期理论：识别牛市与熊市的转折点', url: 'article-detail.html?id=17' },
+                { title: '期权高级策略：Iron Condor 与 Butterfly Spread', url: 'article-detail.html?id=18' },
+                { title: '全球宏观经济分析框架：理解利率、通胀与经济增长', url: 'article-detail.html?id=19' },
+                { title: '新手如何选择适合自己的交易平台和券商', url: 'article-detail.html?id=20' },
+                { title: '数字货币与区块链：下一个投资风口还是泡沫？', url: 'article-detail.html?id=21' },
+                { title: '期货市场入门：合约、杠杆与套期保值', url: 'article-detail.html?id=22' },
+                { title: '公司治理结构分析：如何避开有问题的上市公司', url: 'article-detail.html?id=23' },
+            ];
+
+            const articlesPerPage = 10;
+            let currentPage = 1;
+
+            const listContainer = document.getElementById('article-list-container');
+            const paginationContainer = document.getElementById('pagination-container');
+
+            function displayArticles(page) {
+                currentPage = page;
+                listContainer.innerHTML = ''; // 清空当前列表
+
+                const startIndex = (page - 1) * articlesPerPage;
+                const endIndex = startIndex + articlesPerPage;
+                const paginatedArticles = allArticles.slice(startIndex, endIndex);
+
+                paginatedArticles.forEach(article => {
+                    const listItem = document.createElement('li');
+                    const link = document.createElement('a');
+                    link.href = article.url;
+                    link.textContent = article.title;
+                    listItem.appendChild(link);
+                    listContainer.appendChild(listItem);
+                });
+                
+                updatePaginationButtons();
+            }
+
+            function setupPagination() {
+                paginationContainer.innerHTML = ''; // 清空分页控件
+                const pageCount = Math.ceil(allArticles.length / articlesPerPage);
+
+                for (let i = 1; i <= pageCount; i++) {
+                    const pageLink = document.createElement('a');
+                    pageLink.href = '#';
+                    pageLink.textContent = i;
+                    
+                    pageLink.addEventListener('click', function(event) {
+                        event.preventDefault(); // 阻止链接的默认跳转行为
+                        displayArticles(i);
+                    });
+
+                    paginationContainer.appendChild(pageLink);
+                }
+            }
+            
+            function updatePaginationButtons() {
+                const pageLinks = paginationContainer.querySelectorAll('a');
+                pageLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (parseInt(link.textContent) === currentPage) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+
+            // --- 初始化页面 ---
+            setupPagination();
+            displayArticles(1); 
+        });
+    </script>
+
+</body>
+</html>
 
