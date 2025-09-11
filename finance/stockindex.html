@@ -3,9 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <!-- 引入Chart.js图表库 -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <title>MeowFin 美股大盘冷暖指数</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@700&display=swap');
@@ -22,18 +19,19 @@
             padding: 20px;
             box-sizing: border-box;
             background-color: #121212;
+            transition: background-color 0.5s ease;
         }
 
         .infographic-container {
             text-align: center;
             width: 100%;
-            max-width: 600px;
+            max-width: 800px;
             padding: 50px 30px;
             border-radius: 20px;
             background-color: #34495e;
             transition: background-color 0.8s ease;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            margin-bottom: 30px; /* 为图表留出空间 */
+            margin-bottom: 30px;
         }
 
         .index-value-container {
@@ -49,11 +47,6 @@
             font-weight: 700;
             line-height: 1;
             letter-spacing: -5px;
-        }
-
-        #trend-indicator {
-            font-size: 8em;
-            line-height: 1;
         }
 
         h1 {
@@ -104,27 +97,13 @@
             color: #E0E0E0;
         }
         
-        /* --- 新增：图表容器样式 --- */
-        .chart-container {
-            width: 115%;
-            max-width: 600px;
-            background-color: #1E1E1E;
-            padding: 50px 30px;
-            border-radius: 20px;
-            border: 1px solid #333;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            box-sizing: border-box;
-        }
-        
         /* 响应式设计 */
         @media (max-width: 600px) {
             #new0-value { font-size: 8em; }
-            #trend-indicator { font-size: 5em; }
             h1 { font-size: 1.8em; }
             .date-display { font-size: 1.5em; padding: 8px 25px; }
             .status-display { font-size: 1.8em; }
             .infographic-container { padding: 40px 20px; }
-            .chart-container { padding: 20px; }
         }
     </style>
 </head>
@@ -132,10 +111,9 @@
     <div id="loading">正在加载数据...</div>
     
     <div id="content-container" style="display: none;">
-        <div class="infographic-container">
+        <div id="container" class="infographic-container">
             <div class="index-value-container">
                 <span id="new0-value">--</span>
-                <span id="trend-indicator"></span>
             </div>
             <h1>美股大盘冷暖指数</h1>
             <div id="date-display" class="date-display">--月--日 (-)</div>
@@ -147,47 +125,34 @@
                 <p>自编指标，仅供参考</p>
             </div>
         </div>
-        
-        <!-- 新增的图表区域 -->
-        <div class="chart-container">
-            <canvas id="historyChart"></canvas>
-        </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            const containerElement = document.getElementById('container');
             const loadingElement = document.getElementById('loading');
             const contentContainer = document.getElementById('content-container');
             const new0ValueElement = document.getElementById('new0-value');
-            const trendIndicatorElement = document.getElementById('trend-indicator');
             const dateElement = document.getElementById('date-display');
             const statusElement = document.getElementById('status-display');
             const lastUpdatedElement = document.getElementById('last-updated');
 
             const CLOUD_RUN_URL = "https://stock-index-service-712102610138.us-central1.run.app/api/indicator";
 
-            const fetchData = () => {
-                return fetch(CLOUD_RUN_URL).then(res => {
+            fetch(CLOUD_RUN_URL)
+                .then(res => {
                     if (!res.ok) {
                         throw new Error(`网络响应不正常: ${res.status}`);
                     }
                     return res.json();
-                });
-            };
-            
-            fetchData()
+                })
                 .then(apiResponse => {
                     let dataArray;
-
-                    // --- 新增：健壮的数据格式处理 ---
-                    // 首先，规范化API返回的数据，确保我们后续处理的是一个数组
                     if (Array.isArray(apiResponse)) {
                         dataArray = apiResponse;
                     } else if (typeof apiResponse === 'object' && apiResponse !== null) {
-                        // 如果API返回的是单个对象，将其放入数组中以便统一处理
                         dataArray = [apiResponse];
                     } else {
-                        // 如果数据格式完全未知，则抛出错误
                         throw new Error('API返回了无法识别的数据格式');
                     }
 
@@ -199,130 +164,34 @@
                     contentContainer.style.display = 'block';
 
                     const latestData = dataArray[dataArray.length - 1];
-                    const previousData = dataArray.length >= 2 ? dataArray[dataArray.length - 2] : null;
+                    const new0Value = parseFloat(latestData.NEW0);
+                    new0ValueElement.textContent = Math.round(new0Value);
 
-                    // --- 更新主显示区域 ---
-                    updateInfographic(latestData, previousData);
+                    let statusText = '';
+                    let containerBgColor = '';
+                    if (new0Value > 80) { statusText = '过热'; containerBgColor = '#e74c3c'; }
+                    else if (new0Value >= 50) { statusText = '偏暖'; containerBgColor = '#f39c12'; }
+                    else if (new0Value > 20) { statusText = '偏冷'; containerBgColor = '#3498db'; }
+                    else { statusText = '过冷'; containerBgColor = '#34495e'; }
                     
-                    // --- 渲染历史图表 ---
-                    // 只有当数据点多于一个时，绘制图表才有意义
-                    if (dataArray.length > 1) {
-                        renderHistoryChart(dataArray);
-                    } else {
-                        // 否则，隐藏图表区域或显示提示信息
-                        const chartContainer = document.querySelector('.chart-container');
-                        chartContainer.innerHTML = '<p style="text-align: center; color: #A0A0A0;">历史数据不足，无法绘制图表。</p>';
-                    }
+                    containerElement.style.backgroundColor = containerBgColor;
+                    statusElement.textContent = `状态 - ${statusText}`;
+                    
+                    const updateTime = new Date(latestData.last_updated);
+                    const month = updateTime.getMonth() + 1;
+                    const day = updateTime.getDate();
+                    const weekday = ['日', '一', '二', '三', '四', '五', '六'][updateTime.getDay()];
+                    dateElement.textContent = `${month}月${day}日 (${weekday})`;
+
+                    const options = { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Shanghai' };
+                    const formatter = new Intl.DateTimeFormat('zh-CN', options);
+                    lastUpdatedElement.textContent = `最后更新: ${formatter.format(updateTime)} (UTC+8)`;
                 })
                 .catch(error => {
                     loadingElement.textContent = `加载失败: ${error.message}`;
                     console.error('Fetch error:', error);
                 });
-
-            function updateInfographic(latest, previous) {
-                const new0Value = parseFloat(latest.NEW0);
-                new0ValueElement.textContent = Math.round(new0Value);
-                
-                // --- 健壮的趋势符号逻辑 ---
-                if (previous) {
-                    const prev0Value = parseFloat(previous.NEW0);
-                    if (new0Value > prev0Value) {
-                        trendIndicatorElement.textContent = '▲';
-                        trendIndicatorElement.style.color = '#ffffff';
-                    } else if (new0Value < prev0Value) {
-                        trendIndicatorElement.textContent = '▼';
-                        trendIndicatorElement.style.color = '#ffffff';
-                    } else {
-                        trendIndicatorElement.textContent = '—';
-                        trendIndicatorElement.style.color = '#ffffff';
-                    }
-                } else {
-                    trendIndicatorElement.textContent = '—';
-                    trendIndicatorElement.style.color = '#ffffff';
-                }
-
-                let statusText = '';
-                let containerBgColor = '';
-                if (new0Value > 80) { statusText = '过热'; containerBgColor = '#e74c3c'; } 
-                else if (new0Value >= 50) { statusText = '偏暖'; containerBgColor = '#f39c12'; } 
-                else if (new0Value > 20) { statusText = '偏冷'; containerBgColor = '#3498db'; } 
-                else { statusText = '过冷'; containerBgColor = '#34495e'; }
-                
-                document.querySelector('.infographic-container').style.backgroundColor = containerBgColor;
-                statusElement.textContent = `状态 - ${statusText}`;
-                
-                const updateTime = new Date(latest.last_updated);
-                const month = updateTime.getMonth() + 1;
-                const day = updateTime.getDate();
-                const weekday = ['日', '一', '二', '三', '四', '五', '六'][updateTime.getDay()];
-                dateElement.textContent = `${month}月${day}日 (${weekday})`;
-
-                const options = { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Shanghai' };
-                const formatter = new Intl.DateTimeFormat('zh-CN', options);
-                lastUpdatedElement.textContent = `最后更新: ${formatter.format(updateTime)} (UTC+8)`;
-            }
-
-            function renderHistoryChart(data) {
-                const ctx = document.getElementById('historyChart').getContext('2d');
-                
-                const labels = data.map(item => {
-                    const d = new Date(item.last_updated);
-                    return `${d.getMonth() + 1}/${d.getDate()}`;
-                });
-                const values = data.map(item => parseFloat(item.NEW0).toFixed(2));
-
-                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-                gradient.addColorStop(0, 'rgba(52, 152, 219, 0.5)');
-                gradient.addColorStop(1, 'rgba(52, 152, 219, 0)');
-
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: '历史指数',
-                            data: values,
-                            borderColor: '#3498db',
-                            backgroundColor: gradient,
-                            borderWidth: 3,
-                            pointBackgroundColor: '#ffffff',
-                            pointBorderColor: '#3498db',
-                            pointRadius: 4,
-                            pointHoverRadius: 7,
-                            tension: 0.3,
-                            fill: true,
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                enabled: true,
-                                backgroundColor: '#000',
-                                titleColor: '#fff',
-                                bodyColor: '#fff',
-                                cornerRadius: 5,
-                                displayColors: false,
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: false,
-                                grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                                ticks: { color: '#A0A0A0' }
-                            },
-                            x: {
-                                grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                                ticks: { color: '#A0A0A0' }
-                            }
-                        }
-                    }
-                });
-            }
         });
     </script>
-    <script src="nav.js" defer></script>
 </body>
 </html>
-
