@@ -76,6 +76,11 @@
             background: #4299e1;
             cursor: pointer;
         }
+        #planet-system-svg .orbit {
+            stroke: #555;
+            stroke-width: 1px;
+            fill: none;
+        }
     </style>
 </head>
 <body class="bg-gray-900 min-h-screen flex flex-col items-center justify-center p-4">
@@ -138,9 +143,14 @@
                 <!-- STC Code Generator -->
                 <div id="stc-output" class="hidden mt-6">
                     <div class="relative">
-                        <pre id="stc-code" class="bg-gray-900 text-sm text-gray-300 p-4 rounded-lg font-mono whitespace-pre-wrap overflow-auto max-h-64"></pre>
+                        <pre id="stc-code" class="bg-gray-900 text-sm text-gray-300 p-4 rounded-lg font-mono whitespace-pre-wrap overflow-auto max-h-40"></pre>
                         <button id="copy-stc-button" class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-1 px-3 rounded-md text-xs">复制</button>
                     </div>
+                </div>
+                 <!-- Planetary System Preview -->
+                <div id="planet-system-container" class="hidden mt-4">
+                    <h3 class="text-lg font-semibold text-white mb-2 text-center">行星系统预览</h3>
+                    <div id="planet-system-preview" class="w-full h-64 bg-gray-900 rounded-lg"></div>
                 </div>
             </div>
         </div>
@@ -185,47 +195,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const margin = { top: 20, right: 40, bottom: 50, left: 60 };
     const svgContainer = d3.select("#hr-diagram");
-    let width, height, svg, x, y;
+    let hrWidth, hrHeight, hrSvg, hrX, hrY;
 
-    function setupChart() {
+    function setupHrChart() {
         const containerRect = svgContainer.node().getBoundingClientRect();
-        width = containerRect.width - margin.left - margin.right;
-        height = containerRect.height - margin.top - margin.bottom;
+        hrWidth = containerRect.width - margin.left - margin.right;
+        hrHeight = containerRect.height - margin.top - margin.bottom;
 
         svgContainer.selectAll("*").remove();
-        svg = svgContainer.append("svg")
-            .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom)
+        hrSvg = svgContainer.append("svg")
+            .attr("width", hrWidth + margin.left + margin.right)
+            .attr("height", hrHeight + margin.top + margin.bottom)
             .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
 
-        x = d3.scaleLog().domain([50000, 2000]).range([0, width]);
-        y = d3.scaleLog().domain([1e-5, 1e7]).range([height, 0]);
+        hrX = d3.scaleLog().domain([50000, 2000]).range([0, hrWidth]);
+        hrY = d3.scaleLog().domain([1e-5, 1e7]).range([hrHeight, 0]);
 
-        svg.append("g").attr("class", "axis").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x).tickValues([40000, 20000, 10000, 5000, 3000, 2000]).tickFormat(d3.format(".0s"))).append("text").attr("x", width / 2).attr("y", 40).attr("fill", "#bbb").attr("text-anchor", "middle").text("表面温度 (K)");
-        svg.append("g").attr("class", "axis").call(d3.axisLeft(y).tickFormat(d => { const log = Math.log10(d); return Number.isInteger(log) ? `10^${log}` : ""; })).append("text").attr("transform", "rotate(-90)").attr("y", -45).attr("x", -height / 2).attr("fill", "#bbb").attr("text-anchor", "middle").text("光度 (L☉)");
+        hrSvg.append("g").attr("class", "axis").attr("transform", `translate(0,${hrHeight})`).call(d3.axisBottom(hrX).tickValues([40000, 20000, 10000, 5000, 3000, 2000]).tickFormat(d3.format(".0s"))).append("text").attr("x", hrWidth / 2).attr("y", 40).attr("fill", "#bbb").attr("text-anchor", "middle").text("表面温度 (K)");
+        hrSvg.append("g").attr("class", "axis").call(d3.axisLeft(hrY).tickFormat(d => { const log = Math.log10(d); return Number.isInteger(log) ? `10^${log}` : ""; })).append("text").attr("transform", "rotate(-90)").attr("y", -45).attr("x", -hrHeight / 2).attr("fill", "#bbb").attr("text-anchor", "middle").text("光度 (L☉)");
         
         const mainSequenceData = [{temp: 40000, lum_min: 1e4, lum_max: 1e5},{temp: 10000, lum_min: 10, lum_max: 100},{temp: 7000, lum_min: 1, lum_max: 10},{temp: 5000, lum_min: 0.1, lum_max: 1},{temp: 3000, lum_min: 0.001, lum_max: 0.1},{temp: 2000, lum_min: 0.0001, lum_max: 0.01}];
-        const area = d3.area().x(d => x(d.temp)).y0(d => y(d.lum_min)).y1(d => y(d.lum_max)).curve(d3.curveBasis);
-        svg.append("path").datum(mainSequenceData).attr("class", "main-sequence-band").attr("d", area);
+        const area = d3.area().x(d => hrX(d.temp)).y0(d => hrY(d.lum_min)).y1(d => hrY(d.lum_max)).curve(d3.curveBasis);
+        hrSvg.append("path").datum(mainSequenceData).attr("class", "main-sequence-band").attr("d", area);
     }
     
-    setupChart();
-    window.addEventListener('resize', setupChart);
+    setupHrChart();
+    window.addEventListener('resize', setupHrChart);
 
     const tooltip = d3.select("body").append("div").attr("class", "tooltip");
 
     const formatLifetime = (years) => years < 1e6 ? `${(years / 1e3).toFixed(1)} 千年` : years < 1e9 ? `${(years / 1e6).toFixed(2)} 百万年` : `${(years / 1e9).toFixed(2)} 十亿年`;
-    
     const calculateRadius = (lum, temp) => Math.sqrt(lum) / Math.pow(temp / T_sun, 2);
-
-    function getStarColor(temp) {
-        if (temp > 30000) return "#aaccff"; if (temp > 10000) return "#cadcff"; if (temp > 7500) return "#fbf8ff"; if (temp > 6000) return "#fff4e8"; if (temp > 5000) return "#ffddb4"; if (temp > 3500) return "#ffb66c"; return "#ff8c4b";
-    }
-
-    function getSpectralType(temp) {
-        if (temp > 30000) return "O"; if (temp > 10000) return "B"; if (temp > 7500) return "A"; if (temp > 6000) return "F"; if (temp > 5000) return "G"; if (temp > 3500) return "K"; return "M";
-    }
+    function getStarColor(temp) { if (temp > 30000) return "#aaccff"; if (temp > 10000) return "#cadcff"; if (temp > 7500) return "#fbf8ff"; if (temp > 6000) return "#fff4e8"; if (temp > 5000) return "#ffddb4"; if (temp > 3500) return "#ffb66c"; return "#ff8c4b"; }
+    function getSpectralType(temp) { if (temp > 30000) return "O"; if (temp > 10000) return "B"; if (temp > 7500) return "A"; if (temp > 6000) return "F"; if (temp > 5000) return "G"; if (temp > 3500) return "K"; return "M"; }
 
     function generateStellarMass() {
         const rand = Math.random();
@@ -241,82 +244,99 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (m < 2) { lum = Math.pow(m, 4); temp = T_sun * Math.pow(m, 0.525); } 
         else if (m < 55) { lum = 1.4 * Math.pow(m, 3.5); temp = T_sun * Math.pow(1.2 * m, 0.5); } 
         else { lum = 32000 * m; temp = 40000 * Math.pow(m, 0.1); }
-        const temp_correction = Math.pow(z_ratio, -0.08);
-        const lum_correction = Math.pow(z_ratio, -0.1);
+        const temp_correction = Math.pow(z_ratio, -0.08); const lum_correction = Math.pow(z_ratio, -0.1);
         return { lum: lum * lum_correction, temp: temp * temp_correction };
     }
 
     function generatePlanetarySystem(star) {
         let planetsCode = "";
+        let planetsData = [];
         const planetNames = ["B", "C", "D", "E", "F", "G", "H", "I", "J", "K"];
-
-        // 1. Planet count (Normal distribution approximation)
         let planetCount = Math.round(((Math.random() + Math.random() + Math.random() + Math.random()) - 2) * 2.5 + 3);
         planetCount = Math.max(0, planetCount);
-        
-        if (planetCount === 0) return { count: 0, code: "" };
+        if (planetCount === 0) return { count: 0, code: "", planets: [] };
 
-        // 2. Rocky planet ratio
-        let baseRockyRatio;
-        if (star.fe_h < 0) { baseRockyRatio = 0.5 + 0.25 * star.fe_h; } 
-        else { baseRockyRatio = 0.5 + star.fe_h; }
-        const randomFactor = (Math.random() * 0.4 - 0.2);
-        const finalRockyRatio = Math.max(0, Math.min(1, baseRockyRatio + randomFactor));
+        let baseRockyRatio = (star.fe_h < 0) ? (0.5 + 0.25 * star.fe_h) : (0.5 + star.fe_h);
+        const finalRockyRatio = Math.max(0, Math.min(1, baseRockyRatio + (Math.random() * 0.4 - 0.2)));
         let numRocky = Math.round(planetCount * finalRockyRatio);
 
         let types = Array(planetCount).fill('gas');
         for(let i=0; i<numRocky; i++) types[i] = 'rocky';
-        // Shuffle types
-        for (let i = types.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [types[i], types[j]] = [types[j], types[i]];
-        }
+        for (let i = types.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [types[i], types[j]] = [types[j], types[i]]; }
 
         let lastAphelionAU = (star.radiusKm * 10) / AU_KM;
         const maxAU = (star.radiusKm * 10000) / AU_KM;
+        let actualPlanetCount = 0;
 
         for (let i = 0; i < planetCount; i++) {
             const planetType = types[i];
             let mass, radius, density, rotPeriod;
+            if (planetType === 'rocky') { mass = 0.03 + Math.random() * 8.72; density = (2.5 + Math.random() * 5.5) * 1000; rotPeriod = 15 + Math.random() * 220; } 
+            else { mass = 8 + Math.random() * 992; density = (0.3 + Math.random() * 1.5) * 1000; rotPeriod = 6 + Math.random() * 39; }
+            const radiusM = Math.pow((3 * (mass * EARTH_MASS_KG)) / (4 * Math.PI * density), 1/3);
+            radius = radiusM / 1000;
 
-            if (planetType === 'rocky') {
-                mass = 0.03 + Math.random() * (8.75 - 0.03);
-                density = (2.5 + Math.random() * (8.0 - 2.5)) * 1000; // kg/m^3
-                rotPeriod = 15 + Math.random() * (235 - 15);
-            } else { // Gas giant
-                mass = 8 + Math.random() * (1000 - 8);
-                density = (0.3 + Math.random() * (1.8 - 0.3)) * 1000; // kg/m^3
-                rotPeriod = 6 + Math.random() * (45 - 6);
-            }
-
-            const massKg = mass * EARTH_MASS_KG;
-            const volumeM3 = massKg / density;
-            const radiusM = Math.pow((3 * volumeM3) / (4 * Math.PI), 1/3);
-            radius = (radiusM / 1000); // km
-
-            // Orbit
             const ecc = Math.random() * 0.3;
-            const minSemiMajorAxis = lastAphelionAU / (1 - ecc);
-            const separation = 1.4 + Math.random() * 0.8; // Make planets further apart
-            const semiMajorAxis = Math.max(minSemiMajorAxis, lastAphelionAU * separation);
+            // **FIX START**: Corrected orbital separation logic
+            const separationFactor = 1.4 + Math.random() * 1.2;
+            const newPerihelion = lastAphelionAU * separationFactor;
+            const semiMajorAxis = newPerihelion / (1 - ecc);
+            // **FIX END**
 
-            if (semiMajorAxis > maxAU) break; // Planet is too far, stop generating more
-
+            if (semiMajorAxis > maxAU) break;
             lastAphelionAU = semiMajorAxis * (1 + ecc);
+            actualPlanetCount++;
 
             const orbitalPeriodDays = 365.25 * Math.sqrt(Math.pow(semiMajorAxis, 3) / star.mass);
-            const orb_inc = ((Math.random() + Math.random() + Math.random() + Math.random() - 2) / 2) * 5; // Normal approx
-            const orb_asc = Math.random() * 360;
-            const orb_peri = Math.random() * 360;
-            const orb_ma = Math.random() * 360;
+            const orb_inc = ((Math.random() + Math.random() + Math.random() + Math.random() - 2) / 2) * 5;
+            const orb_asc = Math.random() * 360; const orb_peri = Math.random() * 360; const orb_ma = Math.random() * 360;
+            const rot_inc = 180 * Math.pow(Math.random(), 2); const rot_asc = Math.random() * 360;
 
-            // Rotation
-            const rot_inc = 180 * Math.pow(Math.random(), 2); // Power-law skewed to 0
-            const rot_asc = Math.random() * 360;
-
-            planetsCode += `\n"B" "${star.id}"\n{\n\tMass ${mass.toFixed(2)}\n\tRadius ${radius.toFixed(0)}\n\tEllipticalOrbit\n\t{\n\t\tPeriod ${(orbitalPeriodDays / 365.25).toFixed(4)}\n\t\tSemiMajorAxis ${semiMajorAxis.toFixed(4)}\n\t\tEccentricity ${ecc.toFixed(4)}\n\t\tInclination ${orb_inc.toFixed(4)}\n\t\tAscendingNode ${orb_asc.toFixed(4)}\n\t\tArgOfPericenter ${orb_peri.toFixed(4)}\n\t\tMeanAnomaly ${orb_ma.toFixed(4)}\n\t}\n\tUniformRotation\n\t{\n\t\tPeriod ${rotPeriod.toFixed(2)}\n\t\tInclination ${rot_inc.toFixed(1)}\n\t\tAscendingNode ${rot_asc.toFixed(1)}\n\t}\n}`;
+            planetsCode += `\n"${planetNames[i]}" "${star.id}"\n{\n\tMass ${mass.toFixed(2)}\n\tRadius ${radius.toFixed(0)}\n\tEllipticalOrbit\n\t{\n\t\tPeriod ${(orbitalPeriodDays / 365.25).toFixed(4)}\n\t\tSemiMajorAxis ${semiMajorAxis.toFixed(4)}\n\t\tEccentricity ${ecc.toFixed(4)}\n\t\tInclination ${orb_inc.toFixed(4)}\n\t\tAscendingNode ${orb_asc.toFixed(4)}\n\t\tArgOfPericenter ${orb_peri.toFixed(4)}\n\t\tMeanAnomaly ${orb_ma.toFixed(4)}\n\t}\n\tUniformRotation\n\t{\n\t\tPeriod ${rotPeriod.toFixed(2)}\n\t\tInclination ${rot_inc.toFixed(1)}\n\t\tAscendingNode ${rot_asc.toFixed(1)}\n\t}\n}`;
+            planetsData.push({ semiMajorAxis, eccentricity: ecc, radiusKm: radius });
         }
-        return { count: planetCount, code: planetsCode };
+        return { count: actualPlanetCount, code: planetsCode, planets: planetsData };
+    }
+
+    function drawPlanetarySystem(star, planets) {
+        const container = d3.select("#planet-system-preview");
+        container.selectAll("*").remove();
+        if (planets.length === 0) return;
+
+        const svg = container.append("svg").attr("width", "100%").attr("height", "100%");
+        const width = container.node().getBoundingClientRect().width;
+        const height = container.node().getBoundingClientRect().height;
+        const centerX = width / 2;
+        const centerY = height / 2;
+
+        // **FIX START**: Corrected scaling for orbits
+        const minPerihelion = d3.min(planets, d => d.semiMajorAxis * (1 - d.eccentricity));
+        const maxAphelion = d3.max(planets, d => d.semiMajorAxis * (1 + d.eccentricity));
+        const domainStart = Math.max(0.01, minPerihelion); // Prevent domain from starting at or below 0
+        const radiusScale = d3.scaleLog().domain([domainStart, maxAphelion]).range([15, Math.min(width, height) / 2 - 10]);
+        // **FIX END**
+        
+        // Draw orbits
+        planets.forEach(p => {
+            const a = radiusScale(p.semiMajorAxis);
+            if (!isFinite(a)) return; // Skip if scaling fails
+            const b = a * Math.sqrt(1 - p.eccentricity * p.eccentricity);
+            const focusOffset = a * p.eccentricity;
+            
+            svg.append("ellipse")
+               .attr("class", "orbit")
+               .attr("cx", centerX - focusOffset) // Place star at one focus
+               .attr("cy", centerY)
+               .attr("rx", a)
+               .attr("ry", b);
+        });
+
+        // Draw star
+        svg.append("circle")
+           .attr("cx", centerX)
+           .attr("cy", centerY)
+           .attr("r", d3.scaleLog().domain([0.1, 100]).range([3, 15])(star.mass))
+           .attr("fill", getStarColor(star.temp));
     }
 
 
@@ -324,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const mass = generateStellarMass();
         const fe_h = parseFloat(metallicitySlider.value);
         
-        svg.selectAll(".current-star").remove();
+        hrSvg.selectAll(".current-star").remove();
 
         document.getElementById('initial-message').classList.add('hidden');
         document.getElementById('simulation-output').classList.remove('hidden');
@@ -336,19 +356,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const rad = calculateRadius(lum, temp);
         const ms_lifetime = (1e10 * Math.pow(mass, -2.5)) / Math.pow(10, fe_h * -0.1);
         const color = getStarColor(temp);
-
         const radiusKm = rad * SUN_RADIUS_KM;
 
-        // Generate planetary system
-        const starDataForPlanets = {
-            mass: mass,
-            radiusKm: radiusKm,
-            fe_h: fe_h,
-            id: `DSS-${Math.floor(1000 + Math.random() * 9000)}`
-        };
+        const starDataForPlanets = { mass, radiusKm, fe_h, temp, id: `DSS-${Math.floor(1000 + Math.random() * 9000)}` };
         const planetarySystem = generatePlanetarySystem(starDataForPlanets);
 
-        // Update the info panel
+        if (planetarySystem.count > 0) {
+            document.getElementById('planet-system-container').classList.remove('hidden');
+            drawPlanetarySystem(starDataForPlanets, planetarySystem.planets);
+        } else {
+            document.getElementById('planet-system-container').classList.add('hidden');
+        }
+        
         document.getElementById('initialMass').textContent = `${mass.toFixed(2)} M☉`;
         document.getElementById('metallicityDisplay').textContent = fe_h.toFixed(1);
         document.getElementById('planetCount').textContent = planetarySystem.count;
@@ -359,7 +378,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('luminosity').textContent = `${lum.toExponential(2)} L☉`;
         document.getElementById('radius').textContent = `${rad.toExponential(2)} R☉`;
 
-        // Generate and display STC code
         const ra = (Math.random() * 360).toFixed(6);
         const dec = (Math.random() * 180 - 90).toFixed(6);
         const distance = (2000 + Math.random() * 6000).toFixed(4);
@@ -368,16 +386,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const spectralType = getSpectralType(temp);
 
         let starCode = `"${starDataForPlanets.id}"\n{\n\tRA ${ra}\n\tDec ${dec}\n\tDistance ${distance}\n\tAbsMag ${absMag.toFixed(3)}\n\tSpectralType "${spectralType}"\n\tRadius ${radiusKm.toFixed(0)}\n\tMass ${mass.toFixed(3)}\n\tTemperature ${temp.toFixed(0)}\n}`;
-        
         stcCodeElement.textContent = starCode + planetarySystem.code;
 
-
-        // Draw the new star on the HR diagram
         if (lum > 0 && temp > 0 && isFinite(lum) && isFinite(temp)) {
-            const cx = x(temp);
-            const cy = y(lum);
-            
-            const starPoint = svg.append("circle")
+            const cx = hrX(temp);
+            const cy = hrY(lum);
+            const starPoint = hrSvg.append("circle")
                 .attr("class", "current-star")
                 .attr("cx", cx)
                 .attr("cy", cy)
