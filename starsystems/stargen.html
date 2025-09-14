@@ -213,8 +213,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Base properties for solar metallicity
         if (m < 0.43) { lum = 0.23 * Math.pow(m, 2.3); temp = T_sun * Math.pow(0.7 * m, 0.3); } 
-        else if (m < 2) { lum = Math.pow(m, 4); temp = T_sun * Math.pow(m, 0.525); } 
-        else if (m < 55) { lum = 1.4 * Math.pow(m, 3.5); temp = T_sun * Math.pow(1.2 * m, 0.5); } 
+        else if (m < 1.6) { lum = Math.pow(m, 4); temp = T_sun * Math.pow(m, 0.55); } 
+        else if (m < 2) { lum = Math.pow(m, 4); temp = T_sun * Math.pow(m, 0.8) - 933; } 
+        else if (m < 55) { lum = 1.4 * Math.pow(m, 3.5); temp = T_sun * Math.pow(1.2 * m, 0.5) + 176; } 
         else { lum = 32000 * m; temp = 40000 * Math.pow(m, 0.1); }
 
         // Apply metallicity correction
