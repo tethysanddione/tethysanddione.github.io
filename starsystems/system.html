@@ -554,7 +554,7 @@
 
         const atmosphereHeight = Math.round(radius * 0.02 * ((Math.random() * 0.2) + 0.9));
         const mieScaleHeight = Math.round(atmosphereHeight * 0.1 * ((Math.random() * 0.2) + 0.9));
-        const mieValue = parseFloat((Math.random()**3 * 0.01).toFixed(4)) + 0.0001;
+        const mieValue = parseFloat((Math.random()**3 * 0.04/atmosphereHeight).toFixed(4)) + 0.04/atmosphereHeight;
         const mieAsymmetryValue = parseFloat((Math.random() * 0.5).toFixed(2));
 
         // Check for tidal lock (heuristic based on orbital period)
