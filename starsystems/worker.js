@@ -244,7 +244,7 @@ function generatePlanetTexture(params, heightMap, craters, noise2D) {
             
             // 应用效果: 提亮优先于压暗
             if (brightenEffect > 0) {
-                const finalEffect = lerp(1.0, 1.15, brightenEffect); // 提亮最多 15%
+                const finalEffect = lerp(1.0, 1.1, brightenEffect); // 提亮最多 15%
                 finalColor.r *= finalEffect;
                 finalColor.g *= finalEffect;
                 finalColor.b *= finalEffect;
