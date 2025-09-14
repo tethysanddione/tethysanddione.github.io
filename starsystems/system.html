@@ -96,7 +96,7 @@
         .btn-secondary:hover {
             background-color: #1e7e34;
         }
-         .btn-danger {
+        .btn-danger {
             background-color: var(--orange-color);
             color: white;
         }
@@ -146,7 +146,7 @@
             margin-bottom: 5px;
             font-weight: bold;
         }
-        .input-group input {
+        .input-group input, .input-group select {
             width: 100%;
             padding: 8px;
             border-radius: 4px;
@@ -183,9 +183,29 @@
             gap: 10px;
             margin-top: 10px;
         }
-         #savedPlanetsContainer .planet-actions button {
+        #savedPlanetsContainer .planet-actions button {
             font-size: 12px;
             padding: 5px 10px;
+        }
+        /* Custom alert/modal styles */
+        .custom-alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #404853;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+            font-weight: bold;
+        }
+        .custom-alert.show {
+            opacity: 1;
+            visibility: visible;
         }
     </style>
     <!-- Define where to find the 'three' module -->
@@ -207,44 +227,65 @@
 
     <div class="main-container">
         <div class="generator-panel">
-            <h1 data-lang-key="starGeneratorTitle">Star Generator</h1>
+            <h1 data-lang-key="starGeneratorTitle">恒星生成器</h1>
             <div class="button-group">
-                <button id="generateStarBtn" class="btn-primary" data-lang-key="generateStarBtn">Generate New Star</button>
-                <button id="copyStarBtn" class="btn-secondary" data-lang-key="copyStarBtn">Copy Star Code</button>
+                <button id="generateStarBtn" class="btn-primary" data-lang-key="generateStarBtn">生成新恒星</button>
+                <button id="copyStarBtn" class="btn-secondary" data-lang-key="copyStarBtn">复制恒星代码</button>
             </div>
             <div id="starDescription" class="description-area"></div>
             <div id="starOutput" class="output-area"></div>
         </div>
 
         <div class="generator-panel">
-            <h1 data-lang-key="planetGeneratorTitle">Planet Generator</h1>
+            <h1 data-lang-key="planetGeneratorTitle">行星生成器</h1>
             <div class="input-group">
-                <label for="planetName" data-lang-key="planetNameLabel">Planet Name</label>
+                <label for="planetName" data-lang-key="planetNameLabel">行星名称</label>
                 <input type="text" id="planetName" value="B">
             </div>
             <div class="input-group">
-                <label for="semiMajorAxisInput" data-lang-key="semiMajorAxisLabel">Semi-major Axis (AU)</label>
-                <input type="number" id="semiMajorAxisInput" step="0.1" min="0.01" placeholder="Leave empty for random" data-lang-placeholder-key="semiMajorAxisPlaceholder">
+                <label for="planetTypeSelect" data-lang-key="planetTypeLabel">行星类型</label>
+                <select id="planetTypeSelect">
+                    <option value="rocky" data-lang-key="rockyPlanetOption">岩石行星</option>
+                    <option value="gas" data-lang-key="gasGiantOption">气体行星</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="semiMajorAxisInput" data-lang-key="semiMajorAxisLabel">半长轴 (天文单位)</label>
+                <input type="number" id="semiMajorAxisInput" step="0.1" min="0.01" placeholder="留空则随机生成" data-lang-placeholder-key="semiMajorAxisPlaceholder">
             </div>
             <div class="button-group">
-                <button id="generatePlanetBtn" class="btn-primary" data-lang-key="addPlanetBtn">Add Planet</button>
-                <button id="clearPlanetsBtn" class="btn-danger" data-lang-key="clearPlanetsBtn">Clear Planets</button>
+                <button id="generatePlanetBtn" class="btn-primary" data-lang-key="addPlanetBtn">添加行星</button>
+                <button id="clearPlanetsBtn" class="btn-danger" data-lang-key="clearPlanetsBtn">清空行星</button>
             </div>
             <div class="planet-preview">
-                <h2 data-lang-key="orbitPreviewTitle">Orbit Preview</h2>
+                <h2 data-lang-key="orbitPreviewTitle">3D轨道预览</h2>
                 <canvas id="orbitCanvas"></canvas>
             </div>
             <div id="savedPlanetsContainer">
-                 <h2 data-lang-key="savedPlanetsTitle">Saved Planets</h2>
+                 <h2 data-lang-key="savedPlanetsTitle">已保存行星</h2>
                  <div id="planetsList"></div>
             </div>
         </div>
     </div>
+    
+    <!-- Custom message box -->
+    <div id="customAlert" class="custom-alert"></div>
 
 <script type="module">
     // Import THREE and OrbitControls from modules defined in the importmap
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // --- Custom Alert Functionality ---
+    const customAlert = document.getElementById('customAlert');
+
+    function showAlert(message) {
+        customAlert.textContent = message;
+        customAlert.classList.add('show');
+        setTimeout(() => {
+            customAlert.classList.remove('show');
+        }, 2000);
+    }
 
     const translations = {
         en: {
@@ -253,6 +294,9 @@
             copyStarBtn: "Copy Star Code",
             planetGeneratorTitle: "Planet Generator",
             planetNameLabel: "Planet Name",
+            planetTypeLabel: "Planet Type",
+            rockyPlanetOption: "Rocky Planet",
+            gasGiantOption: "Gas Giant",
             semiMajorAxisLabel: "Semi-major Axis (AU)",
             semiMajorAxisPlaceholder: "Leave empty for random",
             addPlanetBtn: "Add Planet",
@@ -279,11 +323,13 @@
             starDescDistanceUnit: "light-years from us.",
             starTypeO: "a massive and extremely hot blue star",
             starTypeB: "a very hot and bright blue-white star",
-            starTypeA: "a hot and luminous white star",
+            "starTypeA": "a hot and luminous white star",
             starTypeF: "a yellow-white star, slightly larger and hotter than the Sun",
             starTypeG: "a yellow dwarf star, very similar to our Sun",
             starTypeK: "a cool and dim orange-red dwarf star",
             starTypeM: "a cool and very dim red dwarf star",
+            tidallyLocked: "Tidally Locked",
+            notTidallyLocked: "Not Tidally Locked",
             copied: "Copied!",
         },
         zh: {
@@ -292,6 +338,9 @@
             copyStarBtn: "复制恒星代码",
             planetGeneratorTitle: "行星生成器",
             planetNameLabel: "行星名称",
+            planetTypeLabel: "行星类型",
+            rockyPlanetOption: "岩石行星",
+            gasGiantOption: "气体行星",
             semiMajorAxisLabel: "半长轴 (天文单位)",
             semiMajorAxisPlaceholder: "留空则随机生成",
             addPlanetBtn: "添加行星",
@@ -323,6 +372,8 @@
             starTypeG: "一颗与我们的太阳非常相似的黄矮星",
             starTypeK: "一颗低温且暗淡的橙红色矮星",
             starTypeM: "一颗低温且非常暗淡的红矮星",
+            tidallyLocked: "潮汐锁定",
+            notTidallyLocked: "未潮汐锁定",
             copied: "已复制！",
         }
     };
@@ -405,29 +456,147 @@
     }
 
     function formatStarCode(data) {
-        return `"${data.star_name}"\n{\n    RA ${data.ra.toFixed(6)}\n    Dec ${data.dec.toFixed(6)}\n    Distance ${data.distance.toFixed(4)}\n    AbsMag ${data.abs_mag.toFixed(3)}\n    SpectralType "${data.spectral_type}"\n    Radius ${Math.round(data.radius_km)}\n    Mass ${data.mass.toFixed(3)}\n    Temperature ${data.temperature}\n}`;
+        return `"${data.star_name}"\n{\n\tRA ${data.ra.toFixed(6)}\n\tDec ${data.dec.toFixed(6)}\n\tDistance ${data.distance.toFixed(4)}\n\tAbsMag ${data.abs_mag.toFixed(3)}\n\tSpectralType "${data.spectral_type}"\n\tRadius ${Math.round(data.radius_km)}\n\tMass ${data.mass.toFixed(3)}\n\tTemperature ${data.temperature}\n}`;
+    }
+    
+    // Generates a random atmospheric color set based on basic physical principles.
+    function generateRandomAtmosphereColors() {
+        const baseHue = Math.random() * 360; // Random hue for the atmosphere
+        const saturation = 0.5 + Math.random() * 0.5; // Random saturation
+        const lightness = 0.5 + Math.random() * 0.5; // Random lightness
+
+        // Function to convert HSL to a normalized RGB array
+        function hslToRgb(h, s, l) {
+            h /= 360;
+            const c = (1 - Math.abs(2 * l - 1)) * s;
+            const x = c * (1 - Math.abs((h * 6) % 2 - 1));
+            const m = l - c / 2;
+            let r, g, b;
+
+            if (0 <= h && h < 1/6) { r = c; g = x; b = 0; }
+            else if (1/6 <= h && h < 2/6) { r = x; g = c; b = 0; }
+            else if (2/6 <= h && h < 3/6) { r = 0; g = c; b = x; }
+            else if (3/6 <= h && h < 4/6) { r = 0; g = x; b = c; }
+            else if (4/6 <= h && h < 5/6) { r = x; g = 0; b = c; }
+            else if (5/6 <= h && h < 1) { r = c; g = 0; b = x; }
+            
+            return [r + m, g + m, b + m];
+        }
+
+        const skyColor = hslToRgb(baseHue, saturation, lightness).map(c => parseFloat(c.toFixed(3)));
+        const lowerColor = skyColor.map(c => Math.max(0, parseFloat((c * 0.8).toFixed(3))));
+        const upperColor = skyColor.map(c => Math.max(0, parseFloat((c * 1.2).toFixed(3))));
+        
+        // Sunset color is typically redder
+        const sunsetColor = hslToRgb(baseHue + 30, 0.7, 0.6).map(c => parseFloat(c.toFixed(3)));
+
+        // Rayleigh values are proportional to the sky color
+        const rayleigh = skyColor.map(c => parseFloat((c * 0.01).toFixed(4)));
+
+        return {
+            sky: skyColor,
+            lower: lowerColor,
+            upper: upperColor,
+            sunset: sunsetColor,
+            rayleigh: rayleigh
+        };
+    }
+
+    // Box-Muller transform for normal distribution
+    let nextGaussian = null;
+    function generateNormalDistributionValue(mean, stdDev) {
+        let u, v, s;
+        if (nextGaussian !== null) {
+            let result = nextGaussian;
+            nextGaussian = null;
+            return mean + stdDev * result;
+        }
+
+        do {
+            u = 2 * Math.random() - 1;
+            v = 2 * Math.random() - 1;
+            s = u * u + v * v;
+        } while (s >= 1 || s === 0);
+
+        let mul = Math.sqrt(-2 * Math.log(s) / s);
+        nextGaussian = v * mul;
+        return mean + stdDev * u * mul;
     }
 
     // --- PLANET GENERATOR ---
     function generatePlanetData(star_name, star_mass) {
-        const radius = Math.floor(Math.random() * (70000 - 6000) + 6000);
+        const planetType = document.getElementById('planetTypeSelect').value;
+        let radius;
+        let rotationPeriodMean;
+        const ONE_DAY_IN_HOURS = 24;
+
+        if (planetType === 'rocky') {
+            radius = Math.floor(Math.random() * (25000 - 2000) + 2000);
+            rotationPeriodMean = 96; // 4 Earth days
+        } else { // gas
+            radius = Math.floor(Math.random() * (120000 - 20000) + 20000);
+            rotationPeriodMean = 24; // 1 Earth day
+        }
+        
+        // Generate uniform rotation period using a normal distribution
+        const periodHours = Math.max(1, generateNormalDistributionValue(rotationPeriodMean, rotationPeriodMean * 0.2));
+        const periodDays = parseFloat((periodHours / ONE_DAY_IN_HOURS).toFixed(2));
+
         const semiMajorAxisInput = document.getElementById('semiMajorAxisInput');
         const customSemiMajorAxis = parseFloat(semiMajorAxisInput.value);
         const semi_major_axis = !isNaN(customSemiMajorAxis) && customSemiMajorAxis > 0.0 ? customSemiMajorAxis : parseFloat((Math.random() * (15.0 - 0.1) + 0.1).toFixed(4));
         const orbital_period = parseFloat(Math.sqrt(Math.pow(semi_major_axis, 3) / star_mass).toFixed(4));
         const eccentricity = parseFloat((Math.random()**2 * 0.4 + 0.001).toFixed(4));
+        const planetName = document.getElementById('planetName').value || "B";
+        
+        const atmosphericColors = generateRandomAtmosphereColors();
+
+        const atmosphereHeight = Math.round(radius * 0.02 * ((Math.random() * 0.2) + 0.9));
+        const mieScaleHeight = Math.round(atmosphereHeight * 0.1 * ((Math.random() * 0.2) + 0.9));
+        const mieValue = parseFloat((Math.random()**3 * 0.01).toFixed(4)) + 0.0001;
+        const mieAsymmetryValue = parseFloat((Math.random() * 0.5).toFixed(2));
+
+        // Check for tidal lock (heuristic based on orbital period)
+        const TIDAL_LOCK_THRESHOLD_PERIOD = 2; // in Earth days
+        const isTidallyLocked = (orbital_period * 365.25) <= TIDAL_LOCK_THRESHOLD_PERIOD;
+
         const planetDataObject = {
-            planet_name: document.getElementById('planetName').value || "B", star_name, radius, orbital_period, semi_major_axis, eccentricity,
+            planet_name: planetName,
+            star_name,
+            radius,
+            orbital_period,
+            semi_major_axis,
+            eccentricity,
             inclination_orbit: parseFloat((Math.random()**3 * 180).toFixed(4)),
             ascending_node_orbit: parseFloat((Math.random() * 360).toFixed(4)),
             arg_of_pericenter: parseFloat((Math.random() * 360).toFixed(4)),
             mean_anomaly: parseFloat((Math.random() * 360).toFixed(4)),
+            texture: `${planetName}.*`,
+            bumpMap: `${planetName}-bump.*`,
+            bumpHeight: 1.5,
+            atmosphere: {
+                height: atmosphereHeight,
+                lower: atmosphericColors.lower,
+                upper: atmosphericColors.upper,
+                sky: atmosphericColors.sky,
+                sunset: atmosphericColors.sunset,
+                mieScaleHeight: mieScaleHeight,
+                mie: mieValue,
+                mieAsymmetry: mieAsymmetryValue,
+                rayleigh: atmosphericColors.rayleigh
+            },
+            uniformRotation: {
+                period: periodDays * 24,
+                inclination: parseFloat((Math.random() * 180).toFixed(1)),
+                ascendingNode: parseFloat((Math.random() * 360).toFixed(1))
+            },
+            isTidallyLocked: isTidallyLocked,
         };
         return planetDataObject;
     }
 
     function formatPlanetCode(data) {
-        return `"${data.planet_name}" "${data.star_name}"\n{\n    Radius          ${data.radius}\n    EllipticalOrbit\n    {\n        Period          ${data.orbital_period.toFixed(4)}\n        SemiMajorAxis   ${data.semi_major_axis.toFixed(4)}\n        Eccentricity    ${data.eccentricity.toFixed(4)}\n        Inclination     ${data.inclination_orbit.toFixed(4)}\n        AscendingNode   ${data.ascending_node_orbit.toFixed(4)}\n        ArgOfPericenter ${data.arg_of_pericenter.toFixed(4)}\n        MeanAnomaly     ${data.mean_anomaly.toFixed(4)}\n    }\n}`;
+        return `"${data.planet_name}" "${data.star_name}"\n{\n\tTexture "${data.texture}"\n\tBumpMap "${data.bumpMap}"\n\tBumpHeight ${data.bumpHeight}\n\tRadius ${data.radius}\n\tEllipticalOrbit\n\t{\n\t\tPeriod ${data.orbital_period.toFixed(4)}\n\t\tSemiMajorAxis ${data.semi_major_axis.toFixed(4)}\n\t\tEccentricity ${data.eccentricity.toFixed(4)}\n\t\tInclination ${data.inclination_orbit.toFixed(4)}\n\t\tAscendingNode ${data.ascending_node_orbit.toFixed(4)}\n\t\tArgOfPericenter ${data.arg_of_pericenter.toFixed(4)}\n\t\tMeanAnomaly ${data.mean_anomaly.toFixed(4)}\n\t}\n\tAtmosphere\n\t{\n\t\tHeight ${data.atmosphere.height}\n\t\tLower [ ${data.atmosphere.lower.join(' ')} ]\n\t\tUpper [ ${data.atmosphere.upper.join(' ')} ]\n\t\tSky [ ${data.atmosphere.sky.join(' ')} ]\n\t\tSunset [ ${data.atmosphere.sunset.join(' ')} ]\n\t\tMieScaleHeight ${data.atmosphere.mieScaleHeight}\n\t\tMie ${data.atmosphere.mie}\n\t\tMieAsymmetry ${data.atmosphere.mieAsymmetry}\n\t\tRayleigh [ ${data.atmosphere.rayleigh.join(' ')} ]\n\t}\n\tUniformRotation\n\t{\n\t\tPeriod ${data.uniformRotation.period}\n\t\tInclination ${data.uniformRotation.inclination}\n\t\tAscendingNode ${data.uniformRotation.ascendingNode}\n\t}\n}`;
     }
     
     // --- UI RENDERING ---
@@ -435,9 +604,10 @@
         const container = document.getElementById('planetsList');
         container.innerHTML = '';
         savedPlanets.forEach((planet, index) => {
+            const tidalLockStatus = planet.isTidallyLocked ? `<span style="color: var(--orange-color); font-weight: bold;">${t('tidallyLocked')}</span>` : `<span style="color: var(--green-color); font-weight: bold;">${t('notTidallyLocked')}</span>`;
             const entry = document.createElement('div');
             entry.className = 'planet-entry';
-            entry.innerHTML = `<h3>${planet.star_name} ${planet.planet_name}</h3><div class="planet-code">${formatPlanetCode(planet)}</div><div class="planet-actions"><button class="btn-secondary copy-planet" data-index="${index}">${t('copyBtn')}</button><button class="btn-danger remove-planet" data-index="${index}">${t('removeBtn')}</button></div>`;
+            entry.innerHTML = `<h3>${planet.star_name} ${planet.planet_name}</h3><p>${tidalLockStatus}</p><div class="planet-code">${formatPlanetCode(planet)}</div><div class="planet-actions"><button class="btn-secondary copy-planet" data-index="${index}">${t('copyBtn')}</button><button class="btn-danger remove-planet" data-index="${index}">${t('removeBtn')}</button></div>`;
             container.appendChild(entry);
         });
     }
@@ -539,9 +709,6 @@
             orbitGroup.add(ellipse);
 
             // Correctly apply orbital elements using matrix transformations.
-            // The correct order to transform from the orbital plane to the ecliptic plane
-            // is to first apply the Argument of Pericenter (w), then the Inclination (i),
-            // and finally the Longitude of the Ascending Node (o).
             const i = THREE.MathUtils.degToRad(planet.inclination_orbit);
             const w = THREE.MathUtils.degToRad(planet.arg_of_pericenter);
             const o = THREE.MathUtils.degToRad(planet.ascending_node_orbit);
@@ -552,7 +719,6 @@
             const rot_o = new THREE.Matrix4().makeRotationZ(o); // 3. Longitude of Ascending Node
 
             // Combine the matrices. Matrix multiplication order is read right-to-left.
-            // O * I * W means we apply W, then I, then O.
             const rotationMatrix = new THREE.Matrix4();
             rotationMatrix.multiply(rot_o);
             rotationMatrix.multiply(rot_i);
@@ -609,12 +775,12 @@
         });
 
         document.getElementById('copyStarBtn').addEventListener('click', () => {
-            navigator.clipboard.writeText(starOutput.textContent.trim()).then(() => alert(t('copied')));
+            navigator.clipboard.writeText(starOutput.textContent.trim()).then(() => showAlert(t('copied')));
         });
 
         document.getElementById('generatePlanetBtn').addEventListener('click', () => {
             if (!lastStarData.mass) {
-                alert(currentLang === 'zh' ? '请先生成一颗恒星！' : 'Please generate a star first!');
+                showAlert(currentLang === 'zh' ? '请先生成一颗恒星！' : 'Please generate a star first!');
                 return;
             }
             const data = generatePlanetData(lastStarData.star_name, lastStarData.mass);
@@ -641,7 +807,7 @@
 
             if (target.classList.contains('copy-planet')) {
                 const planetCode = formatPlanetCode(savedPlanets[index]);
-                navigator.clipboard.writeText(planetCode.trim()).then(() => alert(t('copied')));
+                navigator.clipboard.writeText(planetCode.trim()).then(() => showAlert(t('copied')));
             } else if (target.classList.contains('remove-planet')) {
                 savedPlanets.splice(index, 1);
                 renderSavedPlanets();
@@ -659,4 +825,3 @@
 </script>
 </body>
 </html>
-
