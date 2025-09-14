@@ -374,4 +374,3 @@ function sampleTextureBilinear(textureData, u, v) {
 
     return { r, g, b };
 }
-
