@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>交互式 3D 小行星生成器</title>
+    <title>Celestia CMS 模型生成器</title>
     <style>
         :root {
             --bg-color: #1a1e23;
@@ -13,112 +13,115 @@
             --border-color: #404853;
             --accent-color: #00aaff;
             --accent-hover: #0088cc;
-            --green-color: #28a745;
+            --input-bg: #111315;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 20px;
+            padding: 0;
             display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            gap: 20px;
-            flex-wrap: wrap;
+            height: 100vh;
+            overflow: hidden;
         }
         .container {
             display: flex;
-            gap: 20px;
             width: 100%;
-            max-width: 1400px;
+            height: 100%;
         }
         .controls {
             background-color: var(--panel-bg);
+            border-right: 1px solid var(--border-color);
+            width: 380px;
             padding: 25px;
-            border-radius: 8px;
-            width: 350px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            border: 1px solid var(--border-color);
-            flex-shrink: 0;
-        }
-        .preview {
-            flex-grow: 1;
+            box-sizing: border-box;
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
         }
+        .preview-container {
+            flex-grow: 1;
+            position: relative;
+        }
         #preview-canvas {
+            display: block;
             width: 100%;
             height: 100%;
-            min-height: 500px;
-            border-radius: 8px;
-            background-color: #000;
-            border: 1px solid var(--border-color);
         }
         h1, h2 {
             color: var(--header-color);
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 10px;
             margin-top: 0;
+            font-weight: 600;
         }
         .control-group {
             margin-bottom: 20px;
         }
         label {
-            display: flex;
-            justify-content: space-between;
+            display: block;
+            font-weight: 500;
             margin-bottom: 8px;
-            font-weight: bold;
-            color: #ccc;
+        }
+        .vector-inputs {
+            display: flex;
+            gap: 10px;
+        }
+        .vector-inputs input {
+            width: 100%;
+        }
+        input[type="range"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-color);
+            font-size: 14px;
+            box-sizing: border-box;
         }
         input[type="range"] {
-            width: 100%;
-            cursor: pointer;
+            padding: 0;
         }
         .value-display {
+            display: inline-block;
+            margin-left: 10px;
             font-family: monospace;
+            color: var(--accent-color);
+        }
+        .code-output {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        #cms-code {
+            flex-grow: 1;
+            width: 100%;
+            background-color: #111315;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'SF Mono', 'Courier New', Courier, monospace;
             font-size: 14px;
-            background-color: var(--bg-color);
-            padding: 2px 6px;
-            border-radius: 4px;
+            box-sizing: border-box;
+            resize: none;
         }
         button {
-            width: 100%;
+            margin-top: 15px;
             padding: 12px;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
             transition: background-color 0.2s;
-            margin-top: 10px;
-        }
-        .btn-primary {
             background-color: var(--accent-color);
             color: white;
         }
-        .btn-primary:hover {
+        button:hover {
             background-color: var(--accent-hover);
-        }
-        .btn-secondary {
-            background-color: var(--green-color);
-            color: white;
-        }
-        .btn-secondary:hover {
-            background-color: #1e7e34;
-        }
-        .seed-group {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        #seed {
-            flex-grow: 1;
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid var(--border-color);
-            background-color: #3c424a;
-            color: var(--text-color);
         }
     </style>
 </head>
@@ -126,298 +129,247 @@
 
 <div class="container">
     <div class="controls">
-        <h1>小行星生成器</h1>
+        <h1>CMS 模型参数</h1>
         
         <div class="control-group">
-            <label for="radius">基础半径 <span class="value-display" id="radius-value">10.0</span></label>
-            <input type="range" id="radius" min="1" max="50" step="0.1" value="10">
-        </div>
-
-        <div class="control-group">
-            <label for="subdivisions">模型细节 <span class="value-display" id="subdivisions-value">50</span></label>
-            <input type="range" id="subdivisions" min="2" max="100" step="1" value="50">
-        </div>
-
-        <h2>噪声参数</h2>
-
-        <div class="control-group">
-            <label for="noise_scale">噪声频率 <span class="value-display" id="noise_scale-value">15.0</span></label>
-            <input type="range" id="noise_scale" min="1" max="50" step="0.1" value="15">
-        </div>
-        
-        <div class="control-group">
-            <label for="noise_strength">噪声强度 <span class="value-display" id="noise_strength-value">3.0</span></label>
-            <input type="range" id="noise_strength" min="0.1" max="15" step="0.1" value="3">
-        </div>
-        
-        <div class="control-group">
-            <label for="octaves">细节层数 (Octaves) <span class="value-display" id="octaves-value">6</span></label>
-            <input type="range" id="octaves" min="1" max="10" step="1" value="6">
-        </div>
-
-        <div class="control-group">
-            <label for="persistence">持续度 (Persistence) <span class="value-display" id="persistence-value">0.4</span></label>
-            <input type="range" id="persistence" min="0.1" max="1" step="0.01" value="0.4">
-        </div>
-
-        <div class="control-group">
-            <label for="lacunarity">隙缝度 (Lacunarity) <span class="value-display" id="lacunarity-value">2.5</span></label>
-            <input type="range" id="lacunarity" min="1" max="4" step="0.1" value="2.5">
-        </div>
-
-        <div class="control-group">
-            <label for="seed">随机种子</label>
-            <div class="seed-group">
-                <input type="number" id="seed" value="42">
+            <label for="sizeX">尺寸 (Size)</label>
+            <div class="vector-inputs">
+                <input type="range" id="sizeX" min="0.1" max="2" step="0.01" value="1">
+                <input type="range" id="sizeY" min="0.1" max="2" step="0.01" value="1">
+                <input type="range" id="sizeZ" min="0.1" max="2" step="0.01" value="1">
             </div>
+            <span class="value-display" id="size-display">1.00 1.00 1.00</span>
         </div>
 
-        <button id="randomizeNoiseBtn" class="btn-primary">随机化噪声</button>
-        <button id="exportObjBtn" class="btn-secondary">导出为 .obj 文件</button>
-    </div>
+        <div class="control-group">
+            <label for="noiseX">噪波偏移 (NoiseOffset)</label>
+            <div class="vector-inputs">
+                <input type="range" id="noiseX" min="-10" max="10" step="0.1" value="0">
+                <input type="range" id="noiseY" min="-10" max="10" step="0.1" value="0">
+                <input type="range" id="noiseZ" min="-10" max="10" step="0.1" value="0">
+            </div>
+            <span class="value-display" id="noise-display">0 0 0</span>
+        </div>
 
-    <div class="preview">
+        <div class="control-group">
+            <label for="featureHeight">表面高度 (FeatureHeight)</label>
+            <input type="range" id="featureHeight" min="0" max="1.0" step="0.01" value="0.2">
+            <span class="value-display" id="height-display">0.20</span>
+        </div>
+        
+        <div class="control-group">
+            <label for="octaves">扭曲程度 (Octaves)</label>
+            <input type="range" id="octaves" min="1" max="10" step="1" value="7">
+            <span class="value-display" id="octaves-display">7</span>
+        </div>
+        
+        <div class="code-output">
+            <h2>CMS 文件输出</h2>
+            <textarea id="cms-code" readonly></textarea>
+            <button id="copy-btn">复制到剪贴板</button>
+        </div>
+    </div>
+    <div class="preview-container">
         <canvas id="preview-canvas"></canvas>
     </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/simplex-noise@2.4.0/simplex-noise.min.js"></script>
 <script>
-    // --- SETUP ---
-    const canvas = document.getElementById('preview-canvas');
-    const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-    renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(50, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-    camera.position.z = 50;
-
-    // --- LIGHTING ---
-    const ambientLight = new THREE.AmbientLight(0x404040, 2); // soft white light
-    scene.add(ambientLight);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
-    directionalLight.position.set(10, 10, 10);
-    scene.add(directionalLight);
-    
-    // --- MATERIAL ---
-    const material = new THREE.MeshStandardMaterial({
-        color: 0x888888,
-        roughness: 0.8,
-        metalness: 0.2
-    });
-
-    let asteroidMesh = null;
-    let simplex = new SimplexNoise();
-
-    // --- UI CONTROLS ---
+document.addEventListener('DOMContentLoaded', () => {
+    // --- DOM Elements ---
     const controls = {
-        radius: document.getElementById('radius'),
-        subdivisions: document.getElementById('subdivisions'),
-        noise_scale: document.getElementById('noise_scale'),
-        noise_strength: document.getElementById('noise_strength'),
+        size: { x: document.getElementById('sizeX'), y: document.getElementById('sizeY'), z: document.getElementById('sizeZ') },
+        noise: { x: document.getElementById('noiseX'), y: document.getElementById('noiseY'), z: document.getElementById('noiseZ') },
+        featureHeight: document.getElementById('featureHeight'),
         octaves: document.getElementById('octaves'),
-        persistence: document.getElementById('persistence'),
-        lacunarity: document.getElementById('lacunarity'),
-        seed: document.getElementById('seed'),
-        randomizeNoiseBtn: document.getElementById('randomizeNoiseBtn'),
-        exportObjBtn: document.getElementById('exportObjBtn'),
     };
-    
-    function updateValueDisplay(id, value, decimals = 1) {
-        document.getElementById(`${id}-value`).textContent = parseFloat(value).toFixed(decimals);
+    const displays = {
+        size: document.getElementById('size-display'),
+        noise: document.getElementById('noise-display'),
+        height: document.getElementById('height-display'),
+        octaves: document.getElementById('octaves-display'),
+    };
+    const codeOutput = document.getElementById('cms-code');
+    const copyBtn = document.getElementById('copy-btn');
+    const canvas = document.getElementById('preview-canvas');
+
+    // --- 3D Scene Setup ---
+    let scene, camera, renderer, mesh, simplex;
+
+    function init() {
+        scene = new THREE.Scene();
+        
+        camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+        camera.position.z = 2.5;
+
+        renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+
+        const ambientLight = new THREE.AmbientLight(0x404040, 2);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+        directionalLight.position.set(1, 1, 1);
+        scene.add(directionalLight);
+
+        simplex = new SimplexNoise();
+        
+        const geometry = new THREE.SphereGeometry(1, 128, 128);
+        geometry.userData.originalVertices = [];
+        const vertices = geometry.attributes.position.array;
+        for (let i = 0; i < vertices.length; i += 3) {
+             geometry.userData.originalVertices.push(new THREE.Vector3(vertices[i], vertices[i+1], vertices[i+2]));
+        }
+
+        const material = new THREE.MeshStandardMaterial({ color: 0xcccccc, wireframe: false });
+        mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+        window.addEventListener('resize', onWindowResize, false);
+        
+        setupControls();
+        updateAll();
+        animate();
     }
 
-    // --- MOUSE CONTROLS for PREVIEW ---
-    let isDragging = false;
-    let previousMousePosition = { x: 0, y: 0 };
+    // --- Update Logic ---
+    function updateDisplacement() {
+        if (!mesh) return;
 
-    canvas.addEventListener('mousedown', (e) => { isDragging = true; });
-    canvas.addEventListener('mouseup', (e) => { isDragging = false; });
-    canvas.addEventListener('mouseout', (e) => { isDragging = false; });
-    canvas.addEventListener('mousemove', (e) => {
-        if (!isDragging || !asteroidMesh) return;
-        const deltaMove = {
-            x: e.offsetX - previousMousePosition.x,
-            y: e.offsetY - previousMousePosition.y
-        };
-
-        const rotateQuaternion = new THREE.Quaternion()
-            .setFromEuler(new THREE.Euler(
-                toRadians(deltaMove.y * 1),
-                toRadians(deltaMove.x * 1),
-                0,
-                'XYZ'
-            ));
-        asteroidMesh.quaternion.multiplyQuaternions(rotateQuaternion, asteroidMesh.quaternion);
-
-        previousMousePosition = { x: e.offsetX, y: e.offsetY };
-    });
-    
-    canvas.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        camera.position.z += e.deltaY * 0.05;
-        camera.position.z = Math.max(15, Math.min(200, camera.position.z));
-    });
-    
-    function toRadians(angle) { return angle * (Math.PI / 180); }
-
-    // --- CORE ASTEROID GENERATION LOGIC ---
-    function createRandomAsteroid() {
-        if (asteroidMesh) {
-            scene.remove(asteroidMesh);
-            asteroidMesh.geometry.dispose();
-        }
-
-        const params = {
-            radius: parseFloat(controls.radius.value),
-            subdivisions: parseInt(controls.subdivisions.value),
-            noise_scale: parseFloat(controls.noise_scale.value),
-            noise_strength: parseFloat(controls.noise_strength.value),
-            octaves: parseInt(controls.octaves.value),
-            persistence: parseFloat(controls.persistence.value),
-            lacunarity: parseFloat(controls.lacunarity.value),
-            seed: parseInt(controls.seed.value),
-        };
+        const params = getParams();
+        const geometry = mesh.geometry;
+        const vertices = geometry.attributes.position.array;
         
-        // Use a seeded random for the simplex noise generator
-        simplex = new SimplexNoise(params.seed);
-
-        const geometry = new THREE.IcosahedronGeometry(params.radius, params.subdivisions);
-        const positionAttribute = geometry.getAttribute('position');
-        const vertices = [];
-        for (let i = 0; i < positionAttribute.count; i++) {
-            vertices.push(new THREE.Vector3().fromBufferAttribute(positionAttribute, i));
-        }
-
-        const displacedVertices = [];
-        vertices.forEach(vertex => {
-            const originalVertex = vertex.clone();
-            const normal = vertex.clone().normalize();
+        for (let i = 0; i < geometry.userData.originalVertices.length; i++) {
+            const v = geometry.userData.originalVertices[i].clone();
+            let displacement = 0;
+            let frequency = 1.0;
+            let amplitude = 1.0;
+            let maxAmplitude = 0; // 用于归一化位移
             
-            const nx = vertex.x / params.noise_scale;
-            const ny = vertex.y / params.noise_scale;
-            const nz = vertex.z / params.noise_scale;
+            for (let j = 0; j < params.octaves; j++) {
+                let p = v.clone().multiplyScalar(frequency);
+                displacement += simplex.noise3D(
+                    p.x + params.noise.x,
+                    p.y + params.noise.y,
+                    p.z + params.noise.z
+                ) * amplitude;
+                
+                maxAmplitude += amplitude; // 累加最大振幅
 
-            let noiseVal = 0;
-            let frequency = 1;
-            let amplitude = 1;
-            for (let i = 0; i < params.octaves; i++) {
-                noiseVal += simplex.noise3D(nx * frequency, ny * frequency, nz * frequency) * amplitude;
-                frequency *= params.lacunarity;
-                amplitude *= params.persistence;
+                frequency *= 2.0;
+                amplitude *= 0.5;
             }
 
-            const displacement = normal.multiplyScalar(noiseVal * params.noise_strength);
-            originalVertex.add(displacement);
-            displacedVertices.push(originalVertex.x, originalVertex.y, originalVertex.z);
-        });
+            // 将位移归一化到 [-1, 1] 的范围
+            if (maxAmplitude > 0) {
+                displacement /= maxAmplitude;
+            }
 
-        geometry.setAttribute('position', new THREE.Float32BufferAttribute(displacedVertices, 3));
+            const finalDisplacement = v.clone().normalize().multiplyScalar(displacement * params.featureHeight);
+            const newPos = v.clone().add(finalDisplacement);
+            
+            vertices[i * 3] = newPos.x;
+            vertices[i * 3 + 1] = newPos.y;
+            vertices[i * 3 + 2] = newPos.z;
+        }
+
+        geometry.attributes.position.needsUpdate = true;
         geometry.computeVertexNormals();
         
-        asteroidMesh = new THREE.Mesh(geometry, material);
-        scene.add(asteroidMesh);
+        mesh.scale.set(params.size.x, params.size.y, params.size.z);
     }
-
-    // --- OBJ EXPORTER ---
-// --- OBJ EXPORTER ---
-function exportToObj() {
-    if (!asteroidMesh) return;
-
-    const geometry = asteroidMesh.geometry;
-    const position = geometry.getAttribute('position');
-    const normal = geometry.getAttribute('normal');
-    const index = geometry.getIndex(); // This might be null
-
-    let obj = '# Generated by Interactive 3D Asteroid Generator\n';
     
-    // Export vertices (v)
-    for (let i = 0; i < position.count; i++) {
-        obj += `v ${position.getX(i).toFixed(6)} ${position.getY(i).toFixed(6)} ${position.getZ(i).toFixed(6)}\n`;
+    function updateCodeOutput() {
+        const params = getParams();
+        const formatVector = v => `[ ${v.x.toFixed(3)} ${v.y.toFixed(3)} ${v.z.toFixed(3)} ]`;
+
+        const code = `SphereDisplacementMesh
+{
+    Size            ${formatVector(params.size)}
+    NoiseOffset     [ ${params.noise.x.toFixed(0)} ${params.noise.y.toFixed(0)} ${params.noise.z.toFixed(0)} ]
+    FeatureHeight   ${params.featureHeight.toFixed(3)}
+    Octaves         ${params.octaves}
+}`;
+        codeOutput.value = code;
     }
 
-    // Export vertex normals (vn)
-    for (let i = 0; i < normal.count; i++) {
-        obj += `vn ${normal.getX(i).toFixed(6)} ${normal.getY(i).toFixed(6)} ${normal.getZ(i).toFixed(6)}\n`;
+    function updateDisplays() {
+        const params = getParams();
+        displays.size.textContent = `${params.size.x.toFixed(2)} ${params.size.y.toFixed(2)} ${params.size.z.toFixed(2)}`;
+        displays.noise.textContent = `${params.noise.x.toFixed(0)} ${params.noise.y.toFixed(0)} ${params.noise.z.toFixed(0)}`;
+        displays.height.textContent = params.featureHeight.toFixed(2);
+        displays.octaves.textContent = params.octaves;
     }
 
-    // Export faces (f)
-    if (index) {
-        // --- HANDLE INDEXED GEOMETRY ---
-        // The geometry has a separate 'recipe' for faces.
-        for (let i = 0; i < index.count; i += 3) {
-            const i1 = index.getX(i) + 1;
-            const i2 = index.getX(i + 1) + 1;
-            const i3 = index.getX(i + 2) + 1;
-            // Format: f v1//vn1 v2//vn2 v3//vn3
-            obj += `f ${i1}//${i1} ${i2}//${i2} ${i3}//${i3}\n`;
-        }
-    } else {
-        // --- HANDLE NON-INDEXED GEOMETRY ---
-        // The vertices are already in order (v1, v2, v3, v4, v5, v6, ...).
-        for (let i = 0; i < position.count; i += 3) {
-            const i1 = i + 1;
-            const i2 = i + 2;
-            const i3 = i + 3;
-            // Format: f v1//vn1 v2//vn2 v3//vn3
-            obj += `f ${i1}//${i1} ${i2}//${i2} ${i3}//${i3}\n`;
-        }
+    function updateAll() {
+        updateDisplacement();
+        updateCodeOutput();
+        updateDisplays();
     }
-
-    const blob = new Blob([obj], { type: 'text/plain' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `asteroid_${controls.seed.value}.obj`;
-    link.click();
-    URL.revokeObjectURL(link.href);
-}
-
-    // --- EVENT LISTENERS & INITIALIZATION ---
-    function init() {
-        Object.keys(controls).forEach(key => {
-            const el = controls[key];
-            if (el.type === 'range') {
-                el.addEventListener('input', () => {
-                    updateValueDisplay(key, el.value, key === 'persistence' || key === 'lacunarity' ? 2 : 1);
-                    createRandomAsteroid();
-                });
+    
+    // --- Helpers & Event Handlers ---
+    function getParams() {
+        return {
+            size: {
+                x: parseFloat(controls.size.x.value),
+                y: parseFloat(controls.size.y.value),
+                z: parseFloat(controls.size.z.value),
+            },
+            noise: {
+                x: parseFloat(controls.noise.x.value) * 10,
+                y: parseFloat(controls.noise.y.value) * 10,
+                z: parseFloat(controls.noise.z.value) * 10,
+            },
+            featureHeight: parseFloat(controls.featureHeight.value),
+            octaves: parseInt(controls.octaves.value),
+        };
+    }
+    
+    function setupControls() {
+        // Correctly iterate and add event listeners to all controls
+        Object.values(controls).forEach(el => {
+            // Check if it's a plain object for vector controls (like size, noise)
+            if (el.tagName === undefined) {
+                Object.values(el).forEach(subEl => subEl.addEventListener('input', updateAll));
+            } else { // It's a direct DOM element (like featureHeight, octaves)
+                el.addEventListener('input', updateAll);
             }
         });
 
-        controls.subdivisions.addEventListener('change', createRandomAsteroid); // Only update on release for performance
-        controls.seed.addEventListener('change', createRandomAsteroid);
-        
-        controls.randomizeNoiseBtn.addEventListener('click', () => {
-            controls.noise_scale.value = (Math.random() * 49 + 1).toFixed(1);
-            controls.noise_strength.value = (Math.random() * 14.9 + 0.1).toFixed(1);
-            controls.octaves.value = Math.floor(Math.random() * 7 + 3);
-            controls.persistence.value = (Math.random() * 0.6 + 0.2).toFixed(2);
-            controls.lacunarity.value = (Math.random() * 2 + 1.5).toFixed(1);
-            controls.seed.value = Math.floor(Math.random() * 100000);
-
-            // Manually trigger updates
-            Object.keys(controls).forEach(key => {
-                const el = controls[key];
-                 if (el.type === 'range') {
-                    updateValueDisplay(key, el.value, key === 'persistence' || key === 'lacunarity' ? 2 : 1);
-                 }
-            });
-            createRandomAsteroid();
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        canvas.addEventListener('mousedown', e => { isDragging = true; });
+        canvas.addEventListener('mouseup', e => { isDragging = false; });
+        canvas.addEventListener('mouseleave', e => { isDragging = false; });
+        canvas.addEventListener('mousemove', e => {
+            if (!isDragging) return;
+            const deltaMove = {
+                x: e.offsetX - previousMousePosition.x,
+                y: e.offsetY - previousMousePosition.y
+            };
+            mesh.rotation.y += deltaMove.x * 0.005;
+            mesh.rotation.x += deltaMove.y * 0.005;
+            previousMousePosition = { x: e.offsetX, y: e.offsetY };
+        });
+        canvas.addEventListener('wheel', e => {
+            camera.position.z += e.deltaY * 0.002;
+            camera.position.z = Math.max(1.5, Math.min(10, camera.position.z));
         });
         
-        controls.exportObjBtn.addEventListener('click', exportToObj);
-
-        window.addEventListener('resize', () => {
-            const previewBox = document.querySelector('.preview');
-            camera.aspect = previewBox.clientWidth / previewBox.clientHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(previewBox.clientWidth, previewBox.clientHeight);
+        copyBtn.addEventListener('click', () => {
+            codeOutput.select();
+            document.execCommand('copy');
         });
+    }
 
-        createRandomAsteroid();
-        animate();
+    function onWindowResize() {
+        const previewContainer = canvas.parentElement;
+        camera.aspect = previewContainer.clientWidth / previewContainer.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(previewContainer.clientWidth, previewContainer.clientHeight);
     }
 
     function animate() {
@@ -426,6 +378,8 @@ function exportToObj() {
     }
 
     init();
+});
 </script>
 </body>
 </html>
+
