@@ -116,6 +116,8 @@
                 <option value="felsic">长英质 (Felsic)</option>
                 <option value="tholin">托林 (Tholin)</option>
                 <option value="sea">海冰 (Sea)</option>
+                <option value="quartz">石英 (Quartz)</option>
+                <option value="carbon">碳质 (Carbon)</option>
                 <option value="custom">自定义...</option>
             </select>
             <input type="file" id="texture-file-base" style="display: none; margin-top: 5px;" accept="image/*">
@@ -135,6 +137,8 @@
                 <option value="felsic">长英质 (Felsic)</option>
                 <option value="tholin">托林 (Tholin)</option>
                 <option value="sea">海冰 (Sea)</option>
+                <option value="quartz">石英 (Quartz)</option>
+                <option value="carbon">碳质 (Carbon)</option>
                 <option value="custom">自定义...</option>
             </select>
             <input type="file" id="texture-file-high" style="display: none; margin-top: 5px;" accept="image/*">
@@ -239,7 +243,9 @@
         silicate: 'textures/felsic.png',
         felsic: 'textures/silicate.png',
         tholin: 'textures/tholin.png',
-        sea: 'textures/sea.png'
+        sea: 'textures/sea.png',
+        quartz: 'textures/quartz.png',
+        carbon: 'textures/carbon.png'
     };
 
     function getTextureImageData(selectElement, fileInputElement) {
