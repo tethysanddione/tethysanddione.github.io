@@ -182,6 +182,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const calculateRadius = (lum, temp) => Math.sqrt(lum) / Math.pow(temp / T_sun, 2);
 
+    function getStarColor(temp) {
+        if (temp > 30000) return "#aaccff"; // O-type, blue
+        if (temp > 10000) return "#cadcff"; // B-type, blue-white
+        if (temp > 7500) return "#fbf8ff";  // A-type, white
+        if (temp > 6000) return "#fff4e8";  // F-type, yellow-white
+        if (temp > 5000) return "#ffddb4";  // G-type (Sun), yellow
+        if (temp > 3500) return "#ffb66c";  // K-type, orange
+        return "#ff8c4b";                  // M-type, red
+    }
+
     function generateStellarMass() {
         const rand = Math.random();
         const minMass = 0.075;
@@ -229,6 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const temp = initialProps.temp;
         const rad = calculateRadius(lum, temp);
         const ms_lifetime = (1e10 * Math.pow(mass, -2.5)) / Math.pow(10, fe_h * -0.1); // Higher metallicity, longer life
+        const color = getStarColor(temp);
 
         // Update the info panel
         document.getElementById('initialMass').textContent = `${mass.toFixed(2)} M☉`;
@@ -250,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .attr("cx", cx)
                 .attr("cy", cy)
                 .attr("r", 8)
-                .attr("fill", "cyan")
+                .attr("fill", color)
                 .attr("stroke", "white")
                 .attr("stroke-width", 2);
             
