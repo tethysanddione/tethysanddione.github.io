@@ -83,13 +83,13 @@
     <div class="w-full max-w-6xl mx-auto bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-6 md:p-8">
         <header class="text-center mb-6">
             <h1 class="text-3xl md:text-4xl font-bold text-white tracking-tight">恒星生成器</h1>
-            <p class="text-gray-400 mt-2">设定金属量，然后随机生成一颗符合宇宙真实质量分布的恒星。</p>
+            <p class="text-gray-400 mt-2">设定金属量，然后随机生成一颗符合宇宙真实质量分布的恒星及其行星系统。</p>
         </header>
 
         <!-- 控制区 -->
         <div class="flex flex-col items-center justify-center gap-6 mb-8">
             <button id="generateButton" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-800">
-                生成一颗新恒星
+                生成一个新系统
             </button>
             <div class="w-full max-w-md">
                 <label for="metallicitySlider" class="flex justify-between items-center text-sm font-medium text-gray-300 mb-1">
@@ -113,7 +113,7 @@
                 <div>
                     <div id="initial-message" class="text-center text-gray-400">
                         <p class="text-lg">准备好探索宇宙了吗？</p>
-                        <p class="mt-4">点击上方按钮，见证一颗恒星的诞生！</p>
+                        <p class="mt-4">点击上方按钮，见证一个星系的诞生！</p>
                     </div>
                     <div id="simulation-output" class="hidden">
                         <h2 class="text-2xl font-bold text-cyan-400 mb-3" id="stageName"></h2>
@@ -125,6 +125,9 @@
                             <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-2">
                                <span class="font-semibold text-gray-400">金属量 [Fe/H]:</span> <span id="metallicityDisplay" class="font-mono text-white font-bold"></span>
                             </div>
+                            <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-2">
+                               <span class="font-semibold text-gray-400">行星数量:</span> <span id="planetCount" class="font-mono text-white font-bold"></span>
+                            </div>
                             <div class="flex justify-between items-center"><span class="font-semibold text-gray-400">预估主序寿命:</span> <span id="lifetime" class="font-mono text-white"></span></div>
                             <div class="flex justify-between items-center"><span class="font-semibold text-gray-400">表面温度:</span> <span id="temperature" class="font-mono text-white"></span></div>
                             <div class="flex justify-between items-center"><span class="font-semibold text-gray-400">光度:</span> <span id="luminosity" class="font-mono text-white"></span></div>
@@ -135,7 +138,7 @@
                 <!-- STC Code Generator -->
                 <div id="stc-output" class="hidden mt-6">
                     <div class="relative">
-                        <pre id="stc-code" class="bg-gray-900 text-sm text-gray-300 p-4 rounded-lg font-mono whitespace-pre-wrap"></pre>
+                        <pre id="stc-code" class="bg-gray-900 text-sm text-gray-300 p-4 rounded-lg font-mono whitespace-pre-wrap overflow-auto max-h-64"></pre>
                         <button id="copy-stc-button" class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-1 px-3 rounded-md text-xs">复制</button>
                     </div>
                 </div>
@@ -150,14 +153,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const metallicityValue = document.getElementById('metallicityValue');
     const copyStcButton = document.getElementById('copy-stc-button');
     const stcCodeElement = document.getElementById('stc-code');
+    
+    // Constants
     const T_sun = 5778; // K
+    const SUN_RADIUS_KM = 696340;
+    const EARTH_MASS_KG = 5.972e24;
+    const EARTH_RADIUS_KM = 6371;
+    const G = 6.67430e-11;
+    const AU_KM = 149597870.7;
 
-    // Update slider value display
     metallicitySlider.addEventListener('input', () => {
         metallicityValue.textContent = parseFloat(metallicitySlider.value).toFixed(1);
     });
 
-    // Copy button functionality
     copyStcButton.addEventListener('click', () => {
         const textToCopy = stcCodeElement.textContent;
         const textArea = document.createElement('textarea');
@@ -221,16 +229,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function generateStellarMass() {
         const rand = Math.random();
-        const minMass = 0.075;
-        const maxMass = 100;
+        const minMass = 0.075; const maxMass = 100;
         const p1 = 0.40; const p2 = p1 + 0.27; const p3 = p2 + 0.19; const p4 = p3 + 0.10; const p5 = p4 + 0.03; const p6 = p5 + 0.008;
-
-        if (rand < p1) return minMass + Math.random() * (0.25 - minMass);
-        if (rand < p2) return 0.25 + Math.random() * (0.5 - 0.25);
-        if (rand < p3) return 0.5 + Math.random() * (1.0 - 0.5);
-        if (rand < p4) return 1.0 + Math.random() * (2.0 - 1.0);
-        if (rand < p5) return 2.0 + Math.random() * (4.0 - 2.0);
-        if (rand < p6) return 4.0 + Math.random() * (16.0 - 4.0);
+        if (rand < p1) return minMass + Math.random() * (0.25 - minMass); if (rand < p2) return 0.25 + Math.random() * (0.5 - 0.25); if (rand < p3) return 0.5 + Math.random() * (1.0 - 0.5); if (rand < p4) return 1.0 + Math.random() * (2.0 - 1.0); if (rand < p5) return 2.0 + Math.random() * (4.0 - 2.0); if (rand < p6) return 4.0 + Math.random() * (16.0 - 4.0);
         return 16.0 + Math.random() * (maxMass - 16.0);
     }
 
@@ -244,6 +245,80 @@ document.addEventListener('DOMContentLoaded', () => {
         const lum_correction = Math.pow(z_ratio, -0.1);
         return { lum: lum * lum_correction, temp: temp * temp_correction };
     }
+
+    function generatePlanetarySystem(star) {
+        let planetsCode = "";
+        const planetNames = ["B", "C", "D", "E", "F", "G", "H", "I", "J", "K"];
+
+        // 1. Planet count (Normal distribution approximation)
+        let planetCount = Math.round(((Math.random() + Math.random() + Math.random() + Math.random()) - 2) * 2.5 + 3);
+        planetCount = Math.max(0, planetCount);
+        
+        if (planetCount === 0) return { count: 0, code: "" };
+
+        // 2. Rocky planet ratio
+        let baseRockyRatio;
+        if (star.fe_h < 0) { baseRockyRatio = 0.5 + 0.25 * star.fe_h; } 
+        else { baseRockyRatio = 0.5 + star.fe_h; }
+        const randomFactor = (Math.random() * 0.4 - 0.2);
+        const finalRockyRatio = Math.max(0, Math.min(1, baseRockyRatio + randomFactor));
+        let numRocky = Math.round(planetCount * finalRockyRatio);
+
+        let types = Array(planetCount).fill('gas');
+        for(let i=0; i<numRocky; i++) types[i] = 'rocky';
+        // Shuffle types
+        for (let i = types.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [types[i], types[j]] = [types[j], types[i]];
+        }
+
+        let lastAphelionAU = (star.radiusKm * 10) / AU_KM;
+        const maxAU = (star.radiusKm * 10000) / AU_KM;
+
+        for (let i = 0; i < planetCount; i++) {
+            const planetType = types[i];
+            let mass, radius, density, rotPeriod;
+
+            if (planetType === 'rocky') {
+                mass = 0.03 + Math.random() * (8.75 - 0.03);
+                density = (2.5 + Math.random() * (8.0 - 2.5)) * 1000; // kg/m^3
+                rotPeriod = 15 + Math.random() * (235 - 15);
+            } else { // Gas giant
+                mass = 8 + Math.random() * (1000 - 8);
+                density = (0.3 + Math.random() * (1.8 - 0.3)) * 1000; // kg/m^3
+                rotPeriod = 6 + Math.random() * (45 - 6);
+            }
+
+            const massKg = mass * EARTH_MASS_KG;
+            const volumeM3 = massKg / density;
+            const radiusM = Math.pow((3 * volumeM3) / (4 * Math.PI), 1/3);
+            radius = (radiusM / 1000); // km
+
+            // Orbit
+            const ecc = Math.random() * 0.3;
+            const minSemiMajorAxis = lastAphelionAU / (1 - ecc);
+            const separation = 1.4 + Math.random() * 0.8; // Make planets further apart
+            const semiMajorAxis = Math.max(minSemiMajorAxis, lastAphelionAU * separation);
+
+            if (semiMajorAxis > maxAU) break; // Planet is too far, stop generating more
+
+            lastAphelionAU = semiMajorAxis * (1 + ecc);
+
+            const orbitalPeriodDays = 365.25 * Math.sqrt(Math.pow(semiMajorAxis, 3) / star.mass);
+            const orb_inc = ((Math.random() + Math.random() + Math.random() + Math.random() - 2) / 2) * 5; // Normal approx
+            const orb_asc = Math.random() * 360;
+            const orb_peri = Math.random() * 360;
+            const orb_ma = Math.random() * 360;
+
+            // Rotation
+            const rot_inc = 180 * Math.pow(Math.random(), 2); // Power-law skewed to 0
+            const rot_asc = Math.random() * 360;
+
+            planetsCode += `\n"B" "${star.id}"\n{\n\tMass ${mass.toFixed(2)}\n\tRadius ${radius.toFixed(0)}\n\tEllipticalOrbit\n\t{\n\t\tPeriod ${(orbitalPeriodDays / 365.25).toFixed(4)}\n\t\tSemiMajorAxis ${semiMajorAxis.toFixed(4)}\n\t\tEccentricity ${ecc.toFixed(4)}\n\t\tInclination ${orb_inc.toFixed(4)}\n\t\tAscendingNode ${orb_asc.toFixed(4)}\n\t\tArgOfPericenter ${orb_peri.toFixed(4)}\n\t\tMeanAnomaly ${orb_ma.toFixed(4)}\n\t}\n\tUniformRotation\n\t{\n\t\tPeriod ${rotPeriod.toFixed(2)}\n\t\tInclination ${rot_inc.toFixed(1)}\n\t\tAscendingNode ${rot_asc.toFixed(1)}\n\t}\n}`;
+        }
+        return { count: planetCount, code: planetsCode };
+    }
+
 
     const generateStar = () => {
         const mass = generateStellarMass();
@@ -262,9 +337,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const ms_lifetime = (1e10 * Math.pow(mass, -2.5)) / Math.pow(10, fe_h * -0.1);
         const color = getStarColor(temp);
 
+        const radiusKm = rad * SUN_RADIUS_KM;
+
+        // Generate planetary system
+        const starDataForPlanets = {
+            mass: mass,
+            radiusKm: radiusKm,
+            fe_h: fe_h,
+            id: `DSS-${Math.floor(1000 + Math.random() * 9000)}`
+        };
+        const planetarySystem = generatePlanetarySystem(starDataForPlanets);
+
         // Update the info panel
         document.getElementById('initialMass').textContent = `${mass.toFixed(2)} M☉`;
         document.getElementById('metallicityDisplay').textContent = fe_h.toFixed(1);
+        document.getElementById('planetCount').textContent = planetarySystem.count;
         document.getElementById('stageName').textContent = "主序星 (零龄)";
         document.getElementById('stageDescription').textContent = "这是一颗刚刚诞生、进入主序阶段的恒星。它的核心正开始稳定的氢聚变反应。";
         document.getElementById('lifetime').textContent = formatLifetime(ms_lifetime);
@@ -279,10 +366,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const sunAbsMag = 4.83;
         const absMag = sunAbsMag - 2.5 * Math.log10(lum);
         const spectralType = getSpectralType(temp);
-        const sunRadiusKm = 696340;
-        const radiusKm = rad * sunRadiusKm;
 
-        stcCodeElement.textContent = `"DSS-8291"\n{\n\tRA ${ra}\n\tDec ${dec}\n\tDistance ${distance}\n\tAbsMag ${absMag.toFixed(3)}\n\tSpectralType "${spectralType}"\n\tRadius ${radiusKm.toFixed(0)}\n\tMass ${mass.toFixed(3)}\n\tTemperature ${temp.toFixed(0)}\n}`;
+        let starCode = `"${starDataForPlanets.id}"\n{\n\tRA ${ra}\n\tDec ${dec}\n\tDistance ${distance}\n\tAbsMag ${absMag.toFixed(3)}\n\tSpectralType "${spectralType}"\n\tRadius ${radiusKm.toFixed(0)}\n\tMass ${mass.toFixed(3)}\n\tTemperature ${temp.toFixed(0)}\n}`;
+        
+        stcCodeElement.textContent = starCode + planetarySystem.code;
+
 
         // Draw the new star on the HR diagram
         if (lum > 0 && temp > 0 && isFinite(lum) && isFinite(temp)) {
