@@ -238,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const lum = initialProps.lum;
         const temp = initialProps.temp;
         const rad = calculateRadius(lum, temp);
-        const ms_lifetime = (1e10 * Math.pow(mass, -2.5)) / Math.pow(10, fe_h * -0.1); // Higher metallicity, longer life
+        const ms_lifetime = (1e10 * Math.pow(mass, -2.5)) / Math.pow(10, fe_h * -0.12 - 0.05); // Higher metallicity, longer life
         const color = getStarColor(temp);
 
         // Update the info panel
