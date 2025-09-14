@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Celestia 大气颜色测试器</title>
+    <title>Celestia 综合大气预览器</title>
     <style>
         :root {
             --bg-color: #1a1e23;
@@ -13,78 +13,179 @@
             --border-color: #404853;
             --accent-color: #00aaff;
             --accent-hover: #0088cc;
+            --secondary-accent-color: #3d4a5b;
+            --secondary-accent-hover: #505d70;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 20px;
+            padding: 24px;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
-            gap: 20px;
             min-height: 100vh;
             box-sizing: border-box;
         }
         .container {
             display: flex;
-            gap: 20px;
+            gap: 24px;
             width: 100%;
-            max-width: 1200px;
+            max-width: 1400px;
             flex-wrap: wrap;
         }
-        .controls, .preview {
+        .controls {
             background-color: var(--panel-bg);
             padding: 25px;
-            border-radius: 8px;
+            border-radius: 12px;
             border: 1px solid var(--border-color);
             flex: 1;
             min-width: 400px;
+            max-width: 500px;
+            align-self: flex-start;
+        }
+        .previews {
+            flex: 2;
+            min-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .preview-panel {
+            background-color: var(--panel-bg);
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
         }
         h1, h2 {
             color: var(--header-color);
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 10px;
             margin-top: 0;
+            margin-bottom: 20px;
+            font-weight: 600;
         }
         #atmosphere-code {
             width: 100%;
-            height: 300px;
+            height: 320px;
             background-color: #111315;
             color: var(--text-color);
             border: 1px solid var(--border-color);
-            border-radius: 5px;
-            padding: 10px;
-            font-family: 'Courier New', Courier, monospace;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'SF Mono', 'Courier New', Courier, monospace;
             font-size: 14px;
             box-sizing: border-box;
+            resize: vertical;
+        }
+        .mode-toggle {
+            display: flex;
+            align-items: center;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: var(--bg-color);
+            border-radius: 8px;
+        }
+        .mode-toggle label {
+            margin-left: 10px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 12px;
         }
         button {
-            width: 100%;
             padding: 12px;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
             transition: background-color 0.2s;
-            margin-top: 20px;
             background-color: var(--accent-color);
             color: white;
         }
         button:hover {
             background-color: var(--accent-hover);
         }
-        .preview-box {
-            height: 200px;
-            width: 100%;
-            border-radius: 5px;
-            border: 1px solid var(--border-color);
-            margin-top: 10px;
+        #random-btn {
+            background-color: var(--secondary-accent-color);
         }
-        .preview-container {
-            margin-bottom: 25px;
+        #random-btn:hover {
+            background-color: var(--secondary-accent-hover);
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            align-items: center;
+        }
+        .preview-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .preview-item-label {
+            font-size: 14px;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        .preview-box {
+            width: 100%;
+            height: 120px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        #surface-sky-preview {
+             height: 250px;
+        }
+        #orbital-view-container {
+            width: 150px;
+            height: 150px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #orbital-limb-preview {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            position: absolute;
+            transition: box-shadow 0.3s ease;
+        }
+        #orbital-surface-preview {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-image: url('https://placehold.co/150x150/555/ccc?text=Surface');
+            background-size: cover;
+            position: relative;
+            overflow: hidden;
+        }
+        #orbital-surface-preview::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0,0,0,0.5);
+            transition: background-color 0.3s ease;
+        }
+        .swatch-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 15px;
+        }
+        .swatch-box {
+            width: 100%;
+            height: 60px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            transition: opacity 0.3s ease;
         }
     </style>
 </head>
@@ -92,107 +193,261 @@
 
 <div class="container">
     <div class="controls">
-        <h1>输入大气参数</h1>
+        <h1>大气参数输入</h1>
         <textarea id="atmosphere-code">
 Atmosphere
 {
-    Height          931
-    Lower   [ 0.2 0.5 0.8 ]
-    Upper   [ 0.2 0.5 0.9 ]
-    Sky     [ 0.2 0.6 1.0 ]
-    Sunset  [ 1.0 0.5 0.2 ]
-    MieScaleHeight  127
-    Mie             0.0012
-    MieAsymmetry    0.17
-    Rayleigh        [ 0.0010 0.0035 0.0080 ]
+    Height 107
+    Lower [ 0.347 0.237 1 ]
+    Upper [ 0.47 0.275 1 ]
+    Sky [ 0.372 0.229 0.959 ]
+    Sunset [ 0.235 0.64 0.979 ]
+    MieScaleHeight 13
+    Mie 0.0041
+    MieAsymmetry 0
+    Rayleigh [ 0.0026 0.0029 0.0077 ]
 }
         </textarea>
-        <button id="render-btn">渲染 / 更新预览</button>
+        <div class="mode-toggle">
+            <input type="checkbox" id="physics-mode-toggle" name="physics-mode">
+            <label for="physics-mode-toggle">启用物理计算模式 (忽略颜色参数)</label>
+        </div>
+        <div class="button-group">
+            <button id="render-btn">渲染 / 更新预览</button>
+            <button id="random-btn">随机生成大气</button>
+        </div>
     </div>
 
-    <div class="preview">
-        <h1>颜色渲染效果</h1>
-        <div class="preview-container">
-            <h2>白天天空 (地平线到天顶)</h2>
-            <div id="day-sky-preview" class="preview-box"></div>
+    <div class="previews">
+        <div class="preview-panel">
+            <h2>地面视角 (Surface View)</h2>
+            <div class="preview-grid">
+                <div class="preview-item">
+                    <span class="preview-item-label">天空（地平线到天顶）</span>
+                    <div id="surface-sky-preview" class="preview-box"></div>
+                </div>
+            </div>
         </div>
-        <div class="preview-container">
-            <h2>日落天空 (地平线到天顶)</h2>
-            <div id="sunset-sky-preview" class="preview-box"></div>
+
+        <div class="preview-panel">
+            <h2>轨道视角 (Orbital View)</h2>
+            <div class="preview-grid">
+                <div class="preview-item">
+                    <span class="preview-item-label">大气辉光与地表滤镜</span>
+                    <div id="orbital-view-container">
+                        <div id="orbital-limb-preview"></div>
+                        <div id="orbital-surface-preview"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-panel">
+            <h2>参数色板 (Parameter Swatches)</h2>
+            <div class="swatch-grid">
+                <div class="preview-item">
+                    <span class="preview-item-label">瑞利散射 (Rayleigh)</span>
+                    <div id="rayleigh-swatch" class="swatch-box"></div>
+                </div>
+                <div class="preview-item">
+                    <span class="preview-item-label">地平线辉光 (Lower)</span>
+                    <div id="lower-swatch" class="swatch-box"></div>
+                </div>
+                <div class="preview-item">
+                    <span class="preview-item-label">高空颜色 (Upper)</span>
+                    <div id="upper-swatch" class="swatch-box"></div>
+                </div>
+                 <div class="preview-item">
+                    <span class="preview-item-label">天空颜色 (Sky)</span>
+                    <div id="sky-swatch" class="swatch-box"></div>
+                </div>
+                <div class="preview-item">
+                    <span class="preview-item-label">日落颜色 (Sunset)</span>
+                    <div id="sunset-swatch" class="swatch-box"></div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const codeInput = document.getElementById('atmosphere-code');
-        const renderBtn = document.getElementById('render-btn');
-        const daySkyPreview = document.getElementById('day-sky-preview');
-        const sunsetSkyPreview = document.getElementById('sunset-sky-preview');
+document.addEventListener('DOMContentLoaded', () => {
+    const codeInput = document.getElementById('atmosphere-code');
+    const renderBtn = document.getElementById('render-btn');
+    const randomBtn = document.getElementById('random-btn');
+    const physicsModeToggle = document.getElementById('physics-mode-toggle');
 
-        function parseColor(key, text) {
-            const regex = new RegExp(key + "\\s*\\[\\s*([\\d.]+)\\s+([\\d.]+)\\s+([\\d.]+)\\s*\\]", "i");
+    const surfaceSkyPreview = document.getElementById('surface-sky-preview');
+    const orbitalLimbPreview = document.getElementById('orbital-limb-preview');
+
+    const swatches = {
+        rayleigh: document.getElementById('rayleigh-swatch'),
+        lower: document.getElementById('lower-swatch'),
+        upper: document.getElementById('upper-swatch'),
+        sky: document.getElementById('sky-swatch'),
+        sunset: document.getElementById('sunset-swatch'),
+    };
+
+    const parse = {
+        color: (key, text) => {
+            const regex = new RegExp(key + "\\s*\\[\\s*([\\d.\\-]+)\\s+([\\d.\\-]+)\\s+([\\d.\\-]+)\\s*\\]", "i");
             const match = text.match(regex);
-            if (match) {
-                return [parseFloat(match[1]), parseFloat(match[2]), parseFloat(match[3])];
-            }
-            return [0, 0, 0];
-        }
-
-        // --- NEW: Function to parse single float values ---
-        function parseValue(key, text) {
-            const regex = new RegExp(key + "\\s+([\\d.]+)", "i");
+            return match ? [parseFloat(match[1]), parseFloat(match[2]), parseFloat(match[3])] : [0, 0, 0];
+        },
+        value: (key, text) => {
+            const regex = new RegExp(key + "\\s+([\\d.\\-]+)");
             const match = text.match(regex);
-            if (match) {
-                return parseFloat(match[1]);
+            return match ? parseFloat(match[1]) : 0;
+        }
+    };
+
+    const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+    const toCssRgb = (c) => `rgb(${clamp(c[0]*255,0,255)}, ${clamp(c[1]*255,0,255)}, ${clamp(c[2]*255,0,255)})`;
+    const toCssRgba = (c, a) => `rgba(${clamp(c[0]*255,0,255)}, ${clamp(c[1]*255,0,255)}, ${clamp(c[2]*255,0,255)}, ${a})`;
+    
+    function renderPreviews() {
+        const text = codeInput.value;
+        const physicsMode = physicsModeToggle.checked;
+        let params;
+
+        const baseParams = {
+            height: parse.value("Height", text),
+            mieScaleHeight: parse.value("MieScaleHeight", text),
+            mie: parse.value("Mie", text),
+            rayleigh: parse.color("Rayleigh", text),
+        };
+        
+        const normalizedRayleigh = (() => {
+            const sum = Math.max(0.00001, baseParams.rayleigh.reduce((a, b) => a + Math.abs(b), 0));
+            return baseParams.rayleigh.map(v => v / sum);
+        })();
+
+        if (physicsMode) {
+            const calcFilteredSunlight = (pathFactorMultiplier) => {
+                const pathLengthFactor = clamp(baseParams.height / 50, 1, 4) * pathFactorMultiplier;
+                return [
+                    clamp(1 - baseParams.rayleigh[0] * pathLengthFactor * 100, 0, 1),
+                    clamp(1 - baseParams.rayleigh[1] * pathLengthFactor * 100, 0, 1),
+                    clamp(1 - baseParams.rayleigh[2] * pathLengthFactor * 100, 0, 1)
+                ];
+            };
+
+            params = {
+                ...baseParams,
+                sky: normalizedRayleigh.map(c => clamp(c, 0, 1)),
+                lower: calcFilteredSunlight(1.5),
+                upper: normalizedRayleigh.map(c => clamp(c * 1.2, 0, 1)),
+                sunset: calcFilteredSunlight(3.0),
+            };
+
+            const ignoredSwatches = ['lower', 'upper', 'sky', 'sunset'];
+            Object.keys(swatches).forEach(key => {
+                swatches[key].style.opacity = ignoredSwatches.includes(key) ? '0.5' : '1';
+            });
+
+        } else {
+            params = {
+                ...baseParams,
+                lower: parse.color("Lower", text),
+                upper: parse.color("Upper", text),
+                sky: parse.color("Sky", text),
+                sunset: parse.color("Sunset", text),
+            };
+            Object.values(swatches).forEach(sw => sw.style.opacity = '1');
+        }
+
+        // --- RENDER ALL PREVIEWS USING THE FINAL 'params' OBJECT ---
+
+        // A. Surface View
+        (() => {
+            const pathLengthFactor = clamp(params.height / 50, 1, 4);
+            const filteredSunlight = [
+                clamp(1 - params.rayleigh[0] * pathLengthFactor * 100, 0, 1),
+                clamp(1 - params.rayleigh[1] * pathLengthFactor * 100, 0, 1),
+                clamp(1 - params.rayleigh[2] * pathLengthFactor * 100, 0, 1)
+            ];
+
+            const horizonColorSource = physicsMode ? filteredSunlight : params.lower;
+            const hazeBase = horizonColorSource.map((c, i) => (c * 0.8 + (physicsMode ? 0 : params.lower[i]) * 0.2));
+            const finalHazeColor = hazeBase.map(c => clamp(c + params.mie * 20, 0, 1));
+            
+            const hazeStopPercent = clamp(params.mieScaleHeight / params.height * 150, 5, 80);
+            const zenithColor = params.sky.map(c => c * 0.5);
+            
+            surfaceSkyPreview.style.background = `linear-gradient(to top, ${toCssRgb(finalHazeColor)}, ${toCssRgb(params.sky)} ${hazeStopPercent}%, ${toCssRgb(zenithColor)})`;
+        })();
+        
+        // B. Orbital View
+        (() => {
+            const limbGlowColor = toCssRgb(normalizedRayleigh);
+            orbitalLimbPreview.style.boxShadow = `0 0 30px 10px ${limbGlowColor}`;
+
+            const surfaceFilterColor = params.sunset.map((c, i) => clamp(c*0.6 + normalizedRayleigh[i]*0.4, 0, 1));
+            const filterOpacity = clamp(params.height / 150, 0.2, 0.7);
+            
+            let style = document.getElementById('orbital-style');
+            if (!style) {
+                style = document.createElement('style');
+                style.id = 'orbital-style';
+                document.head.appendChild(style);
             }
-            return 0; // Default to 0 if not found
-        }
+            style.textContent = `#orbital-surface-preview::after { background-color: ${toCssRgba(surfaceFilterColor, filterOpacity)}; }`;
+        })();
+        
+        // C. Swatches
+        swatches.rayleigh.style.backgroundColor = toCssRgb(normalizedRayleigh);
+        swatches.lower.style.backgroundColor = toCssRgb(params.lower);
+        swatches.upper.style.backgroundColor = toCssRgb(params.upper);
+        swatches.sky.style.backgroundColor = toCssRgb(params.sky);
+        swatches.sunset.style.backgroundColor = toCssRgb(params.sunset);
+    }
+    
+    function generateRandomAtmosphere() {
+        const rand = (min, max) => min + Math.random() * (max - min);
+        
+        const r = rand(0.001, 0.01);
+        const g = rand(0.001, 0.01);
+        const b = rand(0.001, 0.01);
+        const rayleigh = [r,g,b].map(v => parseFloat(v.toFixed(4)));
 
-        function toCssRgb(colorArray) {
-            const r = Math.round(colorArray[0] * 255);
-            const g = Math.round(colorArray[1] * 255);
-            const b = Math.round(colorArray[2] * 255);
-            return `rgb(${r}, ${g}, ${b})`;
-        }
+        const baseColor = [rand(0,1), rand(0,1), rand(0,1)];
 
-        function renderPreview() {
-            const text = codeInput.value;
+        const atmosphere = {
+            Height: Math.round(rand(40, 200)),
+            Lower: baseColor.map(c => parseFloat(clamp(c * rand(0.8, 1.2), 0, 1).toFixed(3))),
+            Upper: baseColor.map(c => parseFloat(clamp(c * rand(1.0, 1.4), 0, 1).toFixed(3))),
+            Sky: baseColor.map(c => parseFloat(clamp(c, 0, 1).toFixed(3))),
+            Sunset: [rand(0.5, 1), rand(0.2, 0.8), rand(0.1, 0.9)].map(c => parseFloat(c.toFixed(3))),
+            MieScaleHeight: Math.round(rand(10, 80)),
+            Mie: parseFloat(rand(0.0005, 0.008).toFixed(4)),
+            Rayleigh: rayleigh
+        };
 
-            // Parse all required colors and values from the input text
-            const lowerColor = parseColor("Lower", text);
-            const skyColor = parseColor("Sky", text);
-            const sunsetColor = parseColor("Sunset", text);
-            const mieStrength = parseValue("Mie", text);
-            
-            // Convert to CSS color strings
-            const lowerCss = toCssRgb(lowerColor);
-            const skyCss = toCssRgb(skyColor);
-            const sunsetCss = toCssRgb(sunsetColor);
+        const formatColor = (arr) => `[ ${arr.join(' ')} ]`;
 
-            // --- MODIFIED: Simulate Mie scattering effect ---
-            // Map the typical range of Mie values (e.g., 0.001 to 0.02) to a gradient percentage (e.g., 5% to 60%)
-            // This determines how high the horizon haze (Lower color) reaches.
-            const minMie = 0.001;
-            const maxMie = 0.02;
-            const minStop = 5;  // % height for minimum haze
-            const maxStop = 60; // % height for maximum haze
-            
-            const normalizedMie = Math.max(0, Math.min(1, (mieStrength - minMie) / (maxMie - minMie)));
-            const hazeStopPercent = minStop + normalizedMie * (maxStop - minStop);
+        let text = `Atmosphere\n{\n`;
+        text += `    Height ${atmosphere.Height}\n`;
+        text += `    Lower ${formatColor(atmosphere.Lower)}\n`;
+        text += `    Upper ${formatColor(atmosphere.Upper)}\n`;
+        text += `    Sky ${formatColor(atmosphere.Sky)}\n`;
+        text += `    Sunset ${formatColor(atmosphere.Sunset)}\n`;
+        text += `    MieScaleHeight ${atmosphere.MieScaleHeight}\n`;
+        text += `    Mie ${atmosphere.Mie}\n`;
+        text += `    MieAsymmetry 0\n`;
+        text += `    Rayleigh ${formatColor(atmosphere.Rayleigh)}\n`;
+        text += `}`;
 
-            // Create a darker version of the sky color for the sunset zenith
-            const darkSkyCss = toCssRgb(skyColor.map(c => c * 0.1));
+        codeInput.value = text;
+        renderPreviews();
+    }
 
-            // Apply gradients to the preview boxes
-            // The day sky now has a variable stop for the haze color based on Mie strength
-            daySkyPreview.style.background = `linear-gradient(to top, ${lowerCss} ${hazeStopPercent}%, ${skyCss})`;
-            sunsetSkyPreview.style.background = `linear-gradient(to top, ${sunsetCss}, ${darkSkyCss})`;
-        }
 
-        renderBtn.addEventListener('click', renderPreview);
-        renderPreview(); // Initial render on page load
-    });
+    renderBtn.addEventListener('click', renderPreviews);
+    randomBtn.addEventListener('click', generateRandomAtmosphere);
+    physicsModeToggle.addEventListener('change', renderPreviews);
+
+    renderPreviews();
+});
 </script>
 
 </body>
