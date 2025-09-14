@@ -219,8 +219,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Apply metallicity correction
         // Lower metallicity -> higher temp, slightly higher lum
-        const temp_correction = Math.pow(z_ratio, -0.08);
-        const lum_correction = Math.pow(z_ratio, -0.1);
+        const temp_correction = Math.pow(z_ratio, -0.055);
+        const lum_correction = Math.pow(z_ratio, -0.16);
 
         return { lum: lum * lum_correction, temp: temp * temp_correction };
     }
