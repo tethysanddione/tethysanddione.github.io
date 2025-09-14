@@ -200,48 +200,61 @@ function generatePlanetTexture(params, heightMap, craters, noise2D) {
 
             const perturbVal = noise2D(sp.x * 300, sp.y * 300) * perturb_strength;
             
-            // --- 纹理混合 ---
-            
-            // 1. 获取基础纹理(低海拔)的颜色
+            // --- 纹理混合 (基于海拔) ---
             const mixedColorBase = getTriplanarColor(sp, textureDataBase, texture_world_scale, perturbVal, weights);
             let finalColor = mixedColorBase;
 
-            // 2. 如果有高海拔纹理，则进行混合
             if (textureDataHigh) {
                 const mixedColorHigh = getTriplanarColor(sp, textureDataHigh, texture_world_scale, perturbVal, weights);
-
-                // 3. 根据高度计算混合因子
                 const edge0 = blend_altitude - blend_smoothness;
                 const edge1 = blend_altitude + blend_smoothness;
                 const mixFactorAltitude = smoothstep(edge0, edge1, h);
-
-                // --- 新增: 陨石坑边缘检测 ---
-                let rimFactor = 0;
-                for (const crater of craters) {
-                    const dx = sp.x - crater.center.x;
-                    const dy = sp.y - crater.center.y;
-                    const dz = sp.z - crater.center.z;
-                    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                    const r = dist / crater.radius;
-
-                    // 定义边缘区域 (例如, 80% 到 100% 半径)
-                    if (r > 0.8 && r < 1.05) {
-                        const rimEdge = 1.0;
-                        const peak = 1.0 - Math.abs(r - rimEdge) / 0.2; // A sharp peak at the rim
-                        rimFactor = Math.max(rimFactor, smoothstep(0, 1, peak));
-                    }
-                }
                 
-                // 4. 合并高度因子和边缘因子
-                const mixFactor = Math.max(mixFactorAltitude, rimFactor);
-
-                // 5. 混合两种颜色
                 finalColor = {
-                    r: lerp(mixedColorBase.r, mixedColorHigh.r, mixFactor),
-                    g: lerp(mixedColorBase.g, mixedColorHigh.g, mixFactor),
-                    b: lerp(mixedColorBase.b, mixedColorHigh.b, mixFactor),
+                    r: lerp(mixedColorBase.r, mixedColorHigh.r, mixFactorAltitude),
+                    g: lerp(mixedColorBase.g, mixedColorHigh.g, mixFactorAltitude),
+                    b: lerp(mixedColorBase.b, mixedColorHigh.b, mixFactorAltitude),
                 };
             }
+
+            // --- 新增: 陨石坑边缘提亮与中心压暗 ---
+            let brightenEffect = 0;
+            let darkenEffect = 0;
+
+            for (const crater of craters) {
+                const dx = sp.x - crater.center.x;
+                const dy = sp.y - crater.center.y;
+                const dz = sp.z - crater.center.z;
+                const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                const r = dist / crater.radius;
+
+                // 边缘提亮效果
+                if (r > 0.8 && r < 1.05) {
+                    const rimEdge = 1.0;
+                    const peak = 1.0 - Math.abs(r - rimEdge) / 0.2;
+                    brightenEffect = Math.max(brightenEffect, smoothstep(0, 1, peak));
+                }
+                
+                // 中心压暗效果
+                if (r < 0.6) {
+                    const peak = 1.0 - r / 0.6; // 效果在中心最强
+                    darkenEffect = Math.max(darkenEffect, smoothstep(0, 1, peak));
+                }
+            }
+            
+            // 应用效果: 提亮优先于压暗
+            if (brightenEffect > 0) {
+                const finalEffect = lerp(1.0, 1.15, brightenEffect); // 提亮最多 15%
+                finalColor.r *= finalEffect;
+                finalColor.g *= finalEffect;
+                finalColor.b *= finalEffect;
+            } else if (darkenEffect > 0) {
+                const finalEffect = lerp(1.0, 0.90, darkenEffect); // 压暗最多 10%
+                finalColor.r *= finalEffect;
+                finalColor.g *= finalEffect;
+                finalColor.b *= finalEffect;
+            }
+
 
             // --- 光影计算 ---
             const surfaceNormal = { x: -gx[i] * shading_strength * 100, y: -gy[i] * shading_strength * 100, z: 1 };
@@ -361,3 +374,4 @@ function sampleTextureBilinear(textureData, u, v) {
 
     return { r, g, b };
 }
+
