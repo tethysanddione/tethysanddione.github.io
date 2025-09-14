@@ -231,7 +231,7 @@ function generatePlanetTexture(params, heightMap, craters, noise2D) {
                 // 边缘提亮效果
                 if (r > 0.8 && r < 1.05) {
                     const rimEdge = 1.0;
-                    const peak = 1.0 - Math.abs(r - rimEdge) / 0.5;
+                    const peak = 1.0 - Math.abs(r - rimEdge) / 0.1;
                     brightenEffect = Math.max(brightenEffect, smoothstep(0, 1, peak));
                 }
                 
