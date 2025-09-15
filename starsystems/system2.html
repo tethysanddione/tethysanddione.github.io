@@ -494,7 +494,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const ms_lifetime = (1e10 * Math.pow(mass, -2.5)) / Math.pow(10, fe_h * -0.1);
         const color = getStarColor(temp);
         const radiusKm = rad * SUN_RADIUS_KM;
-        const starDataForPlanets = { mass, radiusKm, fe_h, temp, id: `DSS-${Math.floor(1000 + Math.random() * 9000)}` };
+        const starDataForPlanets = { mass, radiusKm, fe_h, temp, id: `ENCE-${Math.floor(1000 + Math.random() * 9000)}` };
         const planetarySystem = generatePlanetarySystem(starDataForPlanets);
         lastGeneratedSystem = { star: starDataForPlanets, planets: planetarySystem.planets };
 
