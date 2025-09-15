@@ -79,6 +79,7 @@
         #planet-system-svg .orbit {
             stroke-width: 1px;
             fill: none;
+            transition: stroke-width 0.2s;
         }
     </style>
 </head>
@@ -229,6 +230,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function getStarColor(temp) { if (temp > 30000) return "#aaccff"; if (temp > 10000) return "#cadcff"; if (temp > 7500) return "#fbf8ff"; if (temp > 6000) return "#fff4e8"; if (temp > 5000) return "#ffddb4"; if (temp > 3500) return "#ffb66c"; return "#ff8c4b"; }
     function getSpectralType(temp) { if (temp > 30000) return "O"; if (temp > 10000) return "B"; if (temp > 7500) return "A"; if (temp > 6000) return "F"; if (temp > 5000) return "G"; if (temp > 3500) return "K"; return "M"; }
 
+    function normalRandom() {
+        let u = 0, v = 0;
+        while(u === 0) u = Math.random();
+        while(v === 0) v = Math.random();
+        return Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
+    }
+
     function generateStellarMass() {
         const rand = Math.random();
         const minMass = 0.075; const maxMass = 100;
@@ -251,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let planetsCode = "";
         let planetsData = [];
         const planetNames = ["B", "C", "D", "E", "F", "G", "H", "I", "J", "K"];
-        let planetCount = Math.round(((Math.random() + Math.random() + Math.random() + Math.random()) - 2) * 2.5 + 3);
+        let planetCount = Math.round(normalRandom() * 2.5 + 3);
         planetCount = Math.max(0, planetCount);
         if (planetCount === 0) return { count: 0, code: "", planets: [] };
 
@@ -263,15 +271,25 @@ document.addEventListener('DOMContentLoaded', () => {
         for(let i=0; i<numRocky; i++) types[i] = 'rocky';
         for (let i = types.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [types[i], types[j]] = [types[j], types[i]]; }
 
-        let lastAphelionAU = (star.radiusKm * 10) / AU_KM;
+        let lastAphelionAU = (star.radiusKm * (10 + Math.random() * 40)) / AU_KM;
         const maxAU = (star.radiusKm * 10000) / AU_KM;
         let actualPlanetCount = 0;
 
         for (let i = 0; i < planetCount; i++) {
             const planetType = types[i];
-            let mass, radius, density, rotPeriod;
-            if (planetType === 'rocky') { mass = 0.03 + Math.random() * 8.72; density = (2.5 + Math.random() * 5.5) * 1000; rotPeriod = 15 + Math.random() * 220; } 
-            else { mass = 8 + Math.random() * 992; density = (0.3 + Math.random() * 1.5) * 1000; rotPeriod = 6 + Math.random() * 39; }
+            let mass, radius, density, rotPeriod, albedo, atmosphereCode = "", atm = 0;
+            
+            if (planetType === 'rocky') { 
+                mass = 0.03 + Math.random() * 8.72; 
+                density = (2.5 + Math.random() * 5.5) * 1000; 
+                rotPeriod = 15 + Math.random() * 220;
+                albedo = 0.3;
+            } else { 
+                mass = 8 + Math.random() * 992; 
+                density = (0.3 + Math.random() * 1.5) * 1000; 
+                rotPeriod = 6 + Math.random() * 39;
+                albedo = 0.5;
+            }
             const radiusM = Math.pow((3 * (mass * EARTH_MASS_KG)) / (4 * Math.PI * density), 1/3);
             radius = radiusM / 1000;
 
@@ -283,14 +301,46 @@ document.addEventListener('DOMContentLoaded', () => {
             if (semiMajorAxis > maxAU) break;
             lastAphelionAU = semiMajorAxis * (1 + ecc);
             actualPlanetCount++;
+            
+            const effectiveTemp = star.temp * Math.sqrt(star.radiusKm / (2 * semiMajorAxis * AU_KM)) * Math.pow(1 - albedo, 0.25);
+            
+            let hasAtmosphere = true;
+            if (planetType === 'rocky') {
+                const tempFactor = Math.max(0, (effectiveTemp - 273) / (800 - 273));
+                const probFromTemp = 0.33 + tempFactor * (0.90 - 0.33);
+                const massFactor = 0.1 / mass;
+                const noAtmosphereProb = Math.min(0.95, probFromTemp * massFactor);
+                if (Math.random() < noAtmosphereProb) {
+                    hasAtmosphere = false;
+                }
+            }
+
+            if (hasAtmosphere) {
+                const atmosphereHeight = Math.round(radius * 0.02 * ((Math.random() * 0.2) + 0.9));
+                const mieScaleHeight = Math.round(atmosphereHeight * 0.1 * ((Math.random() * 0.2) + 0.9));
+                const mie = (Math.random()**3 * 0.04 / atmosphereHeight) + 0.04 / atmosphereHeight;
+                const mieAsymmetry = Math.random() * 0.9 - 0.45;
+                let rayleigh = [];
+
+                if(planetType === 'rocky') {
+                    const atmExponent = normalRandom();
+                    atm = Math.pow(10, atmExponent);
+                    const maxRGB = Math.min(0.01, 0.0005 + 0.0045 * (Math.log10(atm * 100)/4 + 1));
+                    rayleigh = [ (Math.random() * 0.5 + 0.5) * maxRGB, (Math.random() * 0.5 + 0.5) * maxRGB, (Math.random() * 0.5 + 0.5) * maxRGB, ];
+                } else { 
+                    atm = -1; // Sentinel for gas giants
+                    rayleigh = [ 0.0005 + Math.random() * 0.0095, 0.0005 + Math.random() * 0.0095, 0.0005 + Math.random() * 0.0095, ];
+                }
+                atmosphereCode = `\tAtmosphere\n\t{\n\t\tHeight ${atmosphereHeight}\n\t\tMieScaleHeight ${mieScaleHeight}\n\t\tMie ${mie.toFixed(5)}\n\t\tMieAsymmetry ${mieAsymmetry.toFixed(2)}\n\t\tRayleigh [ ${rayleigh[0].toExponential(2)} ${rayleigh[1].toExponential(2)} ${rayleigh[2].toExponential(2)} ]\n\t}\n`;
+            }
 
             const orbitalPeriodDays = 365.25 * Math.sqrt(Math.pow(semiMajorAxis, 3) / star.mass);
-            const orb_inc = ((Math.random() + Math.random() + Math.random() + Math.random() - 2) / 2) * 5;
+            const orb_inc = (normalRandom() * 5);
             const orb_asc = Math.random() * 360; const orb_peri = Math.random() * 360; const orb_ma = Math.random() * 360;
             const rot_inc = 180 * Math.pow(Math.random(), 2); const rot_asc = Math.random() * 360;
 
-            planetsCode += `\n"${planetNames[i]}" "${star.id}"\n{\n\tMass ${mass.toFixed(2)}\n\tRadius ${radius.toFixed(0)}\n\tEllipticalOrbit\n\t{\n\t\tPeriod ${(orbitalPeriodDays / 365.25).toFixed(4)}\n\t\tSemiMajorAxis ${semiMajorAxis.toFixed(4)}\n\t\tEccentricity ${ecc.toFixed(4)}\n\t\tInclination ${orb_inc.toFixed(4)}\n\t\tAscendingNode ${orb_asc.toFixed(4)}\n\t\tArgOfPericenter ${orb_peri.toFixed(4)}\n\t\tMeanAnomaly ${orb_ma.toFixed(4)}\n\t}\n\tUniformRotation\n\t{\n\t\tPeriod ${rotPeriod.toFixed(2)}\n\t\tInclination ${rot_inc.toFixed(1)}\n\t\tAscendingNode ${rot_asc.toFixed(1)}\n\t}\n}`;
-            planetsData.push({ semiMajorAxis, eccentricity: ecc, radiusKm: radius });
+            planetsCode += `\n"${planetNames[i]}" "${star.id}"\n{\n\tMass ${mass.toFixed(2)}\n\tRadius ${radius.toFixed(0)}\n\tEllipticalOrbit\n\t{\n\t\tPeriod ${(orbitalPeriodDays / 365.25).toFixed(4)}\n\t\tSemiMajorAxis ${semiMajorAxis.toFixed(4)}\n\t\tEccentricity ${ecc.toFixed(4)}\n\t\tInclination ${orb_inc.toFixed(4)}\n\t\tAscendingNode ${orb_asc.toFixed(4)}\n\t\tArgOfPericenter ${orb_peri.toFixed(4)}\n\t\tMeanAnomaly ${orb_ma.toFixed(4)}\n\t}\n${atmosphereCode}\tUniformRotation\n\t{\n\t\tPeriod ${rotPeriod.toFixed(2)}\n\t\tInclination ${rot_inc.toFixed(1)}\n\t\tAscendingNode ${rot_asc.toFixed(1)}\n\t}\n}`;
+            planetsData.push({ name: planetNames[i], semiMajorAxis, eccentricity: ecc, radiusKm: radius, mass, effectiveTemp, atm });
         }
         return { count: actualPlanetCount, code: planetsCode, planets: planetsData };
     }
@@ -320,13 +370,33 @@ document.addEventListener('DOMContentLoaded', () => {
             const focusOffset = a * p.eccentricity;
             
             svg.append("ellipse")
+               .datum(p)
                .attr("class", "orbit")
                .style("stroke", orbitColors[i % orbitColors.length])
-               .style("fill", "none") // Ensure orbits are not filled
-               .attr("cx", centerX + focusOffset) // Place star at one focus
+               .style("fill", "none")
+               .attr("cx", centerX + focusOffset)
                .attr("cy", centerY)
                .attr("rx", a)
-               .attr("ry", b);
+               .attr("ry", b)
+               .on("mouseover", (event, d) => {
+                    tooltip.transition().duration(200).style("opacity", 0.9);
+                    const tempCelsius = d.effectiveTemp - 273.15;
+                    let tooltipHtml = `<b>行星 (${d.name})</b><br/>` +
+                                        `质量: ${d.mass.toFixed(2)} M⊕<br/>` +
+                                        `半径: ${d.radiusKm.toFixed(0)} km<br/>` +
+                                        `有效温度: ${tempCelsius.toFixed(1)} °C (${d.effectiveTemp.toFixed(1)} K)`;
+                    if (d.atm >= 0) { // atm is -1 for gas giants
+                        tooltipHtml += `<br/>大气压力: ${d.atm > 0 ? d.atm.toExponential(2) : '无'} atm`;
+                    }
+                    tooltip.html(tooltipHtml)
+                        .style("left", `${event.pageX + 15}px`)
+                        .style("top", `${event.pageY - 28}px`);
+                    d3.select(event.currentTarget).style("stroke-width", "3px");
+                })
+                .on("mouseout", (event, d) => {
+                    tooltip.transition().duration(500).style("opacity", 0);
+                    d3.select(event.currentTarget).style("stroke-width", "1px");
+                });
         });
 
         // Draw star
