@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>天体预览器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Inter', sans-serif;
+            color: white;
+        }
+
+        #ui-container {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 1rem;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 250px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .description {
+            text-align: center;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            color: #ccc;
+        }
+
+        .file-input-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 1rem;
+            width: 100%;
+        }
+
+        .file-input-label {
+            cursor: pointer;
+            padding: 0.75rem 1.5rem;
+            background-color: #3b82f6;
+            color: white;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s;
+            text-align: center;
+            width: 100%;
+        }
+
+        .file-input-label:hover {
+            background-color: #2563eb;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-name {
+            margin-top: 0.5rem;
+            font-style: italic;
+            font-size: 0.75rem;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .slider-group {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 1rem;
+        }
+
+        .slider-label {
+            font-size: 0.875rem;
+            color: #ccc;
+            text-align: center;
+        }
+
+        .slider-wrapper {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #d3d3d3;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            border-radius: 4px;
+        }
+
+        .slider:hover {
+            opacity: 1;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #3b82f6;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #3b82f6;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        .slider-value {
+            margin-left: 0.5rem;
+            width: 3rem;
+            text-align: right;
+            font-size: 0.875rem;
+        }
+
+        #loading-message {
+            margin-top: 1rem;
+            font-size: 1rem;
+            color: #fff;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui-container">
+        <h1>天体预览器</h1>
+        
+        <!-- Main Texture Input -->
+        <p class="description">上传颜色贴图</p>
+        <div class="file-input-group">
+            <label id="file-input-label" class="file-input-label" for="file-input">选择颜色贴图</label>
+            <input type="file" id="file-input" class="file-input" accept=".jpg, .jpeg, .png">
+            <div id="file-name" class="file-name"></div>
+        </div>
+
+        <!-- Bump Map Input -->
+        <p class="description">（可选）上传凹凸贴图</p>
+        <div class="file-input-group">
+            <label id="bump-input-label" class="file-input-label" for="bump-input">选择凹凸贴图</label>
+            <input type="file" id="bump-input" class="file-input" accept=".jpg, .jpeg, .png">
+            <div id="bump-name" class="file-name"></div>
+        </div>
+
+        <!-- Cloud Map Input -->
+        <p class="description">（可选）上传云层贴图</p>
+        <div class="file-input-group">
+            <label id="cloud-input-label" class="file-input-label" for="cloud-input">选择云层贴图</label>
+            <input type="file" id="cloud-input" class="file-input" accept=".jpg, .jpeg, .png">
+            <div id="cloud-name" class="file-name"></div>
+        </div>
+
+        <!-- Bump Height Slider -->
+        <div class="slider-group">
+            <label class="slider-label">凹凸高度</label>
+            <div class="slider-wrapper">
+                <input type="range" id="bump-slider" class="slider" min="0" max="0.5" value="0.05" step="0.01">
+                <span id="bump-value" class="slider-value">0.05</span>
+            </div>
+        </div>
+
+        <!-- Mie Scattering Slider -->
+        <div class="slider-group">
+            <label class="slider-label">米氏散射强度</label>
+            <div class="slider-wrapper">
+                <input type="range" id="mie-slider" class="slider" min="0" max="1.0" value="0.1" step="0.01">
+                <span id="mie-value" class="slider-value">0.10</span>
+            </div>
+        </div>
+
+        <div id="loading-message" class="hidden">加载中...</div>
+    </div>
+
+    <script>
+        // Ensure the scene is fully loaded before starting the animation loop.
+        window.onload = function() {
+            // Main Three.js variables
+            let scene, camera, renderer, sphere, clouds, atmosphere, controls, directionalLight;
+            const loadingManager = new THREE.LoadingManager();
+            const textureLoader = new THREE.TextureLoader(loadingManager);
+
+            // UI elements
+            const loadingMessage = document.getElementById('loading-message');
+            const fileNameDiv = document.getElementById('file-name');
+            const bumpNameDiv = document.getElementById('bump-name');
+            const cloudNameDiv = document.getElementById('cloud-name');
+            const bumpSlider = document.getElementById('bump-slider');
+            const bumpValueSpan = document.getElementById('bump-value');
+            const mieSlider = document.getElementById('mie-slider');
+            const mieValueSpan = document.getElementById('mie-value');
+            
+            // Shaders for atmosphere simulation
+            const vertexShader = `
+                varying vec3 vNormal;
+                varying vec3 vPosition;
+                void main() {
+                    vNormal = normalize(normalMatrix * normal);
+                    vPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `;
+
+            const fragmentShader = `
+                varying vec3 vNormal;
+                varying vec3 vPosition;
+                uniform vec3 uLightDir;
+                uniform float uMieCoefficient;
+                
+                void main() {
+                    // Normalize the light direction and view direction
+                    vec3 viewDir = normalize(cameraPosition - vPosition);
+                    vec3 lightDir = normalize(uLightDir);
+                    
+                    // Rayleigh scattering color (simulating blue light scattering)
+                    vec3 rayleighColor = vec3(0.1, 0.4, 0.8);
+                    
+                    // Rayleigh scattering factor based on angle with light source
+                    float rayleighFactor = pow(1.0 - max(dot(vNormal, lightDir), 0.0), 2.0);
+                    vec3 atmosphereColor = rayleighColor * rayleighFactor;
+                    
+                    // Mie scattering for forward glow
+                    float mieFactor = pow(max(dot(viewDir, lightDir), 0.0) + 0.1, 8.0);
+                    atmosphereColor += vec3(1.0, 0.8, 0.6) * mieFactor;
+
+                    // Apply the overall intensity control from the slider
+                    gl_FragColor = vec4(atmosphereColor * uMieCoefficient, 1.0);
+                }
+            `;
+
+            // Shaders for clouds with proper lighting
+            const cloudVertexShader = `
+                varying vec2 vUv;
+                varying vec3 vNormal;
+                void main() {
+                    vUv = uv;
+                    vNormal = normalize(normalMatrix * normal);
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `;
+
+            const cloudFragmentShader = `
+                uniform sampler2D uCloudMap;
+                uniform vec3 uLightDir;
+                varying vec2 vUv;
+                varying vec3 vNormal;
+                void main() {
+                    vec4 cloudColor = texture2D(uCloudMap, vUv);
+                    if (cloudColor.a < 0.01) discard;
+
+                    vec3 lightDir = normalize(uLightDir);
+                    float diffuse = max(dot(vNormal, lightDir), 0.0);
+                    
+                    // Apply a softer ambient light to the dark side
+                    float ambient = 0.2;
+                    float lighting = diffuse + ambient;
+
+                    gl_FragColor = vec4(cloudColor.rgb * lighting, cloudColor.a);
+                }
+            `;
+
+            // Initialize the scene, camera, and renderer
+            function init() {
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.z = 2;
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(window.devicePixelRatio);
+                document.body.appendChild(renderer.domElement);
+
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+                scene.add(ambientLight);
+                directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+                directionalLight.position.set(100, 100, 100).normalize();
+                scene.add(directionalLight);
+                
+                // Controls
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.minDistance = 1.1;
+                controls.maxDistance = 5;
+
+                // Create the planet sphere
+                const geometry = new THREE.SphereGeometry(1, 64, 64);
+                const material = new THREE.MeshStandardMaterial({
+                    map: null,
+                    bumpMap: null,
+                    bumpScale: parseFloat(bumpSlider.value)
+                });
+                sphere = new THREE.Mesh(geometry, material);
+                scene.add(sphere);
+
+                // Create the cloud sphere
+                const cloudGeometry = new THREE.SphereGeometry(1.005, 64, 64);
+                const cloudMaterial = new THREE.ShaderMaterial({
+                    uniforms: {
+                        uCloudMap: { value: null },
+                        uLightDir: { value: directionalLight.position.clone().normalize() },
+                    },
+                    vertexShader: cloudVertexShader,
+                    fragmentShader: cloudFragmentShader,
+                    transparent: true,
+                    depthWrite: false, // Prevents clouds from obscuring the atmosphere
+                    blending: THREE.NormalBlending,
+                });
+                clouds = new THREE.Mesh(cloudGeometry, cloudMaterial);
+                clouds.visible = false; // Initially hide clouds until a map is loaded
+                scene.add(clouds);
+                
+                // Create the atmosphere sphere
+                const atmosphereGeometry = new THREE.SphereGeometry(1.01, 64, 64);
+                const atmosphereMaterial = new THREE.ShaderMaterial({
+                    uniforms: {
+                        uLightDir: { value: directionalLight.position.clone().normalize() },
+                        uMieCoefficient: { value: parseFloat(mieSlider.value) },
+                    },
+                    vertexShader: vertexShader,
+                    fragmentShader: fragmentShader,
+                    side: THREE.BackSide,
+                    transparent: true,
+                    blending: THREE.AdditiveBlending,
+                });
+                atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+                scene.add(atmosphere);
+
+                // Load initial default textures
+                loadTexture('https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg');
+                
+                // Handle window resizing
+                window.addEventListener('resize', onWindowResize, false);
+                
+                // Start the animation loop
+                animate();
+            }
+
+            // Function to load main color texture and reset other maps
+            function loadTexture(textureUrl) {
+                loadingMessage.classList.remove('hidden');
+                textureLoader.load(textureUrl, (texture) => {
+                    if (sphere) {
+                        sphere.material.map = texture;
+                        // Automatically clear bump map to prevent mismatches
+                        sphere.material.bumpMap = null;
+                        bumpNameDiv.innerText = '';
+                        bumpSlider.value = '0.05';
+                        bumpValueSpan.innerText = '0.05';
+                        sphere.material.needsUpdate = true;
+                    }
+                }, undefined, (err) => {
+                    console.error('Failed to load texture:', err);
+                    loadingMessage.innerText = '加载颜色贴图失败。';
+                });
+            }
+
+            // Function to load a bump map
+            function loadBumpMap(bumpMapUrl) {
+                loadingMessage.classList.remove('hidden');
+                textureLoader.load(bumpMapUrl, (texture) => {
+                    if (sphere) {
+                        sphere.material.bumpMap = texture;
+                        sphere.material.needsUpdate = true;
+                    }
+                }, undefined, (err) => {
+                    console.error('Failed to load bump map:', err);
+                    loadingMessage.innerText = '加载凹凸贴图失败。';
+                });
+            }
+
+            // Function to load a cloud map
+            function loadCloudMap(cloudMapUrl) {
+                loadingMessage.classList.remove('hidden');
+                textureLoader.load(cloudMapUrl, (texture) => {
+                    if (clouds) {
+                        clouds.material.uniforms.uCloudMap.value = texture;
+                        clouds.visible = true; // Make clouds visible after loading
+                        clouds.material.needsUpdate = true;
+                    }
+                }, undefined, (err) => {
+                    console.error('Failed to load cloud map:', err);
+                    loadingMessage.innerText = '加载云层贴图失败。';
+                    clouds.visible = false; // Hide clouds on error
+                });
+            }
+
+            // Handle main texture file input change
+            document.getElementById('file-input').addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    fileNameDiv.innerText = `当前文件: ${file.name}`;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        loadTexture(e.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    fileNameDiv.innerText = '';
+                }
+            });
+
+            // Handle bump map file input change
+            document.getElementById('bump-input').addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    bumpNameDiv.innerText = `当前文件: ${file.name}`;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        loadBumpMap(e.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    bumpNameDiv.innerText = '';
+                }
+            });
+
+            // Handle cloud map file input change
+            document.getElementById('cloud-input').addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    cloudNameDiv.innerText = `当前文件: ${file.name}`;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        loadCloudMap(e.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    cloudNameDiv.innerText = '';
+                    if (clouds) {
+                        clouds.visible = false;
+                        clouds.material.uniforms.uCloudMap.value = null;
+                        clouds.material.needsUpdate = true;
+                    }
+                }
+            });
+
+            // Handle bump slider change
+            bumpSlider.addEventListener('input', () => {
+                const value = parseFloat(bumpSlider.value);
+                bumpValueSpan.innerText = value.toFixed(2);
+                if (sphere) {
+                    sphere.material.bumpScale = value;
+                }
+            });
+
+            // Handle mie slider change
+            mieSlider.addEventListener('input', () => {
+                const value = parseFloat(mieSlider.value);
+                mieValueSpan.innerText = value.toFixed(2);
+                if (atmosphere) {
+                    atmosphere.material.uniforms.uMieCoefficient.value = value;
+                }
+            });
+            
+            // Update on window resize
+            function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            // Animation loop
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                // Add a small rotation to the planet and clouds for visual effect
+                if (sphere) {
+                    sphere.rotation.y += 0.0005;
+                }
+                if (clouds) {
+                    clouds.rotation.y += 0.0006;
+                }
+                renderer.render(scene, camera);
+            }
+
+            // Handle loading progress
+            loadingManager.onLoad = function() {
+                loadingMessage.classList.add('hidden');
+            };
+
+            init();
+        };
+    </script>
+</body>
+</html>
