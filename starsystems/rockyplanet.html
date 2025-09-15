@@ -148,6 +148,11 @@
         </div>
         
         <div class="control-group">
+            <input type="checkbox" id="lifeless" name="lifeless" style="margin-right: 10px;">
+            <label for="lifeless" style="display: inline;">Lifeless Planet (No Vegetation)</label>
+        </div>
+
+        <div class="control-group">
             <label for="seed">Seed</label>
             <div class="seed-group">
                 <input type="text" id="seed" value="42">
@@ -179,6 +184,7 @@ const controls = {
     seaLevel: document.getElementById('seaLevel'),
     desertification: document.getElementById('desertification'),
     iceCapLatitude: document.getElementById('iceCapLatitude'),
+    lifeless: document.getElementById('lifeless'),
     seed: document.getElementById('seed'),
     generateBtn: document.getElementById('generateBtn'),
     randomSeedBtn: document.getElementById('randomSeedBtn'),
@@ -359,11 +365,15 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
                 if (params.SEA_LEVEL === 0) {
                     base_color = sample('sand', tx, ty);
                 } else {
-                    base_color = sample('grass', tx, ty);
-                    const desert_threshold = params.DESERTIFICATION * 0.7;
-                    if (m < desert_threshold && temp > 0.4 && h < MOUNTAIN_PEAK * 0.8) {
-                        const desert_factor = 1.0 - Math.max(0, Math.min(1, m / desert_threshold));
-                        base_color = blend(base_color, sample('sand', tx, ty), desert_factor);
+                    if (params.LIFELESS) {
+                        base_color = sample('sand', tx, ty);
+                    } else {
+                        base_color = sample('grass', tx, ty);
+                        const desert_threshold = params.DESERTIFICATION * 0.7;
+                        if (m < desert_threshold && temp > 0.4 && h < MOUNTAIN_PEAK * 0.8) {
+                            const desert_factor = 1.0 - Math.max(0, Math.min(1, m / desert_threshold));
+                            base_color = blend(base_color, sample('sand', tx, ty), desert_factor);
+                        }
                     }
                 }
 
@@ -489,6 +499,7 @@ function main() {
         SEA_LEVEL: parseFloat(controls.seaLevel.value),
         DESERTIFICATION: parseFloat(controls.desertification.value),
         ICE_CAP_LATITUDE: parseFloat(controls.iceCapLatitude.value),
+        LIFELESS: controls.lifeless.checked,
         CENTER_NOISE_WIDTH: parseFloat(document.querySelector('input[name=size]:checked').dataset.centerWidth),
         CENTER_NOISE_STRENGTH: 0.0, // Disabled this feature as it's not needed with texture loading
         CENTER_NOISE_SCALE: 0.0
@@ -556,3 +567,4 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 </body>
 </html>
+
