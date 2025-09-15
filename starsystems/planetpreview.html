@@ -198,6 +198,29 @@
             </div>
         </div>
 
+        <!-- Rayleigh Scattering Sliders -->
+        <div class="slider-group mt-4">
+            <label class="slider-label">瑞利散射颜色 (R)</label>
+            <div class="slider-wrapper">
+                <input type="range" id="rayleigh-r-slider" class="slider" min="0" max="1.0" value="0.1" step="0.01">
+                <span id="rayleigh-r-value" class="slider-value">0.10</span>
+            </div>
+        </div>
+        <div class="slider-group">
+            <label class="slider-label">瑞利散射颜色 (G)</label>
+            <div class="slider-wrapper">
+                <input type="range" id="rayleigh-g-slider" class="slider" min="0" max="1.0" value="0.4" step="0.01">
+                <span id="rayleigh-g-value" class="slider-value">0.40</span>
+            </div>
+        </div>
+        <div class="slider-group">
+            <label class="slider-label">瑞利散射颜色 (B)</label>
+            <div class="slider-wrapper">
+                <input type="range" id="rayleigh-b-slider" class="slider" min="0" max="1.0" value="0.8" step="0.01">
+                <span id="rayleigh-b-value" class="slider-value">0.80</span>
+            </div>
+        </div>
+
         <div id="loading-message" class="hidden">加载中...</div>
     </div>
 
@@ -218,6 +241,12 @@
             const bumpValueSpan = document.getElementById('bump-value');
             const mieSlider = document.getElementById('mie-slider');
             const mieValueSpan = document.getElementById('mie-value');
+            const rayleighRSlider = document.getElementById('rayleigh-r-slider');
+            const rayleighGSlider = document.getElementById('rayleigh-g-slider');
+            const rayleighBSlider = document.getElementById('rayleigh-b-slider');
+            const rayleighRValueSpan = document.getElementById('rayleigh-r-value');
+            const rayleighGValueSpan = document.getElementById('rayleigh-g-value');
+            const rayleighBValueSpan = document.getElementById('rayleigh-b-value');
             
             // Shaders for atmosphere simulation
             const vertexShader = `
@@ -235,6 +264,7 @@
                 varying vec3 vPosition;
                 uniform vec3 uLightDir;
                 uniform float uMieCoefficient;
+                uniform vec3 uRayleighColor;
                 
                 void main() {
                     // Normalize the light direction and view direction
@@ -242,7 +272,7 @@
                     vec3 lightDir = normalize(uLightDir);
                     
                     // Rayleigh scattering color (simulating blue light scattering)
-                    vec3 rayleighColor = vec3(0.1, 0.4, 0.8);
+                    vec3 rayleighColor = uRayleighColor;
                     
                     // Rayleigh scattering factor based on angle with light source
                     float rayleighFactor = pow(1.0 - max(dot(vNormal, lightDir), 0.0), 2.0);
@@ -343,6 +373,11 @@
                     uniforms: {
                         uLightDir: { value: directionalLight.position.clone().normalize() },
                         uMieCoefficient: { value: parseFloat(mieSlider.value) },
+                        uRayleighColor: { value: new THREE.Vector3(
+                            parseFloat(rayleighRSlider.value),
+                            parseFloat(rayleighGSlider.value),
+                            parseFloat(rayleighBSlider.value)
+                        ) }
                     },
                     vertexShader: vertexShader,
                     fragmentShader: fragmentShader,
@@ -479,6 +514,24 @@
                     atmosphere.material.uniforms.uMieCoefficient.value = value;
                 }
             });
+
+            // Handle rayleigh slider changes
+            rayleighRSlider.addEventListener('input', updateRayleighColor);
+            rayleighGSlider.addEventListener('input', updateRayleighColor);
+            rayleighBSlider.addEventListener('input', updateRayleighColor);
+
+            function updateRayleighColor() {
+                const r = parseFloat(rayleighRSlider.value);
+                const g = parseFloat(rayleighGSlider.value);
+                const b = parseFloat(rayleighBSlider.value);
+                rayleighRValueSpan.innerText = r.toFixed(2);
+                rayleighGValueSpan.innerText = g.toFixed(2);
+                rayleighBValueSpan.innerText = b.toFixed(2);
+
+                if (atmosphere) {
+                    atmosphere.material.uniforms.uRayleighColor.value.set(r, g, b);
+                }
+            }
             
             // Update on window resize
             function onWindowResize() {
