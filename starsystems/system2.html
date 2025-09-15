@@ -418,8 +418,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     const generateStar = () => {
-        const mass = generateStellarMass();
+        let mass = generateStellarMass();
         const fe_h = parseFloat(metallicitySlider.value);
+        
+        const typeRoll = Math.random();
+        let starType, stageName, stageDescription;
+
+        if (typeRoll < 0.985) {
+            starType = "Main Sequence";
+            stageName = "主序星 (零龄)";
+            stageDescription = "这是一颗刚刚诞生、进入主序阶段的恒星。它的核心正开始稳定的氢聚变反应。";
+        } else if (typeRoll < 0.988) { // 0.3% chance
+            starType = "Subgiant";
+            stageName = "亚巨星";
+            stageDescription = "这颗恒星已耗尽核心的氢，正在向红巨星阶段演化。它的外层开始膨胀和冷却。";
+            while (mass < 0.7) {
+                mass = generateStellarMass();
+            }
+        } else { // 1.2% chance
+            starType = "Red Giant";
+            stageName = "红巨星";
+            stageDescription = "这颗恒星处于其生命的后期阶段，体积巨大但表面温度较低。核心可能正在进行氦或更重元素的聚变。";
+            while (mass < 0.7) {
+                mass = generateStellarMass();
+            }
+        }
         
         hrSvg.selectAll(".current-star").remove();
 
@@ -427,9 +450,25 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('simulation-output').classList.remove('hidden');
         document.getElementById('stc-output').classList.remove('hidden');
         
-        const initialProps = getZAMSProps(mass, fe_h);
-        const lum = initialProps.lum;
-        const temp = initialProps.temp;
+        const initialZAMSProps = getZAMSProps(mass, fe_h);
+        let lum, temp;
+
+        if (starType === "Main Sequence") {
+            lum = initialZAMSProps.lum;
+            temp = initialZAMSProps.temp;
+        } else if (starType === "Subgiant") {
+            lum = initialZAMSProps.lum * (2.5 + Math.random());
+            temp = initialZAMSProps.temp * (1 - (0.05 + Math.random() * 0.15));
+        } else { // Red Giant
+            const y = 2 + Math.random() * 1.33;
+            const x = fe_h;
+            const metal_lum_mod = x < 0 ? Math.pow(10, -3 * x) : Math.pow(10, 0.4 * x);
+            lum = mass * Math.pow(10, y) * metal_lum_mod;
+
+            const z = 0.03 + Math.random() * 0.036;
+            temp = Math.pow(initialZAMSProps.temp, 1 - z + 0.02 * Math.abs(x));
+        }
+
         const rad = calculateRadius(lum, temp);
         const ms_lifetime = (1e10 * Math.pow(mass, -2.5)) / Math.pow(10, fe_h * -0.1);
         const color = getStarColor(temp);
@@ -448,8 +487,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('initialMass').textContent = `${mass.toFixed(2)} M☉`;
         document.getElementById('metallicityDisplay').textContent = fe_h.toFixed(1);
         document.getElementById('planetCount').textContent = planetarySystem.count;
-        document.getElementById('stageName').textContent = "主序星 (零龄)";
-        document.getElementById('stageDescription').textContent = "这是一颗刚刚诞生、进入主序阶段的恒星。它的核心正开始稳定的氢聚变反应。";
+        document.getElementById('stageName').textContent = stageName;
+        document.getElementById('stageDescription').textContent = stageDescription;
         document.getElementById('lifetime').textContent = formatLifetime(ms_lifetime);
         document.getElementById('temperature').textContent = `${temp.toFixed(0)} K`;
         document.getElementById('luminosity').textContent = `${lum.toExponential(2)} L☉`;
@@ -479,7 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             starPoint.on("mouseover", (event) => {
                 tooltip.transition().duration(200).style("opacity", .9);
-                tooltip.html(`<b>主序星 (零龄)</b><br/>质量: ${mass.toFixed(2)} M☉<br/>[Fe/H]: ${fe_h.toFixed(1)}<br/>T: ${temp.toFixed(0)} K<br/>L: ${lum.toExponential(2)} L☉`)
+                tooltip.html(`<b>${stageName}</b><br/>质量: ${mass.toFixed(2)} M☉<br/>[Fe/H]: ${fe_h.toFixed(1)}<br/>T: ${temp.toFixed(0)} K<br/>L: ${lum.toExponential(2)} L☉`)
                        .style("left", `${event.pageX + 15}px`)
                        .style("top", `${event.pageY - 28}px`);
             }).on("mouseout", () => tooltip.transition().duration(500).style("opacity", 0));
