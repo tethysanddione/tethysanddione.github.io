@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>卫星系统生成器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+            overscroll-behavior: none;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+
+    <div class="flex flex-col lg:flex-row h-screen">
+        <!-- 控制面板 -->
+        <div class="lg:w-1/3 p-6 bg-gray-800 shadow-2xl overflow-y-auto">
+            <h1 class="text-3xl font-bold mb-6 text-cyan-400">卫星系统生成器</h1>
+            
+            <div class="space-y-4">
+                <div>
+                    <label for="planetName" class="block text-sm font-medium text-gray-300">行星名称</label>
+                    <input type="text" id="planetName" value="Terra" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                </div>
+                <div>
+                    <label for="starName" class="block text-sm font-medium text-gray-300">恒星名称</label>
+                    <input type="text" id="starName" value="Sol" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                </div>
+                <div>
+                    <label for="planetMass" class="block text-sm font-medium text-gray-300">行星质量 (地球倍数)</label>
+                    <input type="number" id="planetMass" value="1" step="0.1" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                </div>
+                <div>
+                    <label for="planetRadius" class="block text-sm font-medium text-gray-300">行星半径 (km)</label>
+                    <input type="number" id="planetRadius" value="6371" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
+                </div>
+                <div class="flex items-center">
+                    <input id="snowLine" type="checkbox" class="h-4 w-4 text-cyan-600 bg-gray-700 border-gray-600 rounded focus:ring-cyan-500">
+                    <label for="snowLine" class="ml-2 block text-sm text-gray-300">位于雪线以外</label>
+                </div>
+            </div>
+
+            <button id="generateBtn" class="mt-8 w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">
+                生成卫星系统
+            </button>
+            
+            <h2 class="text-2xl font-bold mt-8 mb-4 text-cyan-400">生成数据</h2>
+            <pre id="output" class="w-full h-96 bg-gray-900 text-sm p-4 rounded-lg overflow-auto whitespace-pre-wrap break-words"></pre>
+        </div>
+
+        <!-- 3D 预览 -->
+        <div class="flex-1" id="canvas-container">
+            <!-- Three.js canvas will be appended here -->
+        </div>
+    </div>
+
+    <script type="module">
+        // --- 全局变量和常量 ---
+        const G = 6.67430e-11; // m^3 kg^-1 s^-2
+        const EARTH_MASS = 5.972e24; // kg
+        const EARTH_RADIUS = 6371e3; // m
+
+        // --- Three.js 初始化 ---
+        let scene, camera, renderer, controls;
+        const container = document.getElementById('canvas-container');
+        let planetMesh, referencePlane, satelliteGroup;
+
+        function initThree() {
+            scene = new THREE.Scene();
+            
+            const aspect = container.clientWidth / container.clientHeight;
+            camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1e12);
+            camera.position.set(0, 500000, 1000000);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(1, 1, 1);
+            scene.add(directionalLight);
+
+            window.addEventListener('resize', onWindowResize, false);
+
+            animate();
+        }
+
+        function onWindowResize() {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // --- 核心生成逻辑 ---
+
+        // Box-Muller 变换生成正态分布随机数
+        function getNormallyDistributedRandom(mean, stddev) {
+            let u1 = 0, u2 = 0;
+            while (u1 === 0) u1 = Math.random();
+            while (u2 === 0) u2 = Math.random();
+            const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+            return z0 * stddev + mean;
+        }
+
+        // 生成器主函数
+        function generateSystem() {
+            const planetName = document.getElementById('planetName').value || 'PlanetX';
+            const starName = document.getElementById('starName').value || 'StarY';
+            const planetMass = parseFloat(document.getElementById('planetMass').value) * EARTH_MASS;
+            const planetRadius = parseFloat(document.getElementById('planetRadius').value) * 1000; // to meters
+            const isBeyondSnowLine = document.getElementById('snowLine').checked;
+
+            if (isNaN(planetMass) || isNaN(planetRadius) || planetMass <= 0 || planetRadius <= 0) {
+                document.getElementById('output').textContent = "请输入有效的行星参数。";
+                return;
+            }
+
+            // 1. 计算卫星总质量
+            const massExponent = getNormallyDistributedRandom(-1, 0.5);
+            const totalSatelliteMassRatio = Math.pow(10, massExponent) / 100; // 10^-x %
+            let totalSatelliteMass = planetMass * totalSatelliteMassRatio;
+
+            // 2. 确定卫星数量
+            const massInEarths = planetMass / EARTH_MASS;
+            const meanSatellites = Math.ceil(massInEarths * 0.1);
+            const stdDevSatellites = meanSatellites; // 100% of mean
+            let numSatellites = Math.round(getNormallyDistributedRandom(meanSatellites, stdDevSatellites));
+            if (numSatellites < 0) numSatellites = 0;
+
+            // --- 开始生成每个卫星 ---
+            let outputText = '';
+            const satellitesData = [];
+            let remainingMass = totalSatelliteMass;
+
+            for (let i = 1; i <= numSatellites; i++) {
+                if (remainingMass <= 0) break;
+
+                // 3. 单个卫星质量
+                const massFraction = (i === numSatellites) ? 1.0 : Math.random() * 0.9;
+                const satelliteMass = remainingMass * massFraction;
+                remainingMass -= satelliteMass;
+
+                if (satelliteMass < 1e15) continue; // 忽略太小的卫星
+
+                // 4. 卫星密度和半径
+                const density_g_cm3 = isBeyondSnowLine ? 
+                    1.21 + Math.random() * (4.84 - 1.21) : 
+                    2.76 + Math.random() * (6.25 - 2.76);
+                const density_kg_m3 = density_g_cm3 * 1000;
+                
+                const satelliteRadius = Math.cbrt((3 * satelliteMass) / (4 * Math.PI * density_kg_m3));
+
+                // 5. 轨道参数
+                // a. 洛希极限
+                const planetDensity = planetMass / ((4/3) * Math.PI * Math.pow(planetRadius, 3));
+                const rocheLimit = planetRadius * 2.44 * Math.pow(planetDensity / density_kg_m3, 1/3);
+
+                // b. 半长轴 (SemiMajorAxis)
+                let sma_multiplier;
+                if (satelliteRadius < 100000) { // 半径小于100km
+                    sma_multiplier = 2 + 198 * Math.pow(Math.random(), 0.5); // 倾向于更远
+                } else {
+                    sma_multiplier = 2 + Math.random() * 198;
+                }
+                const semiMajorAxis = rocheLimit * sma_multiplier;
+                
+                // c. 偏心率 (Eccentricity)
+                let eccentricity = getNormallyDistributedRandom(0.05, 0.04);
+                if (eccentricity < 0) eccentricity = 0;
+                if (eccentricity >= 1) eccentricity = 0.9;
+
+                // d. 轨道倾角 (Inclination)
+                const incStdDev = (satelliteRadius < 100000) ? 15 : 3;
+                const inclination = getNormallyDistributedRandom(0, incStdDev);
+
+                // e. 周期 (Period)
+                const period_seconds = 2 * Math.PI * Math.sqrt(Math.pow(semiMajorAxis, 3) / (G * planetMass));
+                const period_days = period_seconds / 86400;
+
+                // f. 其他随机角度
+                const ascendingNode = Math.random() * 360;
+                const argOfPericenter = Math.random() * 360;
+                const meanAnomaly = Math.random() * 360;
+
+                const satName = `${planetName}-${i}`;
+                const satCode = `${starName}/${satName}`;
+
+                // 格式化输出
+                outputText += `"${satName}" "${satCode}"\n`;
+                outputText += `{\n`;
+                outputText += `    Texture         "${satName}.*"\n`;
+                outputText += `    Mass            ${(satelliteMass / EARTH_MASS).toExponential(5)}\n`;
+                outputText += `    Radius          ${(satelliteRadius / 1000).toFixed(2)}\n\n`; // to km
+                outputText += `    EllipticalOrbit\n`;
+                outputText += `    {\n`;
+                outputText += `        Period          ${period_days.toFixed(4)}\n`;
+                outputText += `        SemiMajorAxis   ${semiMajorAxis.toFixed(0)}\n`;
+                outputText += `        Eccentricity    ${eccentricity.toFixed(4)}\n`;
+                outputText += `        Inclination     ${inclination.toFixed(2)}\n`;
+                outputText += `        AscendingNode   ${ascendingNode.toFixed(5)}\n`;
+                outputText += `        ArgOfPericenter ${argOfPericenter.toFixed(5)}\n`;
+                outputText += `        MeanAnomaly     ${meanAnomaly.toFixed(2)}\n`;
+                outputText += `    }\n`;
+                outputText += `}\n\n`;
+
+                satellitesData.push({
+                    radius: satelliteRadius, // m
+                    semiMajorAxis: semiMajorAxis, // m
+                    eccentricity: eccentricity,
+                    inclination: inclination, // degrees
+                    ascendingNode: ascendingNode, // degrees
+                    argOfPericenter: argOfPericenter // degrees
+                });
+            }
+
+            document.getElementById('output').textContent = outputText || "未生成卫星（参数可能导致卫星过少或过小）。";
+            updateVisualization({ radius: planetRadius }, satellitesData);
+        }
+
+        // --- 可视化更新 ---
+        function updateVisualization(planet, satellites) {
+            // 清理旧对象
+            if (planetMesh) scene.remove(planetMesh);
+            if (referencePlane) scene.remove(referencePlane);
+            if (satelliteGroup) scene.remove(satelliteGroup);
+            
+            satelliteGroup = new THREE.Group();
+            scene.add(satelliteGroup);
+
+            // 创建行星
+            const planetGeometry = new THREE.SphereGeometry(planet.radius, 64, 32);
+            const planetMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x6699ff, 
+                roughness: 0.6,
+                metalness: 0.2
+            });
+            planetMesh = new THREE.Mesh(planetGeometry, planetMaterial);
+            scene.add(planetMesh);
+            
+            let maxSma = 0;
+
+            // 创建卫星轨道
+            satellites.forEach(sat => {
+                const a = sat.semiMajorAxis;
+                const e = sat.eccentricity;
+                const b = a * Math.sqrt(1 - e * e); // 半短轴
+
+                // 创建2D椭圆
+                const curve = new THREE.EllipseCurve(
+                    a * e, 0, // 焦点在原点,中心偏移 a*e
+                    a, b,
+                    0, 2 * Math.PI,
+                    false, 0
+                );
+                
+                const points = curve.getPoints(200);
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                const material = new THREE.LineBasicMaterial({ color: 0x888888, transparent: true, opacity: 0.7 });
+                
+                const orbitLine = new THREE.Line(geometry, material);
+
+                // 应用轨道旋转（3D化）
+                const DEG2RAD = Math.PI / 180;
+                // 1. 近心点幅角 (Argument of Pericenter)
+                orbitLine.rotation.z = sat.argOfPericenter * DEG2RAD;
+                // 2. 轨道倾角 (Inclination)
+                orbitLine.rotateOnWorldAxis(new THREE.Vector3(1,0,0), sat.inclination * DEG2RAD);
+                // 3. 升交点黄经 (Ascending Node)
+                orbitLine.rotateOnWorldAxis(new THREE.Vector3(0,1,0), sat.ascendingNode * DEG2RAD);
+                
+                satelliteGroup.add(orbitLine);
+
+                if (a > maxSma) maxSma = a;
+            });
+            
+            // 创建0度倾角参考平面
+            const planeSize = maxSma > 0 ? maxSma * 2.2 : planet.radius * 20;
+            const planeGeometry = new THREE.PlaneGeometry(planeSize, planeSize, 1, 1);
+            const planeMaterial = new THREE.MeshBasicMaterial({
+                color: 0x00ffff,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.1
+            });
+            referencePlane = new THREE.Mesh(planeGeometry, planeMaterial);
+            referencePlane.rotation.x = -Math.PI / 2;
+            scene.add(referencePlane);
+
+            // 调整相机位置以适应新系统
+            const cameraDistance = maxSma > 0 ? maxSma * 2.5 : planet.radius * 30;
+            camera.position.set(0, cameraDistance / 2, cameraDistance);
+            controls.target.set(0, 0, 0);
+            controls.update();
+        }
+
+        // --- 事件监听 ---
+        document.getElementById('generateBtn').addEventListener('click', generateSystem);
+        
+        // --- 初始调用 ---
+        initThree();
+        generateSystem(); // 页面加载时生成一个默认系统
+    </script>
+</body>
+</html>
