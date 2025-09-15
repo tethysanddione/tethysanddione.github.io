@@ -313,12 +313,33 @@
                 
                 const orbitLine = new THREE.Line(geometry, material);
 
-                const DEG2RAD = Math.PI / 180;
-                orbitLine.rotation.z = sat.argOfPericenter * DEG2RAD;
-                orbitLine.rotateOnWorldAxis(new THREE.Vector3(1,0,0), sat.inclination * DEG2RAD);
-                orbitLine.rotateOnWorldAxis(new THREE.Vector3(0,1,0), sat.ascendingNode * DEG2RAD);
+                // Create a group for this orbit to apply matrix transformations correctly
+                const orbitGroup = new THREE.Group();
+                orbitGroup.add(orbitLine);
+
+                const i_rad = THREE.MathUtils.degToRad(sat.inclination);
+                const w_rad = THREE.MathUtils.degToRad(sat.argOfPericenter);
+                const o_rad = THREE.MathUtils.degToRad(sat.ascendingNode);
+
+                // Create rotation matrices.
+                // 1. Rotate for Argument of Pericenter (around Z-axis of the orbit)
+                const rot_w = new THREE.Matrix4().makeRotationZ(w_rad);
+                // 2. Rotate for Inclination (around X-axis, the line of nodes)
+                const rot_i = new THREE.Matrix4().makeRotationX(i_rad);
+                // 3. Rotate for Longitude of Ascending Node (around Y-axis, the normal to the reference XZ plane)
+                const rot_o = new THREE.Matrix4().makeRotationY(o_rad);
+
+                // Combine matrices. The order of application is W, then I, then O.
+                // So the multiplication order is O * I * W.
+                const rotationMatrix = new THREE.Matrix4();
+                rotationMatrix.multiply(rot_o);
+                rotationMatrix.multiply(rot_i);
+                rotationMatrix.multiply(rot_w);
                 
-                satelliteGroup.add(orbitLine);
+                // Apply the final, combined transformation matrix to the orbit group
+                orbitGroup.applyMatrix4(rotationMatrix);
+                
+                satelliteGroup.add(orbitGroup);
 
                 if (a > maxSma) maxSma = a;
             });
