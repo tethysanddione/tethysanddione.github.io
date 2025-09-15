@@ -355,7 +355,7 @@
             });
             const planeGeometry = new THREE.PlaneGeometry(planeSize, planeSize);
             referencePlane = new THREE.Mesh(planeGeometry, planeMaterial);
-            referencePlane.rotation.x = -Math.PI / 2; // Correctly set to be horizontal (0 inclination)
+            referencePlane.rotation.x = 0; // Correctly set to be horizontal (0 inclination)
             scene.add(referencePlane);
 
             const cameraDistance = maxSma > 0 ? maxSma * 2.5 : planet.radius * 30;
