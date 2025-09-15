@@ -303,9 +303,11 @@
             satellites.forEach(sat => {
                 const a = sat.semiMajorAxis;
                 const e = sat.eccentricity;
-                const b = a * Math.sqrt(1 - e * e);
+                const c = e * a; // distance from center to focus
+                const b = Math.sqrt(a*a - c*c); // semi-minor axis
 
-                const curve = new THREE.EllipseCurve(a * e, 0, a, b, 0, 2 * Math.PI, false, 0);
+                // The curve is created in the XY plane with the focus at the origin
+                const curve = new THREE.EllipseCurve(-c, 0, a, b, 0, 2 * Math.PI, false, 0);
                 
                 const points = curve.getPoints(200);
                 const geometry = new THREE.BufferGeometry().setFromPoints(points);
@@ -313,31 +315,29 @@
                 
                 const orbitLine = new THREE.Line(geometry, material);
 
-                // Create a group for this orbit to apply matrix transformations correctly
                 const orbitGroup = new THREE.Group();
                 orbitGroup.add(orbitLine);
 
+                // Correctly apply orbital elements using matrix transformations, based on the provided example.
                 const i_rad = THREE.MathUtils.degToRad(sat.inclination);
                 const w_rad = THREE.MathUtils.degToRad(sat.argOfPericenter);
                 const o_rad = THREE.MathUtils.degToRad(sat.ascendingNode);
-
-                // Create rotation matrices.
-                // 1. Rotate for Argument of Pericenter (around Z-axis of the orbit)
+                
+                // 1. Argument of Pericenter (rotates orbit in its own plane)
                 const rot_w = new THREE.Matrix4().makeRotationZ(w_rad);
-                // 2. Rotate for Inclination (around X-axis, the line of nodes)
+                // 2. Inclination (tilts the orbital plane)
                 const rot_i = new THREE.Matrix4().makeRotationX(i_rad);
-                // 3. Rotate for Longitude of Ascending Node (around Y-axis, the normal to the reference XZ plane)
-                const rot_o = new THREE.Matrix4().makeRotationY(o_rad);
+                // 3. Longitude of Ascending Node (rotates the tilted plane)
+                const rot_o = new THREE.Matrix4().makeRotationZ(o_rad);
 
-                // Combine matrices. The order of application is W, then I, then O.
-                // So the multiplication order is O * I * W.
+                // Combine the matrices. Order is critical: O * I * W
                 const rotationMatrix = new THREE.Matrix4();
                 rotationMatrix.multiply(rot_o);
                 rotationMatrix.multiply(rot_i);
                 rotationMatrix.multiply(rot_w);
-                
-                // Apply the final, combined transformation matrix to the orbit group
-                orbitGroup.applyMatrix4(rotationMatrix);
+
+                // Apply the final rotation matrix to the orbit group
+                orbitGroup.setRotationFromMatrix(rotationMatrix);
                 
                 satelliteGroup.add(orbitGroup);
 
