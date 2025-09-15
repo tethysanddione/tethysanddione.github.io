@@ -81,6 +81,14 @@
             fill: none;
             transition: stroke-width 0.2s;
         }
+        .view-toggle-btn {
+            background-color: #4a5568;
+            color: #cbd5e0;
+        }
+        .view-toggle-btn.active {
+            background-color: #4299e1;
+            color: white;
+        }
     </style>
 </head>
 <body class="bg-gray-900 min-h-screen flex flex-col items-center justify-center p-4">
@@ -150,6 +158,10 @@
                  <!-- Planetary System Preview -->
                 <div id="planet-system-container" class="hidden mt-4">
                     <h3 class="text-lg font-semibold text-white mb-2 text-center">行星系统预览</h3>
+                    <div class="flex justify-center mb-2">
+                        <button id="orbit-view-btn" class="view-toggle-btn active py-1 px-3 rounded-l-md text-sm">轨道模式</button>
+                        <button id="comparison-view-btn" class="view-toggle-btn py-1 px-3 rounded-r-md text-sm">比较模式</button>
+                    </div>
                     <div id="planet-system-preview" class="w-full h-64 bg-gray-900 rounded-lg"></div>
                 </div>
             </div>
@@ -163,6 +175,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const metallicityValue = document.getElementById('metallicityValue');
     const copyStcButton = document.getElementById('copy-stc-button');
     const stcCodeElement = document.getElementById('stc-code');
+    const orbitViewBtn = document.getElementById('orbit-view-btn');
+    const comparisonViewBtn = document.getElementById('comparison-view-btn');
+
+    let currentPreviewMode = 'orbit';
+    let lastGeneratedSystem = null;
     
     // Constants
     const T_sun = 5778; // K
@@ -192,6 +209,25 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.removeChild(textArea);
         setTimeout(() => { copyStcButton.textContent = "复制"; }, 2000);
     });
+
+    orbitViewBtn.addEventListener('click', () => {
+        currentPreviewMode = 'orbit';
+        orbitViewBtn.classList.add('active');
+        comparisonViewBtn.classList.remove('active');
+        if (lastGeneratedSystem) {
+            drawOrbitView(lastGeneratedSystem.star, lastGeneratedSystem.planets);
+        }
+    });
+
+    comparisonViewBtn.addEventListener('click', () => {
+        currentPreviewMode = 'comparison';
+        comparisonViewBtn.classList.add('active');
+        orbitViewBtn.classList.remove('active');
+        if (lastGeneratedSystem) {
+            drawComparisonView(lastGeneratedSystem.star, lastGeneratedSystem.planets);
+        }
+    });
+
 
     const margin = { top: 20, right: 40, bottom: 50, left: 60 };
     const svgContainer = d3.select("#hr-diagram");
@@ -348,7 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return { count: actualPlanetCount, code: planetsCode, planets: planetsData };
     }
 
-    function drawPlanetarySystem(star, planets) {
+    function drawOrbitView(star, planets) {
         const container = d3.select("#planet-system-preview");
         container.selectAll("*").remove();
         if (planets.length === 0) return;
@@ -358,94 +394,91 @@ document.addEventListener('DOMContentLoaded', () => {
         const height = container.node().getBoundingClientRect().height;
         const centerX = width / 2;
         const centerY = height / 2;
-
-        const minPerihelion = d3.min(planets, d => d.semiMajorAxis * (1 - d.eccentricity));
-        const maxAphelion = d3.max(planets, d => d.semiMajorAxis * (1 + d.eccentricity));
-        const domainStart = Math.max(0.01, minPerihelion); 
-        const radiusScale = d3.scaleLog().domain([domainStart, maxAphelion]).range([15, Math.min(width, height) / 2 - 10]);
         
-        const orbitColors = ["#e74c3c", "#f39c12", "#f1c40f", "#2ecc71", "#3498db", "#9b59b6"]; // Red, Orange, Yellow, Green, Blue, Purple
+        const maxAphelion = d3.max(planets, d => d.semiMajorAxis * (1 + d.eccentricity));
+        const radiusScale = d3.scaleSqrt().domain([0, maxAphelion]).range([0, Math.min(width, height) / 2 - 10]);
+        const orbitColors = ["#e74c3c", "#f39c12", "#f1c40f", "#2ecc71", "#3498db", "#9b59b6"];
         
         planets.forEach((p, i) => {
-            const a = radiusScale(p.semiMajorAxis);
-            if (!isFinite(a)) return;
-            const b = a * Math.sqrt(1 - p.eccentricity * p.eccentricity);
-            const focusOffset = a * p.eccentricity;
-            
-            svg.append("ellipse")
-               .datum(p)
-               .attr("class", "orbit")
-               .style("stroke", orbitColors[i % orbitColors.length])
-               .style("fill", "none")
-               .attr("cx", centerX + focusOffset)
-               .attr("cy", centerY)
-               .attr("rx", a)
-               .attr("ry", b)
+            const perihelionPx = radiusScale(p.semiMajorAxis * (1 - p.eccentricity));
+            const aphelionPx = radiusScale(p.semiMajorAxis * (1 + p.eccentricity));
+            const rx = (aphelionPx + perihelionPx) / 2;
+            const focusOffsetPx = (aphelionPx - perihelionPx) / 2;
+            const ellipseCenterX = centerX - focusOffsetPx;
+            const ry = Math.sqrt(rx**2 - focusOffsetPx**2);
+            if (!isFinite(rx) || !isFinite(ry)) return;
+
+            svg.append("ellipse").datum(p).attr("class", "orbit").style("stroke", orbitColors[i % orbitColors.length]).style("fill", "none").attr("cx", ellipseCenterX).attr("cy", centerY).attr("rx", rx).attr("ry", ry)
                .on("mouseover", (event, d) => {
                     tooltip.transition().duration(200).style("opacity", 0.9);
-                    let tooltipHtml = `<b>行星 (${d.name})</b><br/>` +
-                                        `质量: ${d.mass.toFixed(2)} M⊕<br/>` +
-                                        `半径: ${d.radiusKm.toFixed(0)} km<br/>`;
-
+                    let tooltipHtml = `<b>行星 (${d.name})</b><br/>质量: ${d.mass.toFixed(2)} M⊕<br/>半径: ${d.radiusKm.toFixed(0)} km<br/>`;
                     const effectiveTempCelsius = d.effectiveTemp - 273.15;
-                    if (d.surfaceTemp > d.effectiveTemp + 0.1) {
-                         const surfaceTempCelsius = d.surfaceTemp - 273.15;
-                         tooltipHtml += `表面温度: ${surfaceTempCelsius.toFixed(1)} °C<br/>`;
-                    }
+                    if (d.surfaceTemp > d.effectiveTemp + 0.1) { const surfaceTempCelsius = d.surfaceTemp - 273.15; tooltipHtml += `表面温度: ${surfaceTempCelsius.toFixed(1)} °C<br/>`; }
                     tooltipHtml += `有效温度: ${effectiveTempCelsius.toFixed(1)} °C`;
-                    
-                    if (d.atm >= 0) {
-                        tooltipHtml += `<br/>大气压力: ${d.atm > 0 ? d.atm.toExponential(2) : '无'} atm`;
-                    }
-                    tooltip.html(tooltipHtml)
-                        .style("left", `${event.pageX + 15}px`)
-                        .style("top", `${event.pageY - 28}px`);
+                    if (d.atm >= 0) { tooltipHtml += `<br/>大气压力: ${d.atm > 0 ? d.atm.toExponential(2) : '无'} atm`; }
+                    tooltip.html(tooltipHtml).style("left", `${event.pageX + 15}px`).style("top", `${event.pageY - 28}px`);
                     d3.select(event.currentTarget).style("stroke-width", "3px");
                 })
-                .on("mouseout", (event, d) => {
+                .on("mouseout", () => {
                     tooltip.transition().duration(500).style("opacity", 0);
                     d3.select(event.currentTarget).style("stroke-width", "1px");
                 });
         });
 
-        // Draw star
-        svg.append("circle")
-           .attr("cx", centerX)
-           .attr("cy", centerY)
-           .attr("r", d3.scaleLog().domain([0.1, 100]).range([3, 15])(star.mass))
-           .attr("fill", getStarColor(star.temp));
+        svg.append("circle").attr("cx", centerX).attr("cy", centerY).attr("r", d3.scaleLog().domain([0.1, 100]).range([3, 15])(star.mass)).attr("fill", getStarColor(star.temp));
     }
 
+    function drawComparisonView(star, planets) {
+        const container = d3.select("#planet-system-preview");
+        container.selectAll("*").remove();
+        
+        const svg = container.append("svg").attr("id", "planet-system-svg").attr("width", "100%").attr("height", "100%");
+        const width = container.node().getBoundingClientRect().width;
+        const height = container.node().getBoundingClientRect().height;
+        
+        const allObjects = [star, ...planets];
+        const maxRadius = d3.max(allObjects, d => d.radiusKm);
+        const radiusScale = d3.scaleLinear().domain([0, maxRadius]).range([1, height / 2 - 10]);
+        
+        const totalWidth = d3.sum(allObjects, d => radiusScale(d.radiusKm) * 2) + (allObjects.length - 1) * 10;
+        let currentX = (width - totalWidth) / 2;
+
+        allObjects.forEach((obj, i) => {
+            const radiusPx = radiusScale(obj.radiusKm);
+            const isStar = i === 0;
+            const color = isStar ? getStarColor(obj.temp) : getStarColor(obj.effectiveTemp);
+            
+            svg.append("circle").datum(obj).attr("cx", currentX + radiusPx).attr("cy", height / 2).attr("r", radiusPx).attr("fill", color)
+                .on("mouseover", (event, d) => {
+                    tooltip.transition().duration(200).style("opacity", 0.9);
+                    let tooltipHtml = "";
+                    if (isStar) {
+                        tooltipHtml = `<b>恒星</b><br/>质量: ${d.mass.toFixed(2)} M☉<br/>半径: ${d.radiusKm.toFixed(0)} km<br/>温度: ${d.temp.toFixed(0)} K`;
+                    } else {
+                        tooltipHtml = `<b>行星 (${d.name})</b><br/>质量: ${d.mass.toFixed(2)} M⊕<br/>半径: ${d.radiusKm.toFixed(0)} km<br/>`;
+                        const effectiveTempCelsius = d.effectiveTemp - 273.15;
+                        if (d.surfaceTemp > d.effectiveTemp + 0.1) { const surfaceTempCelsius = d.surfaceTemp - 273.15; tooltipHtml += `表面温度: ${surfaceTempCelsius.toFixed(1)} °C<br/>`; }
+                        tooltipHtml += `有效温度: ${effectiveTempCelsius.toFixed(1)} °C`;
+                        if (d.atm >= 0) { tooltipHtml += `<br/>大气压力: ${d.atm > 0 ? d.atm.toExponential(2) : '无'} atm`; }
+                    }
+                    tooltip.html(tooltipHtml).style("left", `${event.pageX + 15}px`).style("top", `${event.pageY - 28}px`);
+                })
+                .on("mouseout", () => tooltip.transition().duration(500).style("opacity", 0));
+            currentX += radiusPx * 2 + 10;
+        });
+    }
 
     const generateStar = () => {
         let mass = generateStellarMass();
         const fe_h = parseFloat(metallicitySlider.value);
-        
         const typeRoll = Math.random();
         let starType, stageName, stageDescription;
 
-        if (typeRoll < 0.985) {
-            starType = "Main Sequence";
-            stageName = "主序星 (零龄)";
-            stageDescription = "这是一颗刚刚诞生、进入主序阶段的恒星。它的核心正开始稳定的氢聚变反应。";
-        } else if (typeRoll < 0.988) { // 0.3% chance
-            starType = "Subgiant";
-            stageName = "亚巨星";
-            stageDescription = "这颗恒星已耗尽核心的氢，正在向红巨星阶段演化。它的外层开始膨胀和冷却。";
-            while (mass < 0.7) {
-                mass = generateStellarMass();
-            }
-        } else { // 1.2% chance
-            starType = "Red Giant";
-            stageName = "红巨星";
-            stageDescription = "这颗恒星处于其生命的后期阶段，体积巨大但表面温度较低。核心可能正在进行氦或更重元素的聚变。";
-            while (mass < 0.7) {
-                mass = generateStellarMass();
-            }
-        }
+        if (typeRoll < 0.985) { starType = "Main Sequence"; stageName = "主序星 (零龄)"; stageDescription = "这是一颗刚刚诞生、进入主序阶段的恒星。它的核心正开始稳定的氢聚变反应。"; } 
+        else if (typeRoll < 0.988) { starType = "Subgiant"; stageName = "亚巨星"; stageDescription = "这颗恒星已耗尽核心的氢，正在向红巨星阶段演化。它的外层开始膨胀和冷却。"; while (mass < 0.7) mass = generateStellarMass(); } 
+        else { starType = "Red Giant"; stageName = "红巨星"; stageDescription = "这颗恒星处于其生命的后期阶段，体积巨大但表面温度较低。核心可能正在进行氦或更重元素的聚变。"; while (mass < 0.7) mass = generateStellarMass(); }
         
         hrSvg.selectAll(".current-star").remove();
-
         document.getElementById('initial-message').classList.add('hidden');
         document.getElementById('simulation-output').classList.remove('hidden');
         document.getElementById('stc-output').classList.remove('hidden');
@@ -453,33 +486,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const initialZAMSProps = getZAMSProps(mass, fe_h);
         let lum, temp;
 
-        if (starType === "Main Sequence") {
-            lum = initialZAMSProps.lum;
-            temp = initialZAMSProps.temp;
-        } else if (starType === "Subgiant") {
-            lum = initialZAMSProps.lum * (2.5 + Math.random());
-            temp = initialZAMSProps.temp * (1 - (0.05 + Math.random() * 0.15));
-        } else { // Red Giant
-            const y = 2 + Math.random() * 1.33;
-            const x = fe_h;
-            const metal_lum_mod = x < 0 ? Math.pow(10, -3 * x) : Math.pow(10, 0.4 * x);
-            lum = mass * Math.pow(10, y) * metal_lum_mod;
-
-            const z = 0.03 + Math.random() * 0.036;
-            temp = Math.pow(initialZAMSProps.temp, 1 - z + 0.02 * Math.abs(x));
-        }
+        if (starType === "Main Sequence") { lum = initialZAMSProps.lum; temp = initialZAMSProps.temp; } 
+        else if (starType === "Subgiant") { lum = initialZAMSProps.lum * (2.5 + Math.random()); temp = initialZAMSProps.temp * (1 - (0.05 + Math.random() * 0.15)); } 
+        else { const y = 2 + Math.random() * 1.33; const x = fe_h; const metal_lum_mod = x < 0 ? Math.pow(10, -3 * x) : Math.pow(10, 0.4 * x); lum = mass * Math.pow(10, y) * metal_lum_mod; const z = 0.03 + Math.random() * 0.036; temp = Math.pow(initialZAMSProps.temp, 1 - z + 0.02 * Math.abs(x)); }
 
         const rad = calculateRadius(lum, temp);
         const ms_lifetime = (1e10 * Math.pow(mass, -2.5)) / Math.pow(10, fe_h * -0.1);
         const color = getStarColor(temp);
         const radiusKm = rad * SUN_RADIUS_KM;
-
         const starDataForPlanets = { mass, radiusKm, fe_h, temp, id: `DSS-${Math.floor(1000 + Math.random() * 9000)}` };
         const planetarySystem = generatePlanetarySystem(starDataForPlanets);
+        lastGeneratedSystem = { star: starDataForPlanets, planets: planetarySystem.planets };
 
         if (planetarySystem.count > 0) {
             document.getElementById('planet-system-container').classList.remove('hidden');
-            drawPlanetarySystem(starDataForPlanets, planetarySystem.planets);
+            if (currentPreviewMode === 'orbit') { drawOrbitView(starDataForPlanets, planetarySystem.planets); } 
+            else { drawComparisonView(starDataForPlanets, planetarySystem.planets); }
         } else {
             document.getElementById('planet-system-container').classList.add('hidden');
         }
@@ -494,34 +516,17 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('luminosity').textContent = `${lum.toExponential(2)} L☉`;
         document.getElementById('radius').textContent = `${rad.toExponential(2)} R☉`;
 
-        const ra = (Math.random() * 360).toFixed(6);
-        const dec = (Math.random() * 180 - 90).toFixed(6);
-        const distance = (2000 + Math.random() * 6000).toFixed(4);
-        const sunAbsMag = 4.83;
-        const absMag = sunAbsMag - 2.5 * Math.log10(lum);
-        const spectralType = getSpectralType(temp);
-
+        const ra = (Math.random() * 360).toFixed(6); const dec = (Math.random() * 180 - 90).toFixed(6); const distance = (2000 + Math.random() * 6000).toFixed(4); const sunAbsMag = 4.83; const absMag = sunAbsMag - 2.5 * Math.log10(lum); const spectralType = getSpectralType(temp);
         let starCode = `"${starDataForPlanets.id}"\n{\n\tRA ${ra}\n\tDec ${dec}\n\tDistance ${distance}\n\tAbsMag ${absMag.toFixed(3)}\n\tSpectralType "${spectralType}"\n\tRadius ${radiusKm.toFixed(0)}\n\tMass ${mass.toFixed(3)}\n\tTemperature ${temp.toFixed(0)}\n}`;
         stcCodeElement.textContent = starCode + planetarySystem.code;
 
         if (lum > 0 && temp > 0 && isFinite(lum) && isFinite(temp)) {
-            const cx = hrX(temp);
-            const cy = hrY(lum);
-            const starPoint = hrSvg.append("circle")
-                .attr("class", "current-star")
-                .attr("cx", cx)
-                .attr("cy", cy)
-                .attr("r", 8)
-                .attr("fill", color)
-                .attr("stroke", "white")
-                .attr("stroke-width", 2);
-            
-            starPoint.on("mouseover", (event) => {
-                tooltip.transition().duration(200).style("opacity", .9);
-                tooltip.html(`<b>${stageName}</b><br/>质量: ${mass.toFixed(2)} M☉<br/>[Fe/H]: ${fe_h.toFixed(1)}<br/>T: ${temp.toFixed(0)} K<br/>L: ${lum.toExponential(2)} L☉`)
-                       .style("left", `${event.pageX + 15}px`)
-                       .style("top", `${event.pageY - 28}px`);
-            }).on("mouseout", () => tooltip.transition().duration(500).style("opacity", 0));
+            const cx = hrX(temp); const cy = hrY(lum);
+            const starPoint = hrSvg.append("circle").attr("class", "current-star").attr("cx", cx).attr("cy", cy).attr("r", 8).attr("fill", color).attr("stroke", "white").attr("stroke-width", 2)
+                .on("mouseover", (event) => {
+                    tooltip.transition().duration(200).style("opacity", .9);
+                    tooltip.html(`<b>${stageName}</b><br/>质量: ${mass.toFixed(2)} M☉<br/>[Fe/H]: ${fe_h.toFixed(1)}<br/>T: ${temp.toFixed(0)} K<br/>L: ${lum.toExponential(2)} L☉`).style("left", `${event.pageX + 15}px`).style("top", `${event.pageY - 28}px`);
+                }).on("mouseout", () => tooltip.transition().duration(500).style("opacity", 0));
         }
     };
 
