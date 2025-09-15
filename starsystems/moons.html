@@ -84,16 +84,15 @@
             scene = new THREE.Scene();
             
             const aspect = container.clientWidth / container.clientHeight || 1;
-            camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1e12);
+            camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1e15);
             camera.position.set(0, 500000, 1000000);
 
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setClearColor( 0x000000, 0 ); // apha: true and this needed for transparent bg
+            renderer.setClearColor( 0x000000, 0 );
             renderer.setSize(container.clientWidth, container.clientHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
             container.appendChild(renderer.domElement);
             container.style.background = `radial-gradient(ellipse at center, #1a202c 0%, #000000 70%)`;
-
 
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
@@ -106,7 +105,6 @@
             scene.add(directionalLight);
 
             window.addEventListener('resize', onWindowResize, false);
-
             animate();
         }
 
@@ -125,7 +123,6 @@
 
         // --- 核心生成逻辑 ---
 
-        // Box-Muller 变换生成正态分布随机数
         function getNormallyDistributedRandom(mean, stddev) {
             let u1 = 0, u2 = 0;
             while (u1 === 0) u1 = Math.random();
@@ -134,7 +131,6 @@
             return z0 * stddev + mean;
         }
 
-        // 生成器主函数
         function generateSystem() {
             const planetName = document.getElementById('planetName').value || 'PlanetX';
             const starName = document.getElementById('starName').value || 'StarY';
@@ -147,19 +143,16 @@
                 return;
             }
 
-            // 1. 计算卫星总质量
             const massExponent = getNormallyDistributedRandom(-1, 0.5);
             const totalSatelliteMassRatio = Math.pow(10, massExponent) / 100;
             let totalSatelliteMass = planetMass * totalSatelliteMassRatio;
 
-            // 2. 确定卫星数量
             const massInEarths = planetMass / EARTH_MASS;
             const meanSatellites = Math.ceil(massInEarths * 0.1);
             const stdDevSatellites = meanSatellites;
             let numSatellites = Math.round(getNormallyDistributedRandom(meanSatellites, stdDevSatellites));
             if (numSatellites < 0) numSatellites = 0;
 
-            // --- 阶段1: 生成所有卫星的基本物理属性 ---
             const satelliteProperties = [];
             let remainingMass = totalSatelliteMass;
             for (let i = 0; i < numSatellites; i++) {
@@ -167,43 +160,52 @@
                 const massFraction = (i === numSatellites - 1) ? 1.0 : Math.random() * 0.9;
                 const satelliteMass = remainingMass * massFraction;
                 remainingMass -= satelliteMass;
-
                 if (satelliteMass < 1e15) continue;
-
                 const density_g_cm3 = isBeyondSnowLine ? 
                     1.21 + Math.random() * (4.84 - 1.21) : 
                     2.76 + Math.random() * (6.25 - 2.76);
                 const density_kg_m3 = density_g_cm3 * 1000;
-                
                 const satelliteRadius = Math.cbrt((3 * satelliteMass) / (4 * Math.PI * density_kg_m3));
                 satelliteProperties.push({ mass: satelliteMass, radius: satelliteRadius, density: density_kg_m3 });
             }
 
-            // --- 阶段2: 放置卫星并计算轨道 ---
             let outputText = '';
             const satellitesData = [];
             let largestSatellite = { radius: 0, name: '', mass: 0 };
             
             const planetDensity = planetMass / ((4/3) * Math.PI * Math.pow(planetRadius, 3));
-            let lastApoapsis = planetRadius * 2.44*10^-3 * Math.pow(planetDensity / (satelliteProperties[0]?.density || 3000), 1/3) * 1.5; // Start just outside Roche limit
-            
+            let lastApoapsis = 0;
+
             for (let i = 0; i < satelliteProperties.length; i++) {
                 const satProp = satelliteProperties[i];
                 
-                // 计算希尔球半径作为间距参考
-                const hillRadius = lastApoapsis * Math.cbrt(satProp.mass / (3 * planetMass));
-                const minSma = lastApoapsis + (5 * hillRadius); // 至少5倍希尔球半径的间距
-                
-                // 在最小距离上增加随机性
-                const semiMajorAxis = minSma * (1 + Math.random() * 1.5);
-                
+                let semiMajorAxis;
                 let eccentricity = getNormallyDistributedRandom(0.05, 0.04);
                 if (eccentricity < 0) eccentricity = 0;
-                if (eccentricity >= 1) eccentricity = 0.9;
+                if (eccentricity >= 0.8) eccentricity = 0.8;
+
+                if (i === 0) {
+                    // 第一颗卫星：在洛希极限外的一个大范围内随机放置，以确定系统规模
+                    const rocheLimit = planetRadius * 2.44 * Math.pow(planetDensity / satProp.density, 1/3);
+                    let sma_multiplier = 2 + 7 * Math.pow(Math.random(), 2); // Power law makes closer orbits more likely
+                    if (satProp.radius < 100000) { // Small satellites tend to be further out
+                        sma_multiplier = 2 + 198 * Math.pow(Math.random(), 0.5);
+                    }
+                    semiMajorAxis = rocheLimit * sma_multiplier;
+                } else {
+                    // 后续卫星：在前一颗轨道外，基于希尔球计算安全距离
+                    const prevSatProp = satelliteProperties[i-1];
+                    const hillRadius = lastApoapsis * Math.cbrt(prevSatProp.mass / (3 * planetMass));
+                    const separation = (6 + Math.random() * 18) * hillRadius;
+                    const minPeriapsis = lastApoapsis + separation;
+                    semiMajorAxis = minPeriapsis / (1 - eccentricity);
+                }
+
+                lastApoapsis = semiMajorAxis * (1 + eccentricity);
+                const AU = 1.496e11; 
+                if (lastApoapsis > 0.5 * AU) break;
                 
-                lastApoapsis = semiMajorAxis * (1 + eccentricity); // 更新下一个卫星的起始距离
-                
-                const incStdDev = (satProp.radius < 100000) ? 15 : 3;
+                const incStdDev = (satProp.radius < 100000) ? 30 : 3;
                 const inclination = getNormallyDistributedRandom(0, incStdDev);
 
                 const period_seconds = 2 * Math.PI * Math.sqrt(Math.pow(semiMajorAxis, 3) / (G * planetMass));
@@ -219,14 +221,16 @@
                 if (satProp.radius > largestSatellite.radius) {
                     largestSatellite = { radius: satProp.radius, name: satName, mass: satProp.mass };
                 }
+                
+                const semiMajorAxis_km = semiMajorAxis / 1000;
 
                 outputText += `"${satName}" "${satCode}"\n{\n`;
                 outputText += `    Texture         "${satName}.*"\n`;
                 outputText += `    Mass            ${(satProp.mass / EARTH_MASS).toExponential(5)}\n`;
                 outputText += `    Radius          ${(satProp.radius / 1000).toFixed(2)}\n\n`;
                 outputText += `    EllipticalOrbit\n    {\n`;
-                outputText += `        Period          ${period_days.toFixed(4)}\n`;
-                outputText += `        SemiMajorAxis   ${semiMajorAxis.toFixed(0)}\n`;
+                outputText += `        Period_days     ${period_days.toFixed(4)}\n`;
+                outputText += `        SemiMajorAxis_km ${semiMajorAxis_km.toFixed(2)}\n`;
                 outputText += `        Eccentricity    ${eccentricity.toFixed(4)}\n`;
                 outputText += `        Inclination     ${inclination.toFixed(2)}\n`;
                 outputText += `        AscendingNode   ${ascendingNode.toFixed(5)}\n`;
@@ -243,35 +247,24 @@
             document.getElementById('output').textContent = outputText || "未生成卫星（参数可能导致卫星过少或过小）。";
             updateVisualization({ radius: planetRadius }, satellitesData);
             
-            const satelliteCountEl = document.getElementById('satellite-count');
-            const largestSatelliteEl = document.getElementById('largest-satellite');
-
-            satelliteCountEl.textContent = satellitesData.length;
-
+            document.getElementById('satellite-count').textContent = satellitesData.length;
             if (satellitesData.length > 0) {
                 const largestInfo = `${largestSatellite.name} (半径: ${(largestSatellite.radius / 1000).toFixed(0)} km, 质量: ${(largestSatellite.mass / EARTH_MASS).toExponential(2)} 地球质量)`;
-                largestSatelliteEl.textContent = largestInfo;
+                document.getElementById('largest-satellite').textContent = largestInfo;
             } else {
-                largestSatelliteEl.textContent = 'N/A';
+                document.getElementById('largest-satellite').textContent = 'N/A';
             }
         }
         
-        // --- 可视化更新 ---
-
         function createCheckerboardTexture(size = 128, squares = 8) {
             const canvas = document.createElement('canvas');
             canvas.width = size;
             canvas.height = size;
             const context = canvas.getContext('2d');
             const squareSize = size / squares;
-
             for (let i = 0; i < squares; i++) {
                 for (let j = 0; j < squares; j++) {
-                    if ((i + j) % 2 === 0) {
-                        context.fillStyle = 'rgba(0, 255, 255, 0.15)'; // Cyan with opacity
-                    } else {
-                        context.fillStyle = 'rgba(0, 0, 0, 0)'; // Transparent
-                    }
+                    context.fillStyle = ((i + j) % 2 === 0) ? 'rgba(0, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0)';
                     context.fillRect(i * squareSize, j * squareSize, squareSize, squareSize);
                 }
             }
@@ -282,92 +275,75 @@
         }
 
         function updateVisualization(planet, satellites) {
-            if (planetMesh) scene.remove(planetMesh);
-            if (referencePlane) scene.remove(referencePlane);
-            if (satelliteGroup) scene.remove(satelliteGroup);
+            while(scene.children.length > 0){ scene.remove(scene.children[0]); }
             
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(1, 1, 1);
+            scene.add(directionalLight);
+
             satelliteGroup = new THREE.Group();
             scene.add(satelliteGroup);
-
-            const planetGeometry = new THREE.SphereGeometry(planet.radius, 64, 32);
-            const planetMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x6699ff, 
-                roughness: 0.6,
-                metalness: 0.2
+            
+            let maxApoapsis = 0;
+            satellites.forEach(sat => {
+                const apoapsis = sat.semiMajorAxis * (1 + sat.eccentricity);
+                if (apoapsis > maxApoapsis) maxApoapsis = apoapsis;
             });
+            if (maxApoapsis === 0) maxApoapsis = planet.radius * 20;
+
+            const SCENE_SCALE_TARGET = 1000000;
+            const scale = SCENE_SCALE_TARGET / maxApoapsis;
+
+            const scaledPlanetRadius = planet.radius * scale;
+            const planetGeometry = new THREE.SphereGeometry(scaledPlanetRadius > 0.1 ? scaledPlanetRadius : 0.1, 64, 32);
+            const planetMaterial = new THREE.MeshStandardMaterial({ color: 0x6699ff, roughness: 0.6, metalness: 0.2 });
             planetMesh = new THREE.Mesh(planetGeometry, planetMaterial);
             scene.add(planetMesh);
             
-            let maxSma = 0;
-
             satellites.forEach(sat => {
-                const a = sat.semiMajorAxis;
+                const a = sat.semiMajorAxis * scale;
                 const e = sat.eccentricity;
-                const c = e * a; // distance from center to focus
-                const b = Math.sqrt(a*a - c*c); // semi-minor axis
-
-                // The curve is created in the XY plane with the focus at the origin
+                const c = e * a;
+                const b = Math.sqrt(a*a - c*c);
                 const curve = new THREE.EllipseCurve(-c, 0, a, b, 0, 2 * Math.PI, false, 0);
-                
                 const points = curve.getPoints(200);
                 const geometry = new THREE.BufferGeometry().setFromPoints(points);
                 const material = new THREE.LineBasicMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.6 });
-                
                 const orbitLine = new THREE.Line(geometry, material);
-
                 const orbitGroup = new THREE.Group();
                 orbitGroup.add(orbitLine);
-
-                // Correctly apply orbital elements using matrix transformations, based on the provided example.
                 const i_rad = THREE.MathUtils.degToRad(sat.inclination);
                 const w_rad = THREE.MathUtils.degToRad(sat.argOfPericenter);
                 const o_rad = THREE.MathUtils.degToRad(sat.ascendingNode);
-                
-                // 1. Argument of Pericenter (rotates orbit in its own plane)
                 const rot_w = new THREE.Matrix4().makeRotationZ(w_rad);
-                // 2. Inclination (tilts the orbital plane)
                 const rot_i = new THREE.Matrix4().makeRotationX(i_rad);
-                // 3. Longitude of Ascending Node (rotates the tilted plane)
                 const rot_o = new THREE.Matrix4().makeRotationZ(o_rad);
-
-                // Combine the matrices. Order is critical: O * I * W
-                const rotationMatrix = new THREE.Matrix4();
-                rotationMatrix.multiply(rot_o);
-                rotationMatrix.multiply(rot_i);
-                rotationMatrix.multiply(rot_w);
-
-                // Apply the final rotation matrix to the orbit group
+                const rotationMatrix = new THREE.Matrix4().multiply(rot_o).multiply(rot_i).multiply(rot_w);
                 orbitGroup.setRotationFromMatrix(rotationMatrix);
-                
                 satelliteGroup.add(orbitGroup);
-
-                if (a > maxSma) maxSma = a;
             });
             
-            const planeSize = maxSma > 0 ? maxSma * 2.2 : planet.radius * 20;
+            const scaledPlaneSize = maxApoapsis * 2.2 * scale;
             const texture = createCheckerboardTexture();
-            texture.repeat.set(20, 20); // Repeat the texture for a finer grid
-
-            const planeMaterial = new THREE.MeshBasicMaterial({
-                map: texture,
-                side: THREE.DoubleSide,
-                transparent: true
-            });
-            const planeGeometry = new THREE.PlaneGeometry(planeSize, planeSize);
+            texture.repeat.set(20, 20);
+            const planeMaterial = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide, transparent: true });
+            const planeGeometry = new THREE.PlaneGeometry(scaledPlaneSize, scaledPlaneSize);
             referencePlane = new THREE.Mesh(planeGeometry, planeMaterial);
-            referencePlane.rotation.x = 0; // Correctly set to be horizontal (0 inclination)
+            referencePlane.rotation.x =0;
             scene.add(referencePlane);
 
-            const cameraDistance = maxSma > 0 ? maxSma * 2.5 : planet.radius * 30;
-            camera.position.set(0, cameraDistance / 2, cameraDistance);
+            const scaledCameraDistance = maxApoapsis * 2.5 * scale;
+            camera.position.set(0, scaledCameraDistance * 0.7, scaledCameraDistance * 0.7);
             controls.target.set(0, 0, 0);
+            camera.near = scaledPlanetRadius > 0 ? scaledPlanetRadius / 10 : 0.1;
+            camera.far = scaledCameraDistance * 3;
+            camera.updateProjectionMatrix();
             controls.update();
         }
 
-        // --- 事件监听 ---
         document.getElementById('generateBtn').addEventListener('click', generateSystem);
-        
-        // --- 初始调用 ---
         initThree();
         generateSystem();
     </script>
