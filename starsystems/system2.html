@@ -303,6 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
             actualPlanetCount++;
             
             const effectiveTemp = star.temp * Math.sqrt(star.radiusKm / (2 * semiMajorAxis * AU_KM)) * Math.pow(1 - albedo, 0.25);
+            let surfaceTemp = effectiveTemp;
             
             let hasAtmosphere = true;
             if (planetType === 'rocky') {
@@ -325,11 +326,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(planetType === 'rocky') {
                     const atmExponent = normalRandom();
                     atm = Math.pow(10, atmExponent);
+                    const greenhouseEffect = 30 * Math.pow(atm, 0.5) * (0.1 + Math.random() * 0.9);
+                    surfaceTemp += greenhouseEffect;
                     const maxRGB = Math.min(0.01, 0.0005 + 0.0045 * (Math.log10(atm * 100)/4 + 1));
                     rayleigh = [ (Math.random() * 0.5 + 0.5) * maxRGB, (Math.random() * 0.5 + 0.5) * maxRGB, (Math.random() * 0.5 + 0.5) * maxRGB, ];
                 } else { 
                     atm = -1; // Sentinel for gas giants
-                    rayleigh = [ 0.0005 + Math.random() * 0.0095, 0.0005 + Math.random() * 0.0095, 0.0005 + Math.random() * 0.0095, ];
+                    rayleigh = [ 0.00005 + Math.random() * 0.00095, 0.00005 + Math.random() * 0.00095, 0.00005 + Math.random() * 0.00095, ];
                 }
                 atmosphereCode = `\tAtmosphere\n\t{\n\t\tHeight ${atmosphereHeight}\n\t\tMieScaleHeight ${mieScaleHeight}\n\t\tMie ${mie.toFixed(5)}\n\t\tMieAsymmetry ${mieAsymmetry.toFixed(2)}\n\t\tRayleigh [ ${rayleigh[0].toExponential(2)} ${rayleigh[1].toExponential(2)} ${rayleigh[2].toExponential(2)} ]\n\t}\n`;
             }
@@ -340,7 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const rot_inc = 180 * Math.pow(Math.random(), 2); const rot_asc = Math.random() * 360;
 
             planetsCode += `\n"${planetNames[i]}" "${star.id}"\n{\n\tMass ${mass.toFixed(2)}\n\tRadius ${radius.toFixed(0)}\n\tEllipticalOrbit\n\t{\n\t\tPeriod ${(orbitalPeriodDays / 365.25).toFixed(4)}\n\t\tSemiMajorAxis ${semiMajorAxis.toFixed(4)}\n\t\tEccentricity ${ecc.toFixed(4)}\n\t\tInclination ${orb_inc.toFixed(4)}\n\t\tAscendingNode ${orb_asc.toFixed(4)}\n\t\tArgOfPericenter ${orb_peri.toFixed(4)}\n\t\tMeanAnomaly ${orb_ma.toFixed(4)}\n\t}\n${atmosphereCode}\tUniformRotation\n\t{\n\t\tPeriod ${rotPeriod.toFixed(2)}\n\t\tInclination ${rot_inc.toFixed(1)}\n\t\tAscendingNode ${rot_asc.toFixed(1)}\n\t}\n}`;
-            planetsData.push({ name: planetNames[i], semiMajorAxis, eccentricity: ecc, radiusKm: radius, mass, effectiveTemp, atm });
+            planetsData.push({ name: planetNames[i], semiMajorAxis, eccentricity: ecc, radiusKm: radius, mass, effectiveTemp, surfaceTemp, atm });
         }
         return { count: actualPlanetCount, code: planetsCode, planets: planetsData };
     }
@@ -380,12 +383,18 @@ document.addEventListener('DOMContentLoaded', () => {
                .attr("ry", b)
                .on("mouseover", (event, d) => {
                     tooltip.transition().duration(200).style("opacity", 0.9);
-                    const tempCelsius = d.effectiveTemp - 273.15;
                     let tooltipHtml = `<b>行星 (${d.name})</b><br/>` +
                                         `质量: ${d.mass.toFixed(2)} M⊕<br/>` +
-                                        `半径: ${d.radiusKm.toFixed(0)} km<br/>` +
-                                        `有效温度: ${tempCelsius.toFixed(1)} °C (${d.effectiveTemp.toFixed(1)} K)`;
-                    if (d.atm >= 0) { // atm is -1 for gas giants
+                                        `半径: ${d.radiusKm.toFixed(0)} km<br/>`;
+
+                    const effectiveTempCelsius = d.effectiveTemp - 273.15;
+                    if (d.surfaceTemp > d.effectiveTemp + 0.1) {
+                         const surfaceTempCelsius = d.surfaceTemp - 273.15;
+                         tooltipHtml += `表面温度: ${surfaceTempCelsius.toFixed(1)} °C<br/>`;
+                    }
+                    tooltipHtml += `有效温度: ${effectiveTempCelsius.toFixed(1)} °C`;
+                    
+                    if (d.atm >= 0) {
                         tooltipHtml += `<br/>大气压力: ${d.atm > 0 ? d.atm.toExponential(2) : '无'} atm`;
                     }
                     tooltip.html(tooltipHtml)
