@@ -185,7 +185,7 @@
             let largestSatellite = { radius: 0, name: '', mass: 0 };
             
             const planetDensity = planetMass / ((4/3) * Math.PI * Math.pow(planetRadius, 3));
-            let lastApoapsis = planetRadius * 2.44 * Math.pow(planetDensity / (satelliteProperties[0]?.density || 3000), 1/3) * 1.5; // Start just outside Roche limit
+            let lastApoapsis = planetRadius * 2.44*10^-3 * Math.pow(planetDensity / (satelliteProperties[0]?.density || 3000), 1/3) * 1.5; // Start just outside Roche limit
             
             for (let i = 0; i < satelliteProperties.length; i++) {
                 const satProp = satelliteProperties[i];
@@ -202,11 +202,6 @@
                 if (eccentricity >= 1) eccentricity = 0.9;
                 
                 lastApoapsis = semiMajorAxis * (1 + eccentricity); // 更新下一个卫星的起始距离
-                
-                // 物理限制：防止系统范围过大
-                if (lastApoapsis > 191 * planetRadius * 2.44 * Math.pow(planetDensity / (satelliteProperties[0]?.density || 3000), 1/3) * 1.5) {
-                    break; // 系统过大，停止添加更多卫星
-                }
                 
                 const incStdDev = (satProp.radius < 100000) ? 15 : 3;
                 const inclination = getNormallyDistributedRandom(0, incStdDev);
