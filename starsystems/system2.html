@@ -77,7 +77,6 @@
             cursor: pointer;
         }
         #planet-system-svg .orbit {
-            stroke: #555;
             stroke-width: 1px;
             fill: none;
         }
@@ -277,11 +276,9 @@ document.addEventListener('DOMContentLoaded', () => {
             radius = radiusM / 1000;
 
             const ecc = Math.random() * 0.3;
-            // **FIX START**: Corrected orbital separation logic
             const separationFactor = 1.4 + Math.random() * 1.2;
             const newPerihelion = lastAphelionAU * separationFactor;
             const semiMajorAxis = newPerihelion / (1 - ecc);
-            // **FIX END**
 
             if (semiMajorAxis > maxAU) break;
             lastAphelionAU = semiMajorAxis * (1 + ecc);
@@ -303,29 +300,30 @@ document.addEventListener('DOMContentLoaded', () => {
         container.selectAll("*").remove();
         if (planets.length === 0) return;
 
-        const svg = container.append("svg").attr("width", "100%").attr("height", "100%");
+        const svg = container.append("svg").attr("id", "planet-system-svg").attr("width", "100%").attr("height", "100%");
         const width = container.node().getBoundingClientRect().width;
         const height = container.node().getBoundingClientRect().height;
         const centerX = width / 2;
         const centerY = height / 2;
 
-        // **FIX START**: Corrected scaling for orbits
         const minPerihelion = d3.min(planets, d => d.semiMajorAxis * (1 - d.eccentricity));
         const maxAphelion = d3.max(planets, d => d.semiMajorAxis * (1 + d.eccentricity));
-        const domainStart = Math.max(0.01, minPerihelion); // Prevent domain from starting at or below 0
+        const domainStart = Math.max(0.01, minPerihelion); 
         const radiusScale = d3.scaleLog().domain([domainStart, maxAphelion]).range([15, Math.min(width, height) / 2 - 10]);
-        // **FIX END**
         
-        // Draw orbits
-        planets.forEach(p => {
+        const orbitColors = ["#e74c3c", "#f39c12", "#f1c40f", "#2ecc71", "#3498db", "#9b59b6"]; // Red, Orange, Yellow, Green, Blue, Purple
+        
+        planets.forEach((p, i) => {
             const a = radiusScale(p.semiMajorAxis);
-            if (!isFinite(a)) return; // Skip if scaling fails
+            if (!isFinite(a)) return;
             const b = a * Math.sqrt(1 - p.eccentricity * p.eccentricity);
             const focusOffset = a * p.eccentricity;
             
             svg.append("ellipse")
                .attr("class", "orbit")
-               .attr("cx", centerX - focusOffset) // Place star at one focus
+               .style("stroke", orbitColors[i % orbitColors.length])
+               .style("fill", "none") // Ensure orbits are not filled
+               .attr("cx", centerX + focusOffset) // Place star at one focus
                .attr("cy", centerY)
                .attr("rx", a)
                .attr("ry", b);
