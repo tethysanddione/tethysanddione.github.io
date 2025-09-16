@@ -155,17 +155,19 @@
                         <button id="copy-stc-button" class="absolute top-2 right-2 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-1 px-3 rounded-md text-xs">复制</button>
                     </div>
                 </div>
-                 <!-- Planetary System Preview -->
-                <div id="planet-system-container" class="hidden mt-4">
-                    <h3 class="text-lg font-semibold text-white mb-2 text-center">行星系统预览</h3>
-                    <div class="flex justify-center mb-2">
-                        <button id="orbit-view-btn" class="view-toggle-btn active py-1 px-3 rounded-l-md text-sm">轨道模式</button>
-                        <button id="comparison-view-btn" class="view-toggle-btn py-1 px-3 rounded-r-md text-sm">比较模式</button>
-                    </div>
-                    <div id="planet-system-preview" class="w-full h-64 bg-gray-900 rounded-lg"></div>
-                </div>
             </div>
         </div>
+        
+        <!-- Planetary System Preview Module -->
+        <div id="planet-system-container" class="hidden mt-6 md:mt-8 bg-gray-900/70 p-4 rounded-xl border border-gray-700">
+            <h3 class="text-lg font-semibold text-white mb-2 text-center">行星系统预览</h3>
+            <div class="flex justify-center mb-2">
+                <button id="orbit-view-btn" class="view-toggle-btn active py-1 px-3 rounded-l-md text-sm">轨道模式</button>
+                <button id="comparison-view-btn" class="view-toggle-btn py-1 px-3 rounded-r-md text-sm">比较模式</button>
+            </div>
+            <div id="planet-system-preview" class="w-full h-64 bg-gray-900 rounded-lg"></div>
+        </div>
+
     </div>
 
 <script>
@@ -558,3 +560,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </body>
 </html>
+
