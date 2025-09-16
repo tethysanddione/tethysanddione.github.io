@@ -299,33 +299,54 @@ document.addEventListener('DOMContentLoaded', () => {
         planetCount = Math.max(0, planetCount);
         if (planetCount === 0) return { count: 0, code: "", planets: [] };
 
-        let baseRockyRatio = (star.fe_h < 0) ? (0.5 + 0.25 * star.fe_h) : (0.5 + star.fe_h);
-        const finalRockyRatio = Math.max(0, Math.min(1, baseRockyRatio + (Math.random() * 0.4 - 0.2)));
-        let numRocky = Math.round(planetCount * finalRockyRatio);
-
-        let types = Array(planetCount).fill('gas');
-        for(let i=0; i<numRocky; i++) types[i] = 'rocky';
-        for (let i = types.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [types[i], types[j]] = [types[j], types[i]]; }
-
         let lastAphelionAU = (star.radiusKm * (10 + Math.random() * 40)) / AU_KM;
         const maxAU = (star.radiusKm * 10000) / AU_KM;
         let actualPlanetCount = 0;
 
         for (let i = 0; i < planetCount; i++) {
-            const planetType = types[i];
             let mass, radius, density, rotPeriod, albedo, atmosphereCode = "", atm = 0;
-            
-            if (planetType === 'rocky') { 
-                mass = 0.03 + Math.random() * 8.72; 
-                density = (2.5 + Math.random() * 5.5) * 1000; 
-                rotPeriod = 15 + Math.random() * 220;
-                albedo = 0.3;
-            } else { 
-                mass = 8 + Math.random() * 992; 
-                density = (0.3 + Math.random() * 1.5) * 1000; 
-                rotPeriod = 6 + Math.random() * 39;
-                albedo = 0.5;
+            let planetTypeName, isRocky;
+
+            const typeRand = Math.random();
+            // Probabilities: 20, 30, 25, 10, 10. Total 95. Normalizing.
+            // Cumulative normalized probabilities: 0.2105, 0.5263, 0.7895, 0.8948, 1.0
+            if (typeRand < 0.2105) { // 类地行星 (Terrestrial) - 20%
+                planetTypeName = "类地行星";
+                isRocky = true;
+                mass = 0.03 + Math.random() * (1.8 - 0.03);
+                density = 3.0 + Math.random() * (5.5 - 3.0); 
+            } else if (typeRand < 0.5263) { // 超级地球 (Super-Earth) - 30%
+                planetTypeName = "超级地球";
+                isRocky = true;
+                mass = 1.8 + Math.random() * (8 - 1.8);
+                density = 3.5 + Math.random() * (8 - 3.5);
+            } else if (typeRand < 0.7895) { // 亚海王星 (Sub-Neptune) - 25%
+                planetTypeName = "亚海王星";
+                isRocky = false;
+                mass = 3 + Math.random() * (10 - 3);
+                density = 1.0 + Math.random() * (3.5 - 1.0);
+            } else if (typeRand < 0.8948) { // 类海王星 (Neptunian) - 10%
+                planetTypeName = "类海王星";
+                isRocky = false;
+                mass = 10 + Math.random() * (50 - 10);
+                density = 0.6 + Math.random() * (3.0 - 0.6);
+            } else { // 巨行星 (Gas Giant) - 10%
+                planetTypeName = "巨行星";
+                isRocky = false;
+                mass = 50 + Math.random() * (1000 - 50);
+                density = 0.6 + Math.random() * (2.0 - 0.6);
             }
+
+            density *= 1000; // Convert g/cm^3 to kg/m^3
+
+            if (isRocky) {
+                rotPeriod = 15 + Math.random() * 220; // Slower rotation
+                albedo = 0.1 + Math.random() * 0.4; // More varied albedo
+            } else {
+                rotPeriod = 6 + Math.random() * 39; // Faster rotation
+                albedo = 0.4 + Math.random() * 0.3; // Generally higher albedo
+            }
+
             const radiusM = Math.pow((3 * (mass * EARTH_MASS_KG)) / (4 * Math.PI * density), 1/3);
             radius = radiusM / 1000;
 
@@ -342,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let surfaceTemp = effectiveTemp;
             
             let hasAtmosphere = true;
-            if (planetType === 'rocky') {
+            if (isRocky) {
                 const tempFactor = Math.max(0, (effectiveTemp - 273) / (800 - 273));
                 const probFromTemp = 0.33 + tempFactor * (0.90 - 0.33);
                 const massFactor = 0.1 / mass;
@@ -359,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const mieAsymmetry = Math.random() * 0.9 - 0.45;
                 let rayleigh = [];
 
-                if(planetType === 'rocky') {
+                if(isRocky) {
                     const atmExponent = normalRandom();
                     atm = Math.pow(10, atmExponent);
                     const greenhouseEffect = 30 * Math.pow(atm, 0.5) * (0.1 + Math.random() * 0.9);
@@ -379,7 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const rot_inc = 180 * Math.pow(Math.random(), 2); const rot_asc = Math.random() * 360;
 
             planetsCode += `\n"${planetNames[i]}" "${star.id}"\n{\n\tMass ${mass.toFixed(2)}\n\tRadius ${radius.toFixed(0)}\n\tEllipticalOrbit\n\t{\n\t\tPeriod ${(orbitalPeriodDays / 365.25).toFixed(4)}\n\t\tSemiMajorAxis ${semiMajorAxis.toFixed(4)}\n\t\tEccentricity ${ecc.toFixed(4)}\n\t\tInclination ${orb_inc.toFixed(4)}\n\t\tAscendingNode ${orb_asc.toFixed(4)}\n\t\tArgOfPericenter ${orb_peri.toFixed(4)}\n\t\tMeanAnomaly ${orb_ma.toFixed(4)}\n\t}\n${atmosphereCode}\tUniformRotation\n\t{\n\t\tPeriod ${rotPeriod.toFixed(2)}\n\t\tInclination ${rot_inc.toFixed(1)}\n\t\tAscendingNode ${rot_asc.toFixed(1)}\n\t}\n}`;
-            planetsData.push({ name: planetNames[i], semiMajorAxis, eccentricity: ecc, radiusKm: radius, mass, effectiveTemp, surfaceTemp, atm });
+            planetsData.push({ name: planetNames[i], typeName: planetTypeName, semiMajorAxis, eccentricity: ecc, radiusKm: radius, mass, effectiveTemp, surfaceTemp, atm });
         }
         return { count: actualPlanetCount, code: planetsCode, planets: planetsData };
     }
@@ -411,7 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
             svg.append("ellipse").datum(p).attr("class", "orbit").style("stroke", orbitColors[i % orbitColors.length]).style("fill", "none").attr("cx", ellipseCenterX).attr("cy", centerY).attr("rx", rx).attr("ry", ry)
                .on("mouseover", (event, d) => {
                     tooltip.transition().duration(200).style("opacity", 0.9);
-                    let tooltipHtml = `<b>行星 (${d.name})</b><br/>质量: ${d.mass.toFixed(2)} M⊕<br/>半径: ${d.radiusKm.toFixed(0)} km<br/>`;
+                    let tooltipHtml = `<b>${d.typeName} (${d.name})</b><br/>质量: ${d.mass.toFixed(2)} M⊕<br/>半径: ${d.radiusKm.toFixed(0)} km<br/>`;
                     const effectiveTempCelsius = d.effectiveTemp - 273.15;
                     if (d.surfaceTemp > d.effectiveTemp + 0.1) { const surfaceTempCelsius = d.surfaceTemp - 273.15; tooltipHtml += `表面温度: ${surfaceTempCelsius.toFixed(1)} °C<br/>`; }
                     tooltipHtml += `有效温度: ${effectiveTempCelsius.toFixed(1)} °C`;
@@ -419,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     tooltip.html(tooltipHtml).style("left", `${event.pageX + 15}px`).style("top", `${event.pageY - 28}px`);
                     d3.select(event.currentTarget).style("stroke-width", "3px");
                 })
-                .on("mouseout", () => {
+               .on("mouseout", (event) => { // Added event argument to fix potential issue
                     tooltip.transition().duration(500).style("opacity", 0);
                     d3.select(event.currentTarget).style("stroke-width", "1px");
                 });
@@ -444,18 +465,18 @@ document.addEventListener('DOMContentLoaded', () => {
         let currentX = (width - totalWidth) / 2;
 
         allObjects.forEach((obj, i) => {
-            const radiusPx = radiusScale(obj.radiusKm);
+            const radiusPx = Math.max(1, radiusScale(obj.radiusKm)); // Ensure a minimum radius of 1px
             const isStar = i === 0;
             const color = isStar ? getStarColor(obj.temp) : getStarColor(obj.effectiveTemp);
             
             svg.append("circle").datum(obj).attr("cx", currentX + radiusPx).attr("cy", height / 2).attr("r", radiusPx).attr("fill", color)
-                .on("mouseover", (event, d) => {
+               .on("mouseover", (event, d) => {
                     tooltip.transition().duration(200).style("opacity", 0.9);
                     let tooltipHtml = "";
                     if (isStar) {
                         tooltipHtml = `<b>恒星</b><br/>质量: ${d.mass.toFixed(2)} M☉<br/>半径: ${d.radiusKm.toFixed(0)} km<br/>温度: ${d.temp.toFixed(0)} K`;
                     } else {
-                        tooltipHtml = `<b>行星 (${d.name})</b><br/>质量: ${d.mass.toFixed(2)} M⊕<br/>半径: ${d.radiusKm.toFixed(0)} km<br/>`;
+                        tooltipHtml = `<b>${d.typeName} (${d.name})</b><br/>质量: ${d.mass.toFixed(2)} M⊕<br/>半径: ${d.radiusKm.toFixed(0)} km<br/>`;
                         const effectiveTempCelsius = d.effectiveTemp - 273.15;
                         if (d.surfaceTemp > d.effectiveTemp + 0.1) { const surfaceTempCelsius = d.surfaceTemp - 273.15; tooltipHtml += `表面温度: ${surfaceTempCelsius.toFixed(1)} °C<br/>`; }
                         tooltipHtml += `有效温度: ${effectiveTempCelsius.toFixed(1)} °C`;
@@ -463,7 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     tooltip.html(tooltipHtml).style("left", `${event.pageX + 15}px`).style("top", `${event.pageY - 28}px`);
                 })
-                .on("mouseout", () => tooltip.transition().duration(500).style("opacity", 0));
+               .on("mouseout", () => tooltip.transition().duration(500).style("opacity", 0));
             currentX += radiusPx * 2 + 10;
         });
     }
@@ -474,7 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const typeRoll = Math.random();
         let starType, stageName, stageDescription;
 
-        if (typeRoll < 0.985) { starType = "Main Sequence"; stageName = "主序星 (零龄)"; stageDescription = "这是一颗刚刚诞生、进入主序阶段的恒星。它的核心正开始稳定的氢聚变反应。"; } 
+        if (typeRoll < 0.985) { starType = "Main Sequence"; stageName = "主序星"; stageDescription = "这是一颗刚刚诞生、进入主序阶段的恒星。它的核心正开始稳定的氢聚变反应。"; } 
         else if (typeRoll < 0.988) { starType = "Subgiant"; stageName = "亚巨星"; stageDescription = "这颗恒星已耗尽核心的氢，正在向红巨星阶段演化。它的外层开始膨胀和冷却。"; while (mass < 0.7) mass = generateStellarMass(); } 
         else { starType = "Red Giant"; stageName = "红巨星"; stageDescription = "这颗恒星处于其生命的后期阶段，体积巨大但表面温度较低。核心可能正在进行氦或更重元素的聚变。"; while (mass < 0.7) mass = generateStellarMass(); }
         
@@ -496,12 +517,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const radiusKm = rad * SUN_RADIUS_KM;
         const starDataForPlanets = { mass, radiusKm, fe_h, temp, id: `ENCE-${Math.floor(1000 + Math.random() * 9000)}` };
         const planetarySystem = generatePlanetarySystem(starDataForPlanets);
-        lastGeneratedSystem = { star: starDataForPlanets, planets: planetarySystem.planets };
+        lastGeneratedSystem = { star: { ...starDataForPlanets, radiusKm: radiusKm }, planets: planetarySystem.planets };
+
 
         if (planetarySystem.count > 0) {
             document.getElementById('planet-system-container').classList.remove('hidden');
-            if (currentPreviewMode === 'orbit') { drawOrbitView(starDataForPlanets, planetarySystem.planets); } 
-            else { drawComparisonView(starDataForPlanets, planetarySystem.planets); }
+            if (currentPreviewMode === 'orbit') { drawOrbitView(lastGeneratedSystem.star, planetarySystem.planets); } 
+            else { drawComparisonView(lastGeneratedSystem.star, planetarySystem.planets); }
         } else {
             document.getElementById('planet-system-container').classList.add('hidden');
         }
@@ -536,4 +558,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </body>
 </html>
-
