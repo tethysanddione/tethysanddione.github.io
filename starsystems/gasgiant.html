@@ -97,7 +97,8 @@
             "desert_ember": [[210, 120, 80], [230, 150, 100], [245, 180, 120], [250, 210, 150], [180, 100, 70], [120, 60, 40]],
             "oceanic_tide": [[20, 60, 120], [30, 90, 160], [50, 120, 200], [80, 160, 220], [100, 180, 240], [10, 40, 100]],
             "forest_moss": [[50, 80, 40], [70, 110, 60], [100, 140, 90], [130, 170, 120], [160, 200, 150], [30, 60, 20]],
-            "hot_jupiter": [[80, 40, 20], [180, 100, 40], [40, 30, 25], [255, 180, 80], [210, 170, 130], [255, 245, 220]]
+            "hot_jupiter": [[80, 40, 20], [180, 100, 40], [40, 30, 25], [255, 180, 80], [210, 170, 130], [255, 245, 220]],
+            "misty_green": [[25, 55, 60], [20, 100, 105], [25, 85, 90], [30, 125, 155], [30, 130, 140], [70, 125, 135]]
         };
 
         // --- Utility Functions ---
@@ -143,7 +144,7 @@
 
                 const i = (safeY * this.width + safeX) * 4;
                 // Fallback for safety, although with clamping/wrapping it shouldn't be NaN
-                if (isNaN(i)) { return [0, 0, 0, 255]; } 
+                if (isNaN(i)) { return [0, 0, 0, 255]; }
                 return [this.data[i], this.data[i+1], this.data[i+2], this.data[i+3]];
             }
             set(y, x, color) {
@@ -255,8 +256,8 @@
                 const y_center = randint(0, height);
                 const band_height = uniform(height * 0.03, height * 0.2);
                 const band_color = choice(band_colors);
-                const wave_amplitude = uniform(height * 0.00, height * 0.01);
-                const wave_scale = uniform(1.0, 10.0);
+                const wave_amplitude = uniform(0, height * 0.01);
+                const wave_scale = uniform(0.0, 5.0);
 
                 const bandLayer = new PixelArray(width, height);
 
