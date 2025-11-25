@@ -4,237 +4,355 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <title>前瞻估值计算器</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <title>MeowFin - 前瞻估值计算器</title>
     <style>
-        /* --- 全局样式 (与index.html保持一致) --- */
+        :root {
+            --bg-color: #0a0b10;
+            --card-bg: rgba(30, 35, 45, 0.6);
+            --accent-color: #00f2ff;
+            --accent-hover: #00c8d3;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a5b0;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --success-color: #00ff9d;
+            --input-bg: rgba(0, 0, 0, 0.3);
+        }
+
+        /* --- 全局样式 --- */
         body {
             margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-            background-color: #121212;
-            color: #E0E0E0;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start; /* 顶部对齐 */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
             min-height: 100vh;
-            padding: 20px;
+            padding: 40px 20px;
             box-sizing: border-box;
+            background-image: radial-gradient(circle at 50% 0%, #1a1f2e 0%, #0a0b10 60%);
         }
 
         /* --- 主容器 --- */
         .container {
             width: 100%;
             max-width: 1200px;
-            text-align: center;
-            padding: 40px 0;
+            margin: 0 auto;
         }
 
-        /* --- 标题和副标题 --- */
+        /* --- 头部 --- */
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
         h1 {
-            font-size: 2.8em;
-            font-weight: 600;
-            color: #FFFFFF;
+            font-size: 2.5em;
+            font-weight: 700;
             margin-bottom: 10px;
+            background: linear-gradient(135deg, #fff 0%, var(--accent-color) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .subtitle {
-            font-size: 1.2em;
-            color: #A0A0A0;
-            margin-bottom: 50px;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
+            color: var(--text-secondary);
+            font-size: 1.1em;
         }
 
-        /* --- 计算器主布局 (新增) --- */
+        /* --- 布局网格 --- */
         .calculator-layout {
             display: grid;
-            grid-template-columns: 1fr 1fr; /* 左右两栏 */
+            grid-template-columns: 1.5fr 1fr;
             gap: 30px;
-            text-align: left;
+            align-items: start;
         }
 
-        /* --- 卡片样式 (复用) --- */
+        /* --- 卡片通用样式 --- */
         .card {
-            background-color: #282828;
-            border: 1px solid #404040;
-            border-radius: 12px;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
             padding: 30px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
-        .card:last-child {
-             margin-bottom: 0;
-        }
-        
+
         .card h3 {
-            margin-top: 0;
-            margin-bottom: 20px;
-            color: #FFFFFF;
-            font-size: 1.4em;
-            border-bottom: 1px solid #404040;
+            margin: 0 0 20px 0;
+            font-size: 1.2em;
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--border-color);
             padding-bottom: 15px;
         }
 
-        /* --- 表单元素样式 (新增) --- */
-        .input-group {
+        /* --- 表单元素 --- */
+        .input-grid-2 {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 1fr 1fr;
             gap: 15px;
+        }
+
+        .input-grid-4 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 10px;
+        }
+
+        .form-group {
             margin-bottom: 15px;
         }
-        .input-group label {
-            font-weight: 500;
-            color: #B0B0B0;
+
+        label {
+            display: block;
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
         }
-        .input-group input, .input-group select {
+
+        input, select {
             width: 100%;
-            padding: 10px;
-            background-color: #1E1E1E;
-            border: 1px solid #404040;
-            border-radius: 6px;
-            color: #E0E0E0;
+            padding: 12px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: #fff;
             font-size: 1em;
             box-sizing: border-box;
-        }
-        
-        .single-input {
-            margin-bottom: 15px;
-        }
-        .single-input label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #B0B0B0;
+            transition: all 0.3s ease;
         }
 
-        /* --- 按钮样式 (新增) --- */
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.2);
+        }
+
+        /* 隐藏/显示手动输入区 */
+        #manualInputSection {
+            display: none; /* 默认隐藏 */
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px dashed var(--border-color);
+            animation: slideDown 0.3s ease forwards;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- 按钮 --- */
         .calc-button {
             width: 100%;
-            padding: 15px;
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #FFFFFF;
-            background-color: #007BFF;
+            padding: 16px;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #000;
+            background: var(--accent-color);
             border: none;
-            border-radius: 8px;
+            border-radius: 30px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        .calc-button:hover {
-            background-color: #0056b3;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
         }
 
-        /* --- 结果展示区样式 (新增) --- */
-        .results-card h3 {
-             color: #28a745; /* 绿色标题 */
+        .calc-button:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-2px);
         }
+
+        /* --- 结果展示 --- */
+        .results-card {
+            position: sticky;
+            top: 20px;
+            border-color: var(--accent-color);
+        }
+
         .result-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 15px 0;
-            border-bottom: 1px solid #383838;
-            font-size: 1.1em;
+            border-bottom: 1px solid var(--border-color);
         }
+
         .result-item:last-child {
             border-bottom: none;
         }
+
         .result-item .label {
-            color: #B0B0B0;
-        }
-        .result-item .value {
-            color: #FFFFFF;
-            font-weight: bold;
-            font-size: 1.2em;
-        }
-        .result-item .value.sub-value {
-             font-size: 0.9em;
-             font-weight: normal;
-             color: #A0A0A0;
+            color: var(--text-secondary);
+            font-size: 0.95em;
         }
 
-        /* --- 响应式布局 --- */
+        .result-item .value {
+            color: #fff;
+            font-weight: 700;
+            font-size: 1.3em;
+        }
+
+        .highlight-value {
+            color: var(--accent-color) !important;
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
+        }
+
+        .sub-value {
+            font-size: 0.9em !important;
+            color: var(--text-secondary) !important;
+            font-weight: normal !important;
+        }
+
+        /* --- 响应式 --- */
         @media (max-width: 900px) {
             .calculator-layout {
-                grid-template-columns: 1fr; /* 手机上变为单栏 */
+                grid-template-columns: 1fr;
             }
-             h1 { font-size: 2em; }
-            .subtitle { font-size: 1em; }
+            .input-grid-4 {
+                grid-template-columns: 1fr 1fr; /* 手机上4列变2列 */
+            }
         }
-
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>前瞻估值计算器</h1>
-        <p class="subtitle">通过线性回归或季度预估，测算公司未来一年的市盈率(PE)与市销率(PS)</p>
+        <header>
+            <h1>前瞻估值计算器</h1>
+            <div class="subtitle">基于趋势回归或自定义预测，测算 Forward PE / PS</div>
+        </header>
 
         <div class="calculator-layout">
             <div class="input-section">
+                
                 <div class="card">
-                    <h3>1. 输入公司前四个季度的财务数据 (亿)</h3>
-                    <div class="input-group">
-                        <label>Q1 营收</label><input type="number" id="revQ1" placeholder="例如: 100">
-                        <label>Q1 净利润</label><input type="number" id="niQ1" placeholder="例如: 10">
-                        <label>Q2 营收</label><input type="number" id="revQ2" placeholder="例如: 110">
-                        <label>Q2 净利润</label><input type="number" id="niQ2" placeholder="例如: 12">
-                        <label>Q3 营收</label><input type="number" id="revQ3" placeholder="例如: 120">
-                        <label>Q3 净利润</label><input type="number" id="niQ3" placeholder="例如: 15">
-                        <label>Q4 (最新) 营收</label><input type="number" id="revQ4" placeholder="例如: 130">
-                        <label>Q4 (最新) 净利润</label><input type="number" id="niQ4" placeholder="例如: 18">
+                    <h3><i class="fa-solid fa-clock-rotate-left"></i> 历史季度数据 (亿)</h3>
+                    <div class="input-grid-2">
+                        <div class="form-group">
+                            <label>Q1 (历史) 营收 / 净利</label>
+                            <div class="input-grid-2" style="gap:5px">
+                                <input type="number" id="revQ1" placeholder="营收">
+                                <input type="number" id="niQ1" placeholder="净利">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Q2 (历史) 营收 / 净利</label>
+                            <div class="input-grid-2" style="gap:5px">
+                                <input type="number" id="revQ2" placeholder="营收">
+                                <input type="number" id="niQ2" placeholder="净利">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Q3 (历史) 营收 / 净利</label>
+                            <div class="input-grid-2" style="gap:5px">
+                                <input type="number" id="revQ3" placeholder="营收">
+                                <input type="number" id="niQ3" placeholder="净利">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Q4 (最新) 营收 / 净利</label>
+                            <div class="input-grid-2" style="gap:5px">
+                                <input type="number" id="revQ4" placeholder="营收">
+                                <input type="number" id="niQ4" placeholder="净利">
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="card">
-                    <h3>2. 输入核心指标</h3>
-                    <div class="single-input">
-                        <label>公司当前总市值 (亿)</label>
+                    <h3><i class="fa-solid fa-sliders"></i> 核心参数设置</h3>
+                    
+                    <div class="form-group">
+                        <label>当前总市值 (亿)</label>
                         <input type="number" id="marketCap" placeholder="例如: 5000">
                     </div>
-                    <div class="single-input">
-                        <label>选择推演模式</label>
+
+                    <div class="form-group">
+                        <label>推演模式</label>
                         <select id="mode">
-                            <option value="linear">线性推演 (回归预测)</option>
-                            <option value="fixed">固定最新季度 (Q4 * 4)</option>
+                            <option value="linear">线性回归 (智能预测趋势)</option>
+                            <option value="fixed">年化最新季度 (Q4 * 4)</option>
+                            <option value="manual">手动输入未来预期 (自定义)</option>
                         </select>
                     </div>
-                </div>
-                 <div class="card">
-                    <h3>3. 输入期望估值倍数 (可选)</h3>
-                     <div class="input-group">
-                        <label>期望市盈率 (PE)</label><input type="number" id="targetPe" placeholder="例如: 30">
-                        <label>期望市销率 (PS)</label><input type="number" id="targetPs" placeholder="例如: 5">
+
+                    <div id="manualInputSection">
+                        <h4 style="margin: 0 0 15px 0; color: #fff; font-size: 0.95em;">手动输入未来4个季度的预测值：</h4>
+                        
+                        <div style="margin-bottom: 15px;">
+                            <label>未来营收预测 (Future Revenue)</label>
+                            <div class="input-grid-4">
+                                <input type="number" id="man_rev_1" placeholder="Q1">
+                                <input type="number" id="man_rev_2" placeholder="Q2">
+                                <input type="number" id="man_rev_3" placeholder="Q3">
+                                <input type="number" id="man_rev_4" placeholder="Q4">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label>未来净利润预测 (Future Net Profit)</label>
+                            <div class="input-grid-4">
+                                <input type="number" id="man_ni_1" placeholder="Q1">
+                                <input type="number" id="man_ni_2" placeholder="Q2">
+                                <input type="number" id="man_ni_3" placeholder="Q3">
+                                <input type="number" id="man_ni_4" placeholder="Q4">
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <button id="calculateBtn" class="calc-button">计 算</button>
+
+                <div class="card">
+                    <h3><i class="fa-solid fa-crosshairs"></i> 目标估值 (可选)</h3>
+                    <div class="input-grid-2">
+                        <div>
+                            <label>合理市盈率 (Target PE)</label>
+                            <input type="number" id="targetPe" placeholder="例如: 25">
+                        </div>
+                        <div>
+                            <label>合理市销率 (Target PS)</label>
+                            <input type="number" id="targetPs" placeholder="例如: 5">
+                        </div>
+                    </div>
+                </div>
+
+                <button id="calculateBtn" class="calc-button">开始计算 <i class="fa-solid fa-arrow-right"></i></button>
             </div>
 
             <div class="output-section">
                 <div class="card results-card">
-                    <h3>计算结果</h3>
+                    <h3><i class="fa-solid fa-clipboard-check"></i> 计算结果</h3>
+                    
                     <div class="result-item">
-                        <span class="label">前瞻市销率 (Forward P/S)</span>
-                        <span class="value" id="forwardPsResult">-</span>
+                        <span class="label">Forward P/S (前瞻市销率)</span>
+                        <span class="value highlight-value" id="forwardPsResult">-</span>
                     </div>
                     <div class="result-item">
-                        <span class="label">前瞻市盈率 (Forward P/E)</span>
-                        <span class="value" id="forwardPeResult">-</span>
+                        <span class="label">Forward P/E (前瞻市盈率)</span>
+                        <span class="value highlight-value" id="forwardPeResult">-</span>
+                    </div>
+                    
+                    <div style="margin: 20px 0; border-top: 1px dashed var(--border-color);"></div>
+
+                    <div class="result-item">
+                        <span class="label">未来12个月预测营收</span>
+                        <span class="value sub-value" id="forwardRevenueResult">待计算</span>
                     </div>
                     <div class="result-item">
-                        <span class="label">期望市值 (基于市销率)</span>
+                        <span class="label">未来12个月预测净利</span>
+                        <span class="value sub-value" id="forwardNetProfitResult">待计算</span>
+                    </div>
+
+                    <div style="margin: 20px 0; border-top: 1px dashed var(--border-color);"></div>
+
+                    <div class="result-item">
+                        <span class="label">目标市值 (基于 P/S)</span>
                         <span class="value" id="targetMarketCapPsResult">-</span>
                     </div>
                     <div class="result-item">
-                        <span class="label">期望市值 (基于市盈率)</span>
+                        <span class="label">目标市值 (基于 P/E)</span>
                         <span class="value" id="targetMarketCapPeResult">-</span>
-                    </div>
-                     <div class="result-item">
-                        <span class="label">预测未来一年营收</span>
-                         <span class="value sub-value" id="forwardRevenueResult">待计算</span>
-                    </div>
-                     <div class="result-item">
-                        <span class="label">预测未来一年净利润</span>
-                         <span class="value sub-value" id="forwardNetProfitResult">待计算</span>
                     </div>
                 </div>
             </div>
@@ -242,20 +360,21 @@
     </div>
 
 <script>
+    // 1. 监听下拉菜单变化，切换手动输入框的显示状态
+    const modeSelect = document.getElementById('mode');
+    const manualSection = document.getElementById('manualInputSection');
+
+    modeSelect.addEventListener('change', function() {
+        if (this.value === 'manual') {
+            manualSection.style.display = 'block';
+        } else {
+            manualSection.style.display = 'none';
+        }
+    });
+
+    // 2. 计算逻辑
     document.getElementById('calculateBtn').addEventListener('click', function() {
-        // --- 1. 获取所有输入值 ---
-        const revs = [
-            parseFloat(document.getElementById('revQ1').value) || 0,
-            parseFloat(document.getElementById('revQ2').value) || 0,
-            parseFloat(document.getElementById('revQ3').value) || 0,
-            parseFloat(document.getElementById('revQ4').value) || 0,
-        ];
-        const nis = [
-            parseFloat(document.getElementById('niQ1').value) || 0,
-            parseFloat(document.getElementById('niQ2').value) || 0,
-            parseFloat(document.getElementById('niQ3').value) || 0,
-            parseFloat(document.getElementById('niQ4').value) || 0,
-        ];
+        // 获取基础输入
         const marketCap = parseFloat(document.getElementById('marketCap').value) || 0;
         const mode = document.getElementById('mode').value;
         const targetPe = parseFloat(document.getElementById('targetPe').value) || 0;
@@ -264,35 +383,74 @@
         let forwardRevenue = 0;
         let forwardNetProfit = 0;
 
-        // --- 2. 根据模式计算前瞻营收和净利润 ---
-        if (mode === 'linear') {
-            // 线性回归函数
-            const linearRegression = (y) => {
-                const x = [1, 2, 3, 4]; // 代表四个季度
-                const n = x.length;
-                const sum_x = x.reduce((a, b) => a + b, 0);
-                const sum_y = y.reduce((a, b) => a + b, 0);
-                const sum_xy = x.map((xi, i) => xi * y[i]).reduce((a, b) => a + b, 0);
-                const sum_xx = x.map(xi => xi * xi).reduce((a, b) => a + b, 0);
+        // 根据模式计算
+        if (mode === 'manual') {
+            // --- 手动模式 ---
+            // 获取手动输入的8个值
+            const fRev = [
+                parseFloat(document.getElementById('man_rev_1').value) || 0,
+                parseFloat(document.getElementById('man_rev_2').value) || 0,
+                parseFloat(document.getElementById('man_rev_3').value) || 0,
+                parseFloat(document.getElementById('man_rev_4').value) || 0
+            ];
+            const fNi = [
+                parseFloat(document.getElementById('man_ni_1').value) || 0,
+                parseFloat(document.getElementById('man_ni_2').value) || 0,
+                parseFloat(document.getElementById('man_ni_3').value) || 0,
+                parseFloat(document.getElementById('man_ni_4').value) || 0
+            ];
 
-                const slope = (n * sum_xy - sum_x * sum_y) / (n * sum_xx - sum_x * sum_x);
-                const intercept = (sum_y - slope * sum_x) / n;
-                
-                // 预测未来四个季度 (Q5, Q6, Q7, Q8)
-                const next_quarters_x = [5, 6, 7, 8];
-                const predicted_y = next_quarters_x.map(val => slope * val + intercept);
-                
-                return predicted_y.reduce((a, b) => a + b, 0);
-            };
-            forwardRevenue = linearRegression(revs);
-            forwardNetProfit = linearRegression(nis);
+            // 汇总
+            forwardRevenue = fRev.reduce((a, b) => a + b, 0);
+            forwardNetProfit = fNi.reduce((a, b) => a + b, 0);
 
-        } else { // 'fixed' mode
-            forwardRevenue = revs[3] * 4;
-            forwardNetProfit = nis[3] * 4;
+        } else {
+            // --- 历史数据模式 (线性 or 固定) ---
+            const revs = [
+                parseFloat(document.getElementById('revQ1').value) || 0,
+                parseFloat(document.getElementById('revQ2').value) || 0,
+                parseFloat(document.getElementById('revQ3').value) || 0,
+                parseFloat(document.getElementById('revQ4').value) || 0,
+            ];
+            const nis = [
+                parseFloat(document.getElementById('niQ1').value) || 0,
+                parseFloat(document.getElementById('niQ2').value) || 0,
+                parseFloat(document.getElementById('niQ3').value) || 0,
+                parseFloat(document.getElementById('niQ4').value) || 0,
+            ];
+
+            if (mode === 'linear') {
+                // 线性回归函数
+                const linearRegression = (y) => {
+                    // 如果数据不全（例如全为0），直接返回0
+                    if(y.every(val => val === 0)) return 0;
+
+                    const x = [1, 2, 3, 4];
+                    const n = x.length;
+                    const sum_x = x.reduce((a, b) => a + b, 0);
+                    const sum_y = y.reduce((a, b) => a + b, 0);
+                    const sum_xy = x.map((xi, i) => xi * y[i]).reduce((a, b) => a + b, 0);
+                    const sum_xx = x.map(xi => xi * xi).reduce((a, b) => a + b, 0);
+
+                    const slope = (n * sum_xy - sum_x * sum_y) / (n * sum_xx - sum_x * sum_x);
+                    const intercept = (sum_y - slope * sum_x) / n;
+                    
+                    // 预测未来四个季度 (Q5, Q6, Q7, Q8) 并求和
+                    const next_quarters_x = [5, 6, 7, 8];
+                    const predicted_sum = next_quarters_x.reduce((acc, val) => acc + (slope * val + intercept), 0);
+                    
+                    return predicted_sum > 0 ? predicted_sum : 0; // 避免负数
+                };
+                forwardRevenue = linearRegression(revs);
+                forwardNetProfit = linearRegression(nis);
+
+            } else if (mode === 'fixed') {
+                forwardRevenue = revs[3] * 4;
+                forwardNetProfit = nis[3] * 4;
+            }
         }
         
-        // --- 3. 计算各项输出指标 ---
+        // --- 计算指标 ---
         // 前瞻市销率
         const forwardPs = (forwardRevenue > 0) ? (marketCap / forwardRevenue) : 0;
         // 前瞻市盈率
@@ -302,15 +460,18 @@
         const targetMarketCapPs = (targetPs > 0 && forwardRevenue > 0) ? (forwardRevenue * targetPs) : 0;
         const targetMarketCapPe = (targetPe > 0 && forwardNetProfit > 0) ? (forwardNetProfit * targetPe) : 0;
 
-        // --- 4. 更新UI显示结果 ---
-        document.getElementById('forwardPsResult').textContent = forwardPs > 0 ? forwardPs.toFixed(2) : 'N/A';
-        document.getElementById('forwardPeResult').textContent = forwardPe > 0 ? forwardPe.toFixed(2) : 'N/A';
-        document.getElementById('targetMarketCapPsResult').textContent = targetMarketCapPs > 0 ? `${targetMarketCapPs.toFixed(2)} 亿` : '-';
-        document.getElementById('targetMarketCapPeResult').textContent = targetMarketCapPe > 0 ? `${targetMarketCapPe.toFixed(2)} 亿` : '-';
-        document.getElementById('forwardRevenueResult').textContent = `${forwardRevenue.toFixed(2)} 亿`;
-        document.getElementById('forwardNetProfitResult').textContent = `${forwardNetProfit.toFixed(2)} 亿`;
-    });
+        // --- 更新 UI ---
+        const formatNum = (num) => num.toLocaleString('en-US', { maximumFractionDigits: 2 });
 
+        document.getElementById('forwardPsResult').textContent = forwardPs > 0 ? forwardPs.toFixed(2) + 'x' : 'N/A';
+        document.getElementById('forwardPeResult').textContent = forwardPe > 0 ? forwardPe.toFixed(2) + 'x' : 'N/A';
+        
+        document.getElementById('targetMarketCapPsResult').textContent = targetMarketCapPs > 0 ? `${formatNum(targetMarketCapPs)} 亿` : '-';
+        document.getElementById('targetMarketCapPeResult').textContent = targetMarketCapPe > 0 ? `${formatNum(targetMarketCapPe)} 亿` : '-';
+        
+        document.getElementById('forwardRevenueResult').textContent = `${formatNum(forwardRevenue)} 亿`;
+        document.getElementById('forwardNetProfitResult').textContent = `${formatNum(forwardNetProfit)} 亿`;
+    });
 </script>
 <script src="nav.js" defer></script>
 </body>

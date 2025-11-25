@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>恒星生成器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Three.js Import Map -->
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #050508;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+        
+        /* 背景星空装饰 */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-image:
+                radial-gradient(1px 1px at 20px 30px, #eee, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 40px 70px, #fff, rgba(0,0,0,0)),
+                radial-gradient(1px 1px at 50px 160px, #ddd, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 90px 40px, #fff, rgba(0,0,0,0)),
+                radial-gradient(2px 2px at 130px 80px, #fff, rgba(0,0,0,0));
+            background-repeat: repeat;
+            background-size: 200px 200px;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* 磨砂玻璃面板 */
+        .glass-panel {
+            background: rgba(30, 30, 35, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+        }
+
+        /* D3 图表样式 */
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            padding: 8px 12px;
+            font: 12px 'Inter', sans-serif;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #e2e8f0;
+            border-radius: 6px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 100;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+        }
+        .axis path, .axis line { stroke: rgba(255,255,255,0.1); }
+        .axis text { fill: #94a3b8; font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+        .main-sequence-band {
+            fill: rgba(96, 165, 250, 0.05);
+            stroke: rgba(96, 165, 250, 0.1);
+            stroke-width: 1px;
+            stroke-dasharray: 4;
+        }
+
+        /* 自定义滑块 */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]:focus { outline: none; }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #818cf8; /* Indigo-400 */
+            border: 2px solid #1e1e24;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(129, 140, 248, 0.5);
+            transition: transform 0.1s;
+        }
+        input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+        /* 按钮与交互 */
+        .view-toggle-btn {
+            transition: all 0.2s;
+        }
+        .view-toggle-btn.active {
+            background-color: #3b82f6;
+            color: white;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+        }
+        #planet-system-preview canvas {
+            border-radius: 0.75rem;
+            outline: none;
+            cursor: crosshair;
+        }
+        
+        /* 字体优化 */
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* 头部动画 */
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        header { animation: fadeInDown 0.8s ease-out; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 md:p-8">
+
+    <div class="stars"></div>
+
+    <div class="w-full max-w-6xl mx-auto z-10">
+        
+        <!-- 头部 -->
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-3 tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-white to-indigo-300">
+                恒星生成器
+            </h1>
+            <p class="text-gray-400 max-w-2xl mx-auto text-sm md:text-base">
+                基于真实银河系质量分布模型，随机生成恒星及其行星系统。设定金属量，生成一颗主序星。
+            </p>
+        </header>
+
+        <!-- 主控制面板与图表 -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+            
+            <!-- 左侧：控制与数据 (占 4/12) -->
+            <div class="lg:col-span-4 flex flex-col gap-6">
+                
+                <!-- 生成控制 -->
+                <div class="glass-panel rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
+                        <h2 class="text-lg font-semibold text-white flex items-center">
+                            <i class="fa-solid fa-sliders text-indigo-400 mr-3"></i>参数设定
+                        </h2>
+                    </div>
+                    
+                    <div class="mb-8">
+                        <label class="flex justify-between items-center text-sm font-medium text-gray-300 mb-3">
+                            <span>恒星金属量 [Fe/H]</span>
+                            <span id="metallicityValue" class="font-mono bg-white/10 text-indigo-300 px-2 py-1 rounded text-xs">0.0</span>
+                        </label>
+                        <input id="metallicitySlider" type="range" min="-2.0" max="0.5" step="0.1" value="0.0">
+                        <div class="flex justify-between text-[10px] text-gray-500 mt-2 font-mono">
+                            <span>-2.0 (贫金属)</span>
+                            <span>+0.5 (富金属)</span>
+                        </div>
+                    </div>
+
+                    <button id="generateButton" class="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-indigo-500/20 flex items-center justify-center group">
+                        <i class="fa-solid fa-dice mr-2 group-hover:rotate-180 transition-transform duration-500"></i> 生成新系统
+                    </button>
+                </div>
+
+                <!-- 恒星数据展示 -->
+                <div id="info-panel" class="glass-panel rounded-2xl p-6 flex-grow flex flex-col min-h-[300px]">
+                    <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-4">
+                        <h2 class="text-lg font-semibold text-white flex items-center">
+                            <i class="fa-solid fa-circle-info text-indigo-400 mr-3"></i>系统数据
+                        </h2>
+                    </div>
+
+                    <div id="initial-message" class="flex-grow flex flex-col items-center justify-center text-gray-500 text-center py-10">
+                        <i class="fa-solid fa-atom text-4xl mb-4 opacity-30"></i>
+                        <p>点击生成按钮<br>开始探索</p>
+                    </div>
+
+                    <div id="simulation-output" class="hidden space-y-4 animate-[fadeIn_0.5s_ease-out]">
+                        <div>
+                            <h3 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-white mb-1" id="stageName"></h3>
+                            <p class="text-xs text-gray-400 leading-relaxed" id="stageDescription"></p>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-3 text-sm">
+                            <div class="bg-white/5 p-3 rounded-lg">
+                                <span class="block text-gray-500 text-xs mb-1">质量</span>
+                                <span id="initialMass" class="font-mono text-white font-bold"></span>
+                            </div>
+                            <div class="bg-white/5 p-3 rounded-lg">
+                                <span class="block text-gray-500 text-xs mb-1">温度</span>
+                                <span id="temperature" class="font-mono text-indigo-300 font-bold"></span>
+                            </div>
+                            <div class="bg-white/5 p-3 rounded-lg">
+                                <span class="block text-gray-500 text-xs mb-1">光度</span>
+                                <span id="luminosity" class="font-mono text-white"></span>
+                            </div>
+                            <div class="bg-white/5 p-3 rounded-lg">
+                                <span class="block text-gray-500 text-xs mb-1">半径</span>
+                                <span id="radius" class="font-mono text-white"></span>
+                            </div>
+                            <div class="bg-white/5 p-3 rounded-lg col-span-2 flex justify-between items-center">
+                                <span class="text-gray-500 text-xs">行星数量</span>
+                                <span id="planetCount" class="font-mono text-white font-bold bg-white/10 px-2 rounded"></span>
+                            </div>
+                            <div class="col-span-2 border-t border-white/5 pt-2 mt-1">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-500 text-xs">主序寿命</span>
+                                    <span id="lifetime" class="font-mono text-gray-300 text-xs"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：赫罗图 (占 8/12) -->
+            <div class="lg:col-span-8 glass-panel rounded-2xl p-6 flex flex-col">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-white flex items-center">
+                        <i class="fa-solid fa-chart-scatter text-indigo-400 mr-3"></i>赫罗图 (H-R Diagram)
+                    </h2>
+                    <div class="text-xs text-gray-500">对数坐标系</div>
+                </div>
+                <div id="hr-diagram" class="w-full flex-grow min-h-[400px] relative"></div>
+            </div>
+        </div>
+
+        <!-- 底部：STC 代码与 3D 预览 -->
+        <div class="grid grid-cols-1 lg:grid-cols-1 gap-6">
+            
+            <!-- 行星系统预览 -->
+            <div id="planet-system-container" class="hidden glass-panel rounded-2xl p-6 animate-[slideUpFadeIn_0.6s_ease-out]">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+                    <h3 class="text-lg font-semibold text-white flex items-center">
+                        <i class="fa-solid fa-earth-americas text-indigo-400 mr-3"></i>行星系统预览
+                    </h3>
+                    <div class="flex bg-gray-800/50 p-1 rounded-lg border border-white/10">
+                        <button id="orbit-view-btn" class="view-toggle-btn active py-1.5 px-4 rounded-md text-xs font-medium">3D 轨道 (真实比例)</button>
+                        <button id="comparison-view-btn" class="view-toggle-btn py-1.5 px-4 rounded-md text-xs font-medium">大小比较</button>
+                    </div>
+                </div>
+                
+                <div id="planet-system-preview" class="w-full h-[500px] bg-[#0b0f19] rounded-xl overflow-hidden relative border border-white/5 shadow-inner">
+                    <!-- Canvas / SVG will be injected here -->
+                </div>
+                
+                <p class="text-xs text-gray-500 text-center mt-3 flex items-center justify-center gap-4" id="view-hint">
+                    <span><i class="fa-solid fa-rotate mr-1"></i> 左键旋转</span>
+                    <span><i class="fa-solid fa-up-down-left-right mr-1"></i> 右键平移</span>
+                    <span><i class="fa-solid fa-magnifying-glass mr-1"></i> 滚轮缩放</span>
+                    <span><i class="fa-regular fa-hand-pointer mr-1"></i> 悬停查看信息</span>
+                </p>
+            </div>
+
+            <!-- STC 代码输出 (折叠式) -->
+            <div id="stc-output" class="hidden glass-panel rounded-2xl p-1">
+                <details class="group">
+                    <summary class="flex items-center justify-between p-4 cursor-pointer text-sm font-medium text-gray-400 hover:text-white transition-colors">
+                        <span class="flex items-center"><i class="fa-solid fa-code mr-3"></i> 生成 SpaceEngine (STC) 脚本代码</span>
+                        <span class="transition group-open:rotate-180"><i class="fa-solid fa-chevron-down"></i></span>
+                    </summary>
+                    <div class="p-4 pt-0 border-t border-white/5 mt-2">
+                        <div class="relative mt-2">
+                            <pre id="stc-code" class="bg-[#0b0f19] text-xs text-gray-400 p-4 rounded-lg font-mono whitespace-pre-wrap overflow-auto max-h-60 border border-white/5"></pre>
+                            <button id="copy-stc-button" class="absolute top-3 right-3 bg-white/10 hover:bg-white/20 text-white py-1 px-3 rounded text-xs backdrop-blur-md border border-white/10 transition-colors">
+                                <i class="fa-regular fa-copy mr-1"></i> 复制
+                            </button>
+                        </div>
+                    </div>
+                </details>
+            </div>
+
+        </div>
+
+    </div>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const generateButton = document.getElementById('generateButton');
+        const metallicitySlider = document.getElementById('metallicitySlider');
+        const metallicityValue = document.getElementById('metallicityValue');
+        const copyStcButton = document.getElementById('copy-stc-button');
+        const stcCodeElement = document.getElementById('stc-code');
+        const orbitViewBtn = document.getElementById('orbit-view-btn');
+        const comparisonViewBtn = document.getElementById('comparison-view-btn');
+        const viewHint = document.getElementById('view-hint');
+
+        let currentPreviewMode = 'orbit';
+        let lastGeneratedSystem = null;
+        
+        // 3D Scene Variables
+        let scene, camera, renderer, controls, animationId;
+        const raycaster = new THREE.Raycaster();
+        const pointer = new THREE.Vector2();
+        let clickableObjects = [];
+
+        // Constants
+        const T_sun = 5778; // K
+        const SUN_RADIUS_KM = 696340;
+        const EARTH_MASS_KG = 5.972e24;
+        const EARTH_RADIUS_KM = 6371;
+        const G = 6.67430e-11;
+        const AU_KM = 149597870.7;
+
+        metallicitySlider.addEventListener('input', () => {
+            metallicityValue.textContent = parseFloat(metallicitySlider.value).toFixed(1);
+        });
+
+        copyStcButton.addEventListener('click', () => {
+            const textToCopy = stcCodeElement.textContent;
+            const textArea = document.createElement('textarea');
+            textArea.value = textToCopy;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                const originalText = copyStcButton.innerHTML;
+                copyStcButton.innerHTML = '<i class="fa-solid fa-check mr-1"></i> 已复制';
+                setTimeout(() => { copyStcButton.innerHTML = originalText; }, 2000);
+            } catch (err) {
+                console.error('无法复制', err);
+                copyStcButton.textContent = "失败";
+            }
+            document.body.removeChild(textArea);
+        });
+
+        orbitViewBtn.addEventListener('click', () => {
+            currentPreviewMode = 'orbit';
+            orbitViewBtn.classList.add('active');
+            comparisonViewBtn.classList.remove('active');
+            viewHint.style.display = 'flex'; // Restore flex for icons
+            if (lastGeneratedSystem) {
+                draw3DSystem(lastGeneratedSystem.star, lastGeneratedSystem.planets);
+            }
+        });
+
+        comparisonViewBtn.addEventListener('click', () => {
+            currentPreviewMode = 'comparison';
+            comparisonViewBtn.classList.add('active');
+            orbitViewBtn.classList.remove('active');
+            viewHint.style.display = 'none';
+            if (lastGeneratedSystem) {
+                drawComparisonView(lastGeneratedSystem.star, lastGeneratedSystem.planets);
+            }
+        });
+
+
+        const margin = { top: 20, right: 40, bottom: 50, left: 60 };
+        const svgContainer = d3.select("#hr-diagram");
+        let hrWidth, hrHeight, hrSvg, hrX, hrY;
+
+        function setupHrChart() {
+            const containerRect = svgContainer.node().getBoundingClientRect();
+            hrWidth = containerRect.width - margin.left - margin.right;
+            hrHeight = containerRect.height - margin.top - margin.bottom;
+
+            svgContainer.selectAll("*").remove();
+            hrSvg = svgContainer.append("svg")
+                .attr("width", hrWidth + margin.left + margin.right)
+                .attr("height", hrHeight + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform", `translate(${margin.left},${margin.top})`);
+
+            hrX = d3.scaleLog().domain([50000, 2000]).range([0, hrWidth]);
+            hrY = d3.scaleLog().domain([1e-5, 1e7]).range([hrHeight, 0]);
+
+            // X Axis
+            hrSvg.append("g")
+                .attr("class", "axis")
+                .attr("transform", `translate(0,${hrHeight})`)
+                .call(d3.axisBottom(hrX).tickValues([40000, 20000, 10000, 5000, 3000, 2000]).tickFormat(d3.format(".0s")))
+                .append("text")
+                .attr("x", hrWidth / 2)
+                .attr("y", 40)
+                .attr("fill", "#94a3b8")
+                .attr("text-anchor", "middle")
+                .style("font-size", "12px")
+                .style("font-family", "Inter")
+                .text("表面温度 (K) ←");
+
+            // Y Axis
+            hrSvg.append("g")
+                .attr("class", "axis")
+                .call(d3.axisLeft(hrY).tickFormat(d => { const log = Math.log10(d); return Number.isInteger(log) ? `10^${log}` : ""; }))
+                .append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("y", -45)
+                .attr("x", -hrHeight / 2)
+                .attr("fill", "#94a3b8")
+                .attr("text-anchor", "middle")
+                .style("font-size", "12px")
+                .style("font-family", "Inter")
+                .text("光度 (L☉)");
+            
+            const mainSequenceData = [{temp: 40000, lum_min: 1e4, lum_max: 1e5},{temp: 10000, lum_min: 10, lum_max: 100},{temp: 7000, lum_min: 1, lum_max: 10},{temp: 5000, lum_min: 0.1, lum_max: 1},{temp: 3000, lum_min: 0.001, lum_max: 0.1},{temp: 2000, lum_min: 0.0001, lum_max: 0.01}];
+            const area = d3.area().x(d => hrX(d.temp)).y0(d => hrY(d.lum_min)).y1(d => hrY(d.lum_max)).curve(d3.curveBasis);
+            hrSvg.append("path").datum(mainSequenceData).attr("class", "main-sequence-band").attr("d", area);
+        }
+        
+        setupHrChart();
+        // 使用 ResizeObserver 监听容器大小变化，比 window resize 更准确
+        const resizeObserver = new ResizeObserver(() => {
+            setupHrChart();
+            // 如果已有生成的恒星，需要重绘点
+            if(lastGeneratedSystem) {
+                // 简单的重绘当前恒星点逻辑
+                const lum = parseFloat(document.getElementById('luminosity').textContent);
+                const temp = parseFloat(document.getElementById('temperature').textContent);
+                // 需要重新计算 temp 和 lum 的数值，因为 textContent 包含了单位
+                // 这里为了简便，我们在 generateStar 函数里会重绘
+                // 实际应用中可能需要保存 raw values
+            }
+        });
+        resizeObserver.observe(document.getElementById('hr-diagram'));
+
+        const tooltip = d3.select("body").append("div").attr("class", "tooltip");
+
+        const formatLifetime = (years) => years < 1e6 ? `${(years / 1e3).toFixed(1)} 千年` : years < 1e9 ? `${(years / 1e6).toFixed(2)} 百万年` : `${(years / 1e9).toFixed(2)} 十亿年`;
+        const calculateRadius = (lum, temp) => Math.sqrt(lum) / Math.pow(temp / T_sun, 2);
+        function getStarColor(temp) { if (temp > 30000) return "#aaccff"; if (temp > 10000) return "#cadcff"; if (temp > 7500) return "#fbf8ff"; if (temp > 6000) return "#fff4e8"; if (temp > 5000) return "#ffddb4"; if (temp > 3500) return "#ffb66c"; return "#ff8c4b"; }
+        function getSpectralType(temp) { if (temp > 30000) return "O"; if (temp > 10000) return "B"; if (temp > 7500) return "A"; if (temp > 6000) return "F"; if (temp > 5000) return "G"; if (temp > 3500) return "K"; return "M"; }
+
+        function normalRandom() {
+            let u = 0, v = 0;
+            while(u === 0) u = Math.random();
+            while(v === 0) v = Math.random();
+            return Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
+        }
+
+        function generateStellarMass() {
+            const rand = Math.random();
+            const minMass = 0.075; const maxMass = 100;
+            const p1 = 0.40; const p2 = p1 + 0.27; const p3 = p2 + 0.19; const p4 = p3 + 0.10; const p5 = p4 + 0.03; const p6 = p5 + 0.008;
+            if (rand < p1) return minMass + Math.random() * (0.25 - minMass); if (rand < p2) return 0.25 + Math.random() * (0.5 - 0.25); if (rand < p3) return 0.5 + Math.random() * (1.0 - 0.5); if (rand < p4) return 1.0 + Math.random() * (2.0 - 1.0); if (rand < p5) return 2.0 + Math.random() * (4.0 - 2.0); if (rand < p6) return 4.0 + Math.random() * (16.0 - 4.0);
+            return 16.0 + Math.random() * (maxMass - 16.0);
+        }
+
+        function getZAMSProps(m, fe_h) {
+            const z_ratio = Math.pow(10, fe_h); let lum, temp;
+            if (m < 0.43) { lum = 0.23 * Math.pow(m, 2.3); temp = T_sun * Math.pow(0.7 * m, 0.3); }
+            else if (m < 2) { lum = Math.pow(m, 4); temp = T_sun * Math.pow(m, 0.525); }
+            else if (m < 55) { lum = 1.4 * Math.pow(m, 3.5); temp = T_sun * Math.pow(1.2 * m, 0.5); }
+            else { lum = 32000 * m; temp = 40000 * Math.pow(m, 0.1); }
+            const temp_correction = Math.pow(z_ratio, -0.08); const lum_correction = Math.pow(z_ratio, -0.1);
+            return { lum: lum * lum_correction, temp: temp * temp_correction };
+        }
+
+        function generatePlanetarySystem(star) {
+            let planetsCode = "";
+            let planetsData = [];
+            const planetNames = ["B", "C", "D", "E", "F", "G", "H", "I", "J", "K"];
+            let planetCount = Math.round(normalRandom() * 2.5 + 3);
+            planetCount = Math.max(0, planetCount);
+            if (planetCount === 0) return { count: 0, code: "", planets: [] };
+
+            let lastAphelionAU = (star.radiusKm * (10 + Math.random() * 40)) / AU_KM;
+            const maxAU = (star.radiusKm * 10000) / AU_KM;
+            let actualPlanetCount = 0;
+
+            for (let i = 0; i < planetCount; i++) {
+                let mass, radius, density, rotPeriod, albedo, atmosphereCode = "", atm = 0;
+                let planetTypeName, isRocky;
+
+                const typeRand = Math.random();
+                if (typeRand < 0.2105) { planetTypeName = "类地行星"; isRocky = true; mass = 0.03 + Math.random() * (1.8 - 0.03); density = 3.0 + Math.random() * (5.5 - 3.0); }
+                else if (typeRand < 0.5263) { planetTypeName = "超级地球"; isRocky = true; mass = 1.8 + Math.random() * (8 - 1.8); density = 3.5 + Math.random() * (8 - 3.5); }
+                else if (typeRand < 0.7895) { planetTypeName = "亚海王星"; isRocky = false; mass = 3 + Math.random() * (10 - 3); density = 1.0 + Math.random() * (3.5 - 1.0); }
+                else if (typeRand < 0.8948) { planetTypeName = "类海王星"; isRocky = false; mass = 10 + Math.random() * (50 - 10); density = 0.6 + Math.random() * (3.0 - 0.6); }
+                else { planetTypeName = "巨行星"; isRocky = false; mass = 50 + Math.random() * (1000 - 50); density = 0.6 + Math.random() * (2.0 - 0.6); }
+
+                density *= 1000;
+                if (isRocky) { rotPeriod = 15 + Math.random() * 220; albedo = 0.1 + Math.random() * 0.4; }
+                else { rotPeriod = 6 + Math.random() * 39; albedo = 0.4 + Math.random() * 0.3; }
+
+                const radiusM = Math.pow((3 * (mass * EARTH_MASS_KG)) / (4 * Math.PI * density), 1/3);
+                radius = radiusM / 1000;
+
+                const ecc = Math.random() * 0.3;
+                const separationFactor = 1.4 + Math.random() * 1.2;
+                const newPerihelion = lastAphelionAU * separationFactor;
+                const semiMajorAxis = newPerihelion / (1 - ecc);
+
+                if (semiMajorAxis > maxAU) break;
+                lastAphelionAU = semiMajorAxis * (1 + ecc);
+                actualPlanetCount++;
+                
+                const effectiveTemp = star.temp * Math.sqrt(star.radiusKm / (2 * semiMajorAxis * AU_KM)) * Math.pow(1 - albedo, 0.25);
+                let surfaceTemp = effectiveTemp;
+                
+                let hasAtmosphere = true;
+                if (isRocky) {
+                    const tempFactor = Math.max(0, (effectiveTemp - 273) / (800 - 273));
+                    const probFromTemp = 0.33 + tempFactor * (0.90 - 0.33);
+                    const massFactor = 0.1 / mass;
+                    const noAtmosphereProb = Math.min(0.95, probFromTemp * massFactor);
+                    if (Math.random() < noAtmosphereProb) hasAtmosphere = false;
+                }
+
+                if (hasAtmosphere) {
+                    const atmosphereHeight = Math.round(radius * 0.02 * ((Math.random() * 0.2) + 0.9));
+                    const mieScaleHeight = Math.round(atmosphereHeight * 0.1 * ((Math.random() * 0.2) + 0.9));
+                    const mie = (Math.random()**3 * 0.04 / atmosphereHeight) + 0.04 / atmosphereHeight;
+                    const mieAsymmetry = Math.random() * 0.9 - 0.45;
+                    let rayleigh = [];
+                    if(isRocky) {
+                        const atmExponent = normalRandom();
+                        atm = Math.pow(10, atmExponent);
+                        const greenhouseEffect = 30 * Math.pow(atm, 0.5) * (0.1 + Math.random() * 0.9);
+                        surfaceTemp += greenhouseEffect;
+                        const maxRGB = Math.min(0.01, 0.0005 + 0.0045 * (Math.log10(atm * 100)/4 + 1));
+                        rayleigh = [ (Math.random() * 0.5 + 0.5) * maxRGB, (Math.random() * 0.5 + 0.5) * maxRGB, (Math.random() * 0.5 + 0.5) * maxRGB, ];
+                    } else {
+                        atm = -1;
+                        rayleigh = [ 0.00005 + Math.random() * 0.00095, 0.00005 + Math.random() * 0.00095, 0.00005 + Math.random() * 0.00095, ];
+                    }
+                    atmosphereCode = `\tAtmosphere\n\t{\n\t\tHeight ${atmosphereHeight}\n\t\tMieScaleHeight ${mieScaleHeight}\n\t\tMie ${mie.toFixed(5)}\n\t\tMieAsymmetry ${mieAsymmetry.toFixed(2)}\n\t\tRayleigh [ ${rayleigh[0].toExponential(2)} ${rayleigh[1].toExponential(2)} ${rayleigh[2].toExponential(2)} ]\n\t}\n`;
+                }
+
+                const orbitalPeriodDays = 365.25 * Math.sqrt(Math.pow(semiMajorAxis, 3) / star.mass);
+                
+                // Generate Orbital Elements and Store them
+                const orb_inc = (normalRandom() * 5); // Inclination in degrees
+                const orb_asc = Math.random() * 360; // Ascending Node
+                const orb_peri = Math.random() * 360; // Arg of Pericenter
+                const orb_ma = Math.random() * 360; // Mean Anomaly
+                const rot_inc = 180 * Math.pow(Math.random(), 2); const rot_asc = Math.random() * 360;
+
+                planetsCode += `\n"${planetNames[i]}" "${star.id}"\n{\n\tMass ${mass.toFixed(2)}\n\tRadius ${radius.toFixed(0)}\n\tEllipticalOrbit\n\t{\n\t\tPeriod ${(orbitalPeriodDays / 365.25).toFixed(4)}\n\t\tSemiMajorAxis ${semiMajorAxis.toFixed(4)}\n\t\tEccentricity ${ecc.toFixed(4)}\n\t\tInclination ${orb_inc.toFixed(4)}\n\t\tAscendingNode ${orb_asc.toFixed(4)}\n\t\tArgOfPericenter ${orb_peri.toFixed(4)}\n\t\tMeanAnomaly ${orb_ma.toFixed(4)}\n\t}\n${atmosphereCode}\tUniformRotation\n\t{\n\t\tPeriod ${rotPeriod.toFixed(2)}\n\t\tInclination ${rot_inc.toFixed(1)}\n\t\tAscendingNode ${rot_asc.toFixed(1)}\n\t}\n}`;
+                
+                planetsData.push({
+                    name: planetNames[i],
+                    typeName: planetTypeName,
+                    semiMajorAxis,
+                    eccentricity: ecc,
+                    inclination: orb_inc,
+                    ascendingNode: orb_asc,
+                    argOfPericenter: orb_peri,
+                    meanAnomaly: orb_ma,
+                    radiusKm: radius,
+                    mass,
+                    effectiveTemp,
+                    surfaceTemp,
+                    atm
+                });
+            }
+            return { count: actualPlanetCount, code: planetsCode, planets: planetsData };
+        }
+
+        // --- THREE.JS 3D VISUALIZATION ---
+        function init3D() {
+            const container = document.getElementById('planet-system-preview');
+            container.innerHTML = '';
+
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            scene = new THREE.Scene();
+            // Transparent background to let CSS background show through
+            scene.background = null;
+
+            camera = new THREE.PerspectiveCamera(45, width / height, 0.0001, 1000);
+            camera.position.set(0, 10, 10);
+            camera.up.set(0, 1, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(width, height);
+            container.appendChild(renderer.domElement);
+            
+            pointer.set( -1000, -1000 );
+            renderer.domElement.addEventListener( 'mousemove', onPointerMove );
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            const ambientLight = new THREE.AmbientLight(0x404040);
+            scene.add(ambientLight);
+
+            animate3D();
+        }
+
+        function onPointerMove( event ) {
+            const container = document.getElementById('planet-system-preview');
+            const rect = container.getBoundingClientRect();
+            pointer.x = ( ( event.clientX - rect.left ) / rect.width ) * 2 - 1;
+            pointer.y = - ( ( event.clientY - rect.top ) / rect.height ) * 2 + 1;
+            
+            if(tooltip.style("opacity") != 0) {
+                 tooltip.style("left", `${event.pageX + 15}px`).style("top", `${event.pageY - 28}px`);
+            }
+        }
+
+        function solveKepler(M, e) {
+             let E = M;
+             for(let i=0; i<5; i++) {
+                 E = E - (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+             }
+             return E;
+        }
+
+        function animate3D() {
+            animationId = requestAnimationFrame(animate3D);
+            if(controls) controls.update();
+
+             if(scene && camera && clickableObjects.length > 0) {
+                raycaster.setFromCamera( pointer, camera );
+                const intersects = raycaster.intersectObjects( clickableObjects );
+
+                if ( intersects.length > 0 ) {
+                    const obj = intersects[ 0 ].object;
+                    const d = obj.userData;
+                    
+                    tooltip.transition().duration(100).style("opacity", 0.9);
+                    let tooltipHtml = "";
+                    if (d.type === 'star') {
+                         tooltipHtml = `<b>${d.stageName || '恒星'}</b><br/>质量: ${d.mass.toFixed(2)} M☉<br/>温度: ${d.temp.toFixed(0)} K`;
+                    } else {
+                         const effC = d.effectiveTemp - 273.15;
+                         tooltipHtml = `<b>${d.typeName} (${d.name})</b><br/>质量: ${d.mass.toFixed(2)} M⊕<br/>半径: ${d.radiusKm.toFixed(0)} km<br/>温度: ${effC.toFixed(1)} °C`;
+                         if(d.atm >= 0) tooltipHtml += `<br/>大气: ${d.atm > 0 ? d.atm.toExponential(2) : '无'} atm`;
+                    }
+                    tooltip.html(tooltipHtml);
+                    document.body.style.cursor = 'pointer';
+                } else {
+                    tooltip.transition().duration(200).style("opacity", 0);
+                    document.body.style.cursor = 'default';
+                }
+            }
+
+            if(renderer && scene && camera) renderer.render(scene, camera);
+        }
+
+        function draw3DSystem(star, planets) {
+            if (animationId) cancelAnimationFrame(animationId);
+            
+            init3D();
+            clickableObjects = [];
+
+            // Star
+            const starColorHex = new THREE.Color(getStarColor(star.temp));
+            const starGeometry = new THREE.SphereGeometry(0.03, 32, 32);
+            const starMaterial = new THREE.MeshBasicMaterial({ color: starColorHex });
+            const starMesh = new THREE.Mesh(starGeometry, starMaterial);
+            starMesh.userData = { type: 'star', stageName: document.getElementById('stageName').textContent, ...star };
+            scene.add(starMesh);
+            clickableObjects.push(starMesh);
+            
+            // Star Glow
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const context = canvas.getContext('2d');
+            const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 28);
+            gradient.addColorStop(0, `rgba(${starColorHex.r*255}, ${starColorHex.g*255}, ${starColorHex.b*255}, 1)`);
+            gradient.addColorStop(0.2, `rgba(${starColorHex.r*255}, ${starColorHex.g*255}, ${starColorHex.b*255}, 0.4)`);
+            gradient.addColorStop(0.5, `rgba(${starColorHex.r*255}, ${starColorHex.g*255}, ${starColorHex.b*255}, 0.1)`);
+            gradient.addColorStop(1, 'rgba(0,0,0,0)');
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, 64, 64);
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.scale.set(1, 1, 1);
+            scene.add(sprite);
+
+            let maxDist = 1;
+
+            planets.forEach((p, i) => {
+                const a = p.semiMajorAxis;
+                const e = p.eccentricity;
+                const inc = p.inclination * (Math.PI / 180);
+                const Omega = p.ascendingNode * (Math.PI / 180);
+                const omega = p.argOfPericenter * (Math.PI / 180);
+                const M = p.meanAnomaly * (Math.PI / 180);
+
+                // Orbit Path
+                const points = [];
+                const segments = 128;
+                
+                for (let j = 0; j <= segments; j++) {
+                    const theta = (j / segments) * 2 * Math.PI;
+                    const r = (a * (1 - e * e)) / (1 + e * Math.cos(theta));
+                    const x_orb = r * Math.cos(theta);
+                    const y_orb = r * Math.sin(theta);
+                    const x_w = x_orb * Math.cos(omega) - y_orb * Math.sin(omega);
+                    const y_w = x_orb * Math.sin(omega) + y_orb * Math.cos(omega);
+                    const cosOm = Math.cos(Omega);
+                    const sinOm = Math.sin(Omega);
+                    const cosWF = Math.cos(omega + theta);
+                    const sinWF = Math.sin(omega + theta);
+                    const cosInc = Math.cos(inc);
+                    const sinInc = Math.sin(inc);
+                    const X = r * (cosOm * cosWF - sinOm * sinWF * cosInc);
+                    const Y = r * (sinOm * cosWF + cosOm * sinWF * cosInc);
+                    const Z = r * (sinWF * sinInc);
+                    points.push(new THREE.Vector3(X, Z, Y));
+                }
+
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                const planetColor = new THREE.Color(getStarColor(p.effectiveTemp));
+                const material = new THREE.LineBasicMaterial({ color: planetColor, opacity: 0.5, transparent: true });
+                const line = new THREE.LineLoop(geometry, material);
+                scene.add(line);
+
+                // Planet Mesh
+                const E = solveKepler(M, e);
+                const trueAnomaly = 2 * Math.atan(Math.sqrt((1+e)/(1-e)) * Math.tan(E/2));
+                const r_now = (a * (1 - e * e)) / (1 + e * Math.cos(trueAnomaly));
+                
+                const cosOm = Math.cos(Omega);
+                const sinOm = Math.sin(Omega);
+                const cosWF = Math.cos(omega + trueAnomaly);
+                const sinWF = Math.sin(omega + trueAnomaly);
+                const cosInc = Math.cos(inc);
+                const sinInc = Math.sin(inc);
+
+                const px = r_now * (cosOm * cosWF - sinOm * sinWF * cosInc);
+                const py = r_now * (sinWF * sinInc);
+                const pz = r_now * (sinOm * cosWF + cosOm * sinWF * cosInc);
+
+                const planetGeo = new THREE.SphereGeometry(0.015, 16, 16);
+                const planetMat = new THREE.MeshBasicMaterial({ color: planetColor });
+                const planetMesh = new THREE.Mesh(planetGeo, planetMat);
+                planetMesh.position.set(px, py, pz);
+                planetMesh.userData = p;
+                scene.add(planetMesh);
+                clickableObjects.push(planetMesh);
+
+                const aphelion = a * (1 + e);
+                if (aphelion > maxDist) maxDist = aphelion;
+            });
+            
+            // Grid
+            const gridHelper = new THREE.GridHelper(maxDist * 2.5, 20, 0x444444, 0x222222);
+            scene.add(gridHelper);
+
+            // Camera
+            const camDist = maxDist * 1.5;
+            camera.position.set(camDist * 0.5, camDist * 0.5, camDist * 0.5);
+            camera.lookAt(0, 0, 0);
+            controls.target.set(0, 0, 0);
+        }
+
+        function drawComparisonView(star, planets) {
+            if (animationId) cancelAnimationFrame(animationId);
+            const container = d3.select("#planet-system-preview");
+            container.selectAll("*").remove();
+            
+            const svg = container.append("svg").attr("id", "planet-system-svg").attr("width", "100%").attr("height", "100%");
+            const width = container.node().getBoundingClientRect().width;
+            const height = container.node().getBoundingClientRect().height;
+            
+            const allObjects = [star, ...planets];
+            const maxRadius = d3.max(allObjects, d => d.radiusKm);
+            const radiusScale = d3.scaleLinear().domain([0, maxRadius]).range([2, height / 3]);
+            
+            const totalWidth = d3.sum(allObjects, d => radiusScale(d.radiusKm) * 2) + (allObjects.length - 1) * 20;
+            let currentX = (width - totalWidth) / 2;
+            if (currentX < 20) currentX = 20; // Margin
+
+            allObjects.forEach((obj, i) => {
+                const radiusPx = Math.max(2, radiusScale(obj.radiusKm));
+                const isStar = i === 0;
+                const color = isStar ? getStarColor(obj.temp) : getStarColor(obj.effectiveTemp);
+                
+                svg.append("circle").datum(obj).attr("cx", currentX + radiusPx).attr("cy", height / 2).attr("r", radiusPx).attr("fill", color).attr("stroke", "rgba(255,255,255,0.1)").attr("stroke-width", 1)
+                .on("mouseover", (event, d) => {
+                        tooltip.transition().duration(200).style("opacity", 0.9);
+                        let tooltipHtml = "";
+                        if (isStar) {
+                            tooltipHtml = `<b>恒星</b><br/>质量: ${d.mass.toFixed(2)} M☉<br/>半径: ${d.radiusKm.toFixed(0)} km<br/>温度: ${d.temp.toFixed(0)} K`;
+                        } else {
+                            tooltipHtml = `<b>${d.typeName} (${d.name})</b><br/>质量: ${d.mass.toFixed(2)} M⊕<br/>半径: ${d.radiusKm.toFixed(0)} km<br/>`;
+                            const effectiveTempCelsius = d.effectiveTemp - 273.15;
+                            if (d.surfaceTemp > d.effectiveTemp + 0.1) { const surfaceTempCelsius = d.surfaceTemp - 273.15; tooltipHtml += `表面温度: ${surfaceTempCelsius.toFixed(1)} °C<br/>`; }
+                            tooltipHtml += `有效温度: ${effectiveTempCelsius.toFixed(1)} °C`;
+                            if (d.atm >= 0) { tooltipHtml += `<br/>大气压力: ${d.atm > 0 ? d.atm.toExponential(2) : '无'} atm`; }
+                        }
+                        tooltip.html(tooltipHtml).style("left", `${event.pageX + 15}px`).style("top", `${event.pageY - 28}px`);
+                    })
+                .on("mouseout", () => tooltip.transition().duration(500).style("opacity", 0));
+                currentX += radiusPx * 2 + 20;
+            });
+        }
+
+        const generateStar = () => {
+            let mass = generateStellarMass();
+            const fe_h = parseFloat(metallicitySlider.value);
+            const typeRoll = Math.random();
+            let starType, stageName, stageDescription;
+
+            if (typeRoll < 0.985) { starType = "Main Sequence"; stageName = "主序星"; stageDescription = "这是一颗刚刚诞生、进入主序阶段的恒星。它的核心正开始稳定的氢聚变反应。"; }
+            else if (typeRoll < 0.988) { starType = "Subgiant"; stageName = "亚巨星"; stageDescription = "这颗恒星已耗尽核心的氢，正在向红巨星阶段演化。它的外层开始膨胀和冷却。"; while (mass < 0.7) mass = generateStellarMass(); }
+            else { starType = "Red Giant"; stageName = "红巨星"; stageDescription = "这颗恒星处于其生命的后期阶段，体积巨大但表面温度较低。核心可能正在进行氦或更重元素的聚变。"; while (mass < 0.7) mass = generateStellarMass(); }
+            
+            hrSvg.selectAll(".current-star").remove();
+            document.getElementById('initial-message').classList.add('hidden');
+            document.getElementById('simulation-output').classList.remove('hidden');
+            document.getElementById('stc-output').classList.remove('hidden');
+            document.getElementById('planet-system-container').classList.remove('hidden');
+            
+            const initialZAMSProps = getZAMSProps(mass, fe_h);
+            let lum, temp;
+
+            if (starType === "Main Sequence") { lum = initialZAMSProps.lum; temp = initialZAMSProps.temp; }
+            else if (starType === "Subgiant") { lum = initialZAMSProps.lum * (2.5 + Math.random()); temp = initialZAMSProps.temp * (1 - (0.05 + Math.random() * 0.15)); }
+            else { const y = 2 + Math.random() * 1.33; const x = fe_h; const metal_lum_mod = x < 0 ? Math.pow(10, -3 * x) : Math.pow(10, 0.4 * x); lum = mass * Math.pow(10, y) * metal_lum_mod; const z = 0.03 + Math.random() * 0.036; temp = Math.pow(initialZAMSProps.temp, 1 - z + 0.02 * Math.abs(x)); }
+
+            const rad = calculateRadius(lum, temp);
+            const ms_lifetime = (1e10 * Math.pow(mass, -2.5)) / Math.pow(10, fe_h * -0.1);
+            const color = getStarColor(temp);
+            const radiusKm = rad * SUN_RADIUS_KM;
+            const starDataForPlanets = { mass, radiusKm, fe_h, temp, id: `ENCE-${Math.floor(1000 + Math.random() * 9000)}` };
+            const planetarySystem = generatePlanetarySystem(starDataForPlanets);
+            lastGeneratedSystem = { star: { ...starDataForPlanets, radiusKm: radiusKm }, planets: planetarySystem.planets };
+
+
+            if (planetarySystem.count > 0) {
+                if (currentPreviewMode === 'orbit') { draw3DSystem(lastGeneratedSystem.star, planetarySystem.planets); }
+                else { drawComparisonView(lastGeneratedSystem.star, planetarySystem.planets); }
+            } else {
+                // 清空预览
+                document.getElementById('planet-system-preview').innerHTML = '<div class="flex h-full items-center justify-center text-gray-500">该系统没有行星</div>';
+            }
+            
+            document.getElementById('initialMass').textContent = `${mass.toFixed(2)} M☉`;
+            document.getElementById('planetCount').textContent = planetarySystem.count;
+            document.getElementById('stageName').textContent = stageName;
+            document.getElementById('stageDescription').textContent = stageDescription;
+            document.getElementById('lifetime').textContent = formatLifetime(ms_lifetime);
+            document.getElementById('temperature').textContent = `${temp.toFixed(0)} K`;
+            document.getElementById('luminosity').textContent = `${lum.toExponential(2)} L☉`;
+            document.getElementById('radius').textContent = `${rad.toExponential(2)} R☉`;
+
+            const ra = (Math.random() * 360).toFixed(6); const dec = (Math.random() * 180 - 90).toFixed(6); const distance = (2000 + Math.random() * 6000).toFixed(4); const sunAbsMag = 4.83; const absMag = sunAbsMag - 2.5 * Math.log10(lum); const spectralType = getSpectralType(temp);
+            let starCode = `"${starDataForPlanets.id}"\n{\n\tRA ${ra}\n\tDec ${dec}\n\tDistance ${distance}\n\tAbsMag ${absMag.toFixed(3)}\n\tSpectralType "${spectralType}"\n\tRadius ${radiusKm.toFixed(0)}\n\tMass ${mass.toFixed(3)}\n\tTemperature ${temp.toFixed(0)}\n}`;
+            stcCodeElement.textContent = starCode + planetarySystem.code;
+
+            if (lum > 0 && temp > 0 && isFinite(lum) && isFinite(temp)) {
+                const cx = hrX(temp); const cy = hrY(lum);
+                hrSvg.append("circle").attr("class", "current-star").attr("cx", cx).attr("cy", cy).attr("r", 8).attr("fill", color).attr("stroke", "white").attr("stroke-width", 2)
+                    .on("mouseover", (event) => {
+                        tooltip.transition().duration(200).style("opacity", .9);
+                        tooltip.html(`<b>${stageName}</b><br/>质量: ${mass.toFixed(2)} M☉<br/>[Fe/H]: ${fe_h.toFixed(1)}<br/>T: ${temp.toFixed(0)} K<br/>L: ${lum.toExponential(2)} L☉`).style("left", `${event.pageX + 15}px`).style("top", `${event.pageY - 28}px`);
+                    }).on("mouseout", () => tooltip.transition().duration(500).style("opacity", 0));
+            }
+        };
+
+        generateButton.addEventListener('click', generateStar);
+    });
+</script>
+<script src="nav.js" defer></script>
+</body>
+</html>

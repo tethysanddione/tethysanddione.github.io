@@ -3,337 +3,422 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeowFin - 市梦率估值模型</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <title>“市梦率”估值模型</title>
     <style>
-        /* --- 全局样式 --- */
+        :root {
+            --bg-color: #0a0b10;
+            --card-bg: rgba(20, 25, 35, 0.7);
+            --accent-color: #7000ff;
+            --accent-secondary: #00f2ff;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a5b0;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --input-bg: rgba(0, 0, 0, 0.3);
+            --success-color: #00ff9d;
+        }
+
         body {
             margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-            background-color: #121212;
-            color: #E0E0E0;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
             min-height: 100vh;
-            padding: 20px;
+            padding: 40px 20px;
             box-sizing: border-box;
+            background-image: radial-gradient(circle at 80% 20%, #1a0b2e 0%, #0a0b10 60%),
+                              radial-gradient(circle at 20% 80%, #0b1a2e 0%, #0a0b10 60%);
         }
 
-        /* --- 主容器 --- */
         .container {
             width: 100%;
-            max-width: 1200px;
-            text-align: center;
-            padding: 40px 0;
+            max-width: 1100px;
+            margin: 0 auto;
         }
 
-        /* --- 标题和副标题 --- */
+        /* --- 头部 --- */
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            position: relative;
+        }
+
         h1 {
-            font-size: 2.8em;
-            font-weight: 600;
-            color: #FFFFFF;
-            margin-bottom: 10px;
+            font-size: 2.5em;
+            font-weight: 800;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #fff 0%, var(--accent-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
         }
 
         .subtitle {
-            font-size: 1.2em;
-            color: #A0A0A0;
-            margin-bottom: 50px;
+            color: var(--text-secondary);
+            font-size: 1.1em;
             max-width: 700px;
-            margin-left: auto;
-            margin-right: auto;
+            margin: 0 auto;
             line-height: 1.6;
         }
 
-        /* --- 计算器主布局 --- */
+        /* --- 布局网格 --- */
         .calculator-layout {
             display: grid;
-            grid-template-columns: 1fr 1fr; /* 左右两栏 */
+            grid-template-columns: 1.5fr 1fr;
             gap: 30px;
-            text-align: left;
+            align-items: start;
         }
 
-        /* --- 卡片样式 --- */
+        /* --- 卡片通用样式 --- */
         .card {
-            background-color: #1E1E1E;
-            border: 1px solid #333;
-            border-radius: 12px;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
             padding: 30px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-        
-        .input-section .card {
-            margin-bottom: 20px;
-        }
-        
-        .card h3 {
-            margin-top: 0;
             margin-bottom: 25px;
-            color: #FFFFFF;
-            font-size: 1.4em;
-            border-bottom: 1px solid #404040;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .card h3 {
+            margin: 0 0 25px 0;
+            font-size: 1.2em;
+            color: var(--accent-secondary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--border-color);
             padding-bottom: 15px;
         }
 
-        /* --- 表单元素样式 --- */
+        /* --- 表单组件 --- */
         .input-group {
-            margin-bottom: 20px;
-        }
-        .input-group label {
-            display: flex; /* 使用flex布局对齐 */
-            align-items: center; /* 垂直居中对齐 */
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #B0B0B0;
-        }
-        .input-group input, .input-group select {
-            width: 100%;
-            padding: 12px;
-            background-color: #282828;
-            border: 1px solid #444;
-            border-radius: 6px;
-            color: #E0E0E0;
-            font-size: 1em;
-            box-sizing: border-box;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-        .input-group input:focus, .input-group select:focus {
-            outline: none;
-            border-color: #007BFF;
-            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
-        }
-
-        /* --- 提示工具 (Tooltip) 样式 --- */
-        .tooltip {
+            margin-bottom: 25px;
             position: relative;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin-left: 8px;
-        }
-        .tooltip-icon {
-            width: 16px;
-            height: 16px;
-            background-color: #4a4a4a;
-            color: #E0E0E0;
-            border-radius: 50%;
-            font-size: 12px;
-            line-height: 16px;
-            text-align: center;
-            cursor: help;
-            font-style: normal;
-        }
-        .tooltip-text {
-            visibility: hidden;
-            opacity: 0;
-            width: 280px;
-            background-color: #333;
-            color: #fff;
-            text-align: left;
-            border-radius: 6px;
-            padding: 12px;
-            position: absolute;
-            z-index: 1;
-            bottom: 150%;
-            left: 50%;
-            transform: translateX(-50%);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-            transition: opacity 0.3s ease, visibility 0.3s ease;
-            line-height: 1.5;
-            font-weight: normal;
-            font-size: 0.9em;
-        }
-        .tooltip-text::after {
-            content: "";
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            margin-left: -5px;
-            border-width: 5px;
-            border-style: solid;
-            border-color: #333 transparent transparent transparent;
-        }
-        .tooltip:hover .tooltip-text {
-            visibility: visible;
-            opacity: 1;
         }
 
-
-        /* --- 按钮样式 --- */
-        .calc-button {
-            width: 100%;
-            padding: 15px;
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #FFFFFF;
-            background: linear-gradient(45deg, #007BFF, #0056b3);
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
-            margin-top: 10px;
-        }
-        .calc-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(0, 123, 255, 0.3);
-        }
-
-        /* --- 结果展示区样式 --- */
-        .results-card h3 {
-             color: #28a745; /* 绿色标题 */
-        }
-        .result-item {
+        .input-group label {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 16px 0;
-            border-bottom: 1px solid #333;
-            font-size: 1.1em;
-        }
-        .result-item:last-child {
-            border-bottom: none;
-        }
-        .result-item .label {
-            color: #B0B0B0;
-        }
-        .result-item .value {
-            color: #FFFFFF;
-            font-weight: bold;
-            font-size: 1.2em;
-        }
-        /* 主结果突出显示 */
-        .result-item.primary-result .value {
-            font-size: 2em;
-            color: #28a745;
-        }
-         .result-item.secondary-result .value {
-            font-size: 1.5em;
-            color: #00A0FF;
-        }
-        .result-item .sub-value {
-           font-size: 1.1em;
-           font-weight: normal;
-           color: #A0A0A0;
-           text-align: right;
-        }
-        .value span {
-            font-size: 0.7em;
-            font-weight: normal;
-            color: #888;
-            margin-left: 5px;
+            font-size: 0.95em;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
         }
 
-        /* --- 响应式布局 --- */
+        /* 输入框与单位组合 */
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        input[type="number"], select {
+            width: 100%;
+            padding: 14px;
+            padding-right: 40px; /* 给单位留位置 */
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 1.1em;
+            font-family: monospace;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        .input-unit {
+            position: absolute;
+            right: 15px;
+            color: #666;
+            font-size: 0.9em;
+            pointer-events: none;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-secondary);
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.15);
+        }
+
+        /* Range Slider 样式 */
+        .range-wrapper {
+            margin-top: 10px;
+        }
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: var(--accent-secondary);
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px rgba(0,242,255,0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+        }
+
+        /* Tooltip */
+        .tooltip-icon {
+            margin-left: 6px;
+            color: var(--accent-secondary);
+            cursor: help;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        .tooltip-icon:hover { opacity: 1; }
+        
+        /* --- 按钮 --- */
+        .calc-button {
+            width: 100%;
+            padding: 18px;
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #000;
+            background: linear-gradient(90deg, var(--accent-secondary), var(--accent-color));
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(112, 0, 255, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .calc-button:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+
+        /* --- 结果面板 --- */
+        .results-card {
+            border-color: var(--accent-color);
+            position: sticky;
+            top: 20px;
+        }
+
+        .result-block {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        .result-block:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .res-label {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .res-value-lg {
+            font-size: 2.8em;
+            font-weight: 800;
+            color: var(--success-color);
+            text-shadow: 0 0 20px rgba(0, 255, 157, 0.2);
+            line-height: 1;
+        }
+
+        .res-value-md {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .res-sub {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 0.95em;
+        }
+        
+        .detail-val {
+            font-weight: 600;
+            color: #ccc;
+        }
+
+        /* 进度条可视化 */
+        .progress-bar-bg {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-secondary), var(--accent-color));
+            width: 0%;
+            transition: width 1s ease;
+        }
+
+        /* --- 响应式 --- */
         @media (max-width: 900px) {
-            .calculator-layout {
-                grid-template-columns: 1fr; /* 手机上变为单栏 */
-            }
+            .calculator-layout { grid-template-columns: 1fr; }
             h1 { font-size: 2em; }
-            .subtitle { font-size: 1em; }
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>“市梦率” (Price-to-Dream) 估值模型</h1>
-        <p class="subtitle">基于时间衰减期望模型，量化高风险、长周期项目的内在价值 (“梦值”)，并与市场为之付出的溢价进行对比。</p>
+        <header>
+            <h1>市梦率 (P/D) 估值模型</h1>
+            <div class="subtitle">Price-to-Dream Ratio：量化未来的梦想，衡量现在的代价。</div>
+        </header>
 
         <div class="calculator-layout">
             <div class="input-section">
-                <!-- 梦想参数卡片 -->
+                
                 <div class="card">
-                    <h3>1. 定义梦想 (The Dream)</h3>
+                    <h3><i class="fa-solid fa-rocket"></i> 1. 定义梦想 (The Dream)</h3>
+                    
                     <div class="input-group">
-                        <label for="idealFv">
-                            理想终值市值 (万亿)
-                            <div class="tooltip">
-                                <i class="tooltip-icon">?</i>
-                                <span class="tooltip-text">指公司在完全成功、兑现其所有潜力后，在成熟期可能达到的市场总值。这是对“梦想”大小的终极量化。</span>
-                            </div>
+                        <label>
+                            理想终值市值 (Ideal FV)
+                            <i class="fa-regular fa-circle-question tooltip-icon" title="公司完全成功后的成熟期市值天花板"></i>
                         </label>
-                        <input type="number" id="idealFv" placeholder="例如: 2" value="2">
+                        <div class="input-wrapper">
+                            <input type="number" id="idealFv" value="10" step="0.1">
+                            <span class="input-unit">万亿</span>
+                        </div>
+                        <div class="range-wrapper">
+                            <input type="range" min="0.1" max="10" step="0.1" value="10" oninput="document.getElementById('idealFv').value = this.value">
+                        </div>
                     </div>
+
                     <div class="input-group">
-                        <label for="timeframeN">
-                            实现年限 (年)
-                            <div class="tooltip">
-                                <i class="tooltip-icon">?</i>
-                                <span class="tooltip-text">预估公司从现在开始，到实现上述“理想终值市值”所需要的时间。时间越长，不确定性越大，折现也越严重。</span>
-                            </div>
+                        <label>
+                            实现年限 (Timeframe)
+                            <i class="fa-regular fa-circle-question tooltip-icon" title="达到上述终值所需的时间"></i>
                         </label>
-                        <input type="number" id="timeframeN" placeholder="例如: 20" value="20">
+                        <div class="input-wrapper">
+                            <input type="number" id="timeframeN" value="10">
+                            <span class="input-unit">年</span>
+                        </div>
+                        <div class="range-wrapper">
+                            <input type="range" min="1" max="50" step="1" value="20" oninput="document.getElementById('timeframeN').value = this.value">
+                        </div>
                     </div>
                 </div>
 
-                <!-- 风险评估卡片 -->
                 <div class="card">
-                    <h3>2. 风险评估 (Risk Assessment)</h3>
+                    <h3><i class="fa-solid fa-scale-balanced"></i> 2. 风险与现状</h3>
+                    
                     <div class="input-group">
-                        <label for="attritionRateAlpha">领域风险等级 (年度损耗率 α)</label>
-                        <select id="attritionRateAlpha">
-                            <option value="0.15">基础科学突破 (15%)</option>
-                            <option value="0.10" selected>颠覆性工程应用 (10%)</option>
-                        </select>
+                        <label>领域风险损耗 (Attrition α)</label>
+                        <div class="input-wrapper">
+                            <select id="attritionRateAlpha">
+                                <option value="0.05">低风险迭代 (5%)</option>
+                                <option value="0.10" selected>颠覆性工程 (10%)</option>
+                                <option value="0.15">基础科学突破 (15%)</option>
+                            </select>
+                        </div>
                     </div>
+
                     <div class="input-group">
-                        <label for="capmRate">时间价值折现率CAPM (%)</label>
-                        <input type="number" id="capmRate" placeholder="例如: 13" value="13">
+                        <label>时间价值折现 (CAPM Rate)</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="capmRate" value="13">
+                            <span class="input-unit">%</span>
+                        </div>
+                    </div>
+                    
+                    <hr style="border:0; border-top:1px dashed var(--border-color); margin: 25px 0;">
+
+                    <div class="input-group">
+                        <label>当前总市值 (Total Market Cap)</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="totalMarketCap" value="8000">
+                            <span class="input-unit">亿</span>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label>成熟业务估值 (Mature Value)</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="matureBusinessValue" value="3000">
+                            <span class="input-unit">亿</span>
+                        </div>
                     </div>
                 </div>
-                
-                <!-- 市场对比卡片 -->
-                <div class="card">
-                    <h3>3. 市场对比 (Market Comparison)</h3>
-                    <div class="input-group">
-                        <label for="totalMarketCap">公司当前总市值 (亿)</label>
-                        <input type="number" id="totalMarketCap" placeholder="例如: 8000">
-                    </div>
-                    <div class="input-group">
-                        <label for="matureBusinessValue">成熟业务估值 (亿)</label>
-                        <input type="number" id="matureBusinessValue" placeholder="例如: 3000">
-                    </div>
-                </div>
-                <button id="calculateBtn" class="calc-button">计 算</button>
+
+                <button id="calculateBtn" class="calc-button">
+                    <i class="fa-solid fa-calculator"></i> 计算市梦率
+                </button>
             </div>
 
             <div class="output-section">
                 <div class="card results-card">
-                    <h3>估值结果</h3>
-                    <div class="result-item primary-result">
-                        <span class="label">梦值 (Dream Value)</span>
-                        <span class="value" id="dreamValueResult">-</span>
+                    
+                    <div class="result-block">
+                        <div class="res-label">P/D Ratio (市梦率)</div>
+                        <div class="res-value-lg" id="pdRatioResult">-</div>
+                        <div class="res-sub">越低越好，< 1.0 表示梦想未被充分定价</div>
                     </div>
-                    <div class="result-item secondary-result">
-                        <span class="label">市梦率 (P/D Ratio)</span>
-                        <span class="value" id="pdRatioResult">-</span>
+
+                    <div class="result-block">
+                        <div class="res-label">Dream Value (梦的现值)</div>
+                        <div class="res-value-md" id="dreamValueResult">-</div>
+                        <div class="res-sub">这是该梦想在当下的“合理”价格</div>
                     </div>
-                    <div class="result-item">
-                        <span class="label">市场溢价 (Market Premium)</span>
-                        <span class="value sub-value" id="marketPremiumResult">待计算</span>
+
+                    <div class="result-block" style="text-align: left;">
+                        <div class="detail-row">
+                            <span>市场支付溢价 (Premium)</span>
+                            <span class="detail-val" id="marketPremiumResult">-</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>期望终值 E(FV)</span>
+                            <span class="detail-val" id="expectedFvResult">-</span>
+                        </div>
+                        
+                        <div style="margin-top: 20px;">
+                            <div class="detail-row" style="margin-bottom: 5px;">
+                                <span>理论成功概率 (Success Prob.)</span>
+                                <span class="detail-val" id="expectedFactorResult">0%</span>
+                            </div>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" id="probProgressBar"></div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="result-item">
-                        <span class="label">期望比例 (Exp. Factor)</span>
-                        <span class="value sub-value" id="expectedFactorResult">待计算</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="label">期望终值 (E. Future Value)</span>
-                        <span class="value sub-value" id="expectedFvResult">待计算</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="label">年度损耗率 (α)</span>
-                        <span class="value sub-value" id="alphaResult">待计算</span>
-                    </div>
+
                 </div>
             </div>
         </div>
     </div>
 
 <script>
-    document.getElementById('calculateBtn').addEventListener('click', function() {
-        // --- 1. 获取所有输入值 ---
+    const calculate = () => {
+        // 1. 获取输入
         const idealFvTrillion = parseFloat(document.getElementById('idealFv').value) || 0;
         const timeframeN = parseInt(document.getElementById('timeframeN').value) || 0;
         const attritionRateAlpha = parseFloat(document.getElementById('attritionRateAlpha').value) || 0;
@@ -341,50 +426,63 @@
         const totalMarketCap = parseFloat(document.getElementById('totalMarketCap').value) || 0;
         const matureBusinessValue = parseFloat(document.getElementById('matureBusinessValue').value) || 0;
 
-        // --- 2. 核心计算逻辑 ---
+        // 2. 计算
+        const idealFvBillion = idealFvTrillion * 10000; // 万亿 -> 亿
         
-        // 将万亿转换为亿
-        const idealFvBillion = idealFvTrillion * 10000;
-
-        // 计算期望比例 (Expected Value Factor)
+        // 成功概率衰减: (1 - α)^N
         const realizationFactor = 1 - attritionRateAlpha;
-        const expectedValueFactor = Math.pow(realizationFactor, timeframeN);
+        const successProb = Math.pow(realizationFactor, timeframeN);
+        
+        // 期望终值 E(FV) = IdealFV * SuccessProb
+        const expectedFv = idealFvBillion * successProb;
 
-        // 计算期望终值 E(FV)
-        const expectedFv = idealFvBillion * expectedValueFactor;
-
-        // 折现计算“梦值” (Dream Value - PV)
+        // 折现回现值 PV = E(FV) / (1+r)^N
         let dreamValuePv = 0;
-        if (capmRate > -1) { // 避免 (1+r) 为0或负数
+        if (capmRate > -1) {
              dreamValuePv = expectedFv / Math.pow(1 + capmRate, timeframeN);
         }
 
-        // 计算市场溢价 (Market Premium)
+        // 市场溢价 = 总市值 - 现有业务价值
         const marketPremium = totalMarketCap - matureBusinessValue;
 
-        // 计算市梦率 (P/D Ratio)
+        // P/D = 溢价 / 梦值
         const pdRatio = (marketPremium > 0 && dreamValuePv > 0) ? (marketPremium / dreamValuePv) : 0;
 
-        // --- 3. 更新UI显示结果 ---
-        const formatBillion = (num) => {
-             if (num === 0 || !isFinite(num)) return '-';
-             return `${num.toFixed(2)} <span>亿</span>`;
+        // 3. 更新 UI
+        const formatMoney = (num) => {
+             if (!isFinite(num)) return '-';
+             return num.toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' <small>亿</small>';
         };
 
-        document.getElementById('dreamValueResult').innerHTML = formatBillion(dreamValuePv);
-        document.getElementById('pdRatioResult').textContent = pdRatio > 0 ? pdRatio.toFixed(2) : 'N/A';
+        // 更新数值
+        document.getElementById('pdRatioResult').innerHTML = pdRatio > 0 ? pdRatio.toFixed(2) + 'x' : 'N/A';
         
-        document.getElementById('marketPremiumResult').innerHTML = formatBillion(marketPremium);
-        document.getElementById('expectedFactorResult').textContent = `${(expectedValueFactor * 100).toFixed(2)} %`;
-        document.getElementById('expectedFvResult').innerHTML = formatBillion(expectedFv);
-        document.getElementById('alphaResult').textContent = `${(attritionRateAlpha * 100)} %`;
+        // 动态颜色：PD < 1 为绿色(低估)，PD > 3 为红色(高估)
+        const pdEl = document.getElementById('pdRatioResult');
+        if(pdRatio > 3) pdEl.style.color = '#ff4d4d';
+        else if(pdRatio < 1 && pdRatio > 0) pdEl.style.color = '#00ff9d';
+        else pdEl.style.color = '#fff';
+
+        document.getElementById('dreamValueResult').innerHTML = formatMoney(dreamValuePv);
+        document.getElementById('marketPremiumResult').innerHTML = formatMoney(marketPremium);
+        document.getElementById('expectedFvResult').innerHTML = formatMoney(expectedFv);
+        
+        // 更新进度条
+        const probPercent = (successProb * 100).toFixed(1);
+        document.getElementById('expectedFactorResult').innerText = `${probPercent}%`;
+        document.getElementById('probProgressBar').style.width = `${probPercent}%`;
+    };
+
+    // 绑定事件
+    document.getElementById('calculateBtn').addEventListener('click', calculate);
+    
+    // 输入框变化时也可实时计算（可选）
+    document.querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('input', calculate);
     });
 
-    // 页面加载后自动触发一次计算，显示默认值的结果
-    document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('calculateBtn').click();
-    });
-
+    // 初始化
+    document.addEventListener('DOMContentLoaded', calculate);
 </script>
 <script src="nav.js" defer></script>
 </body>

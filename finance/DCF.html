@@ -3,321 +3,502 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>简化版DCF现金流估值计算器</title>
-    <!-- 引入Font Awesome图标库 (用于教程链接图标) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <title>MeowFin - DCF 现金流估值模型</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
-        /* --- 全局样式 (与之前文件保持一致) --- */
+        :root {
+            --bg-color: #0f1016;
+            --card-bg: rgba(20, 25, 35, 0.7);
+            --accent-color: #00f2ff;
+            --accent-secondary: #0066ff;
+            --text-primary: #ffffff;
+            --text-secondary: #9ca3af;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --success-color: #00d26a;
+            --danger-color: #f93e3e;
+            --input-bg: rgba(0, 0, 0, 0.3);
+        }
+
         body {
             margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-            background-color: #121212;
-            color: #E0E0E0;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
             min-height: 100vh;
-            padding: 20px;
+            padding: 40px 20px;
             box-sizing: border-box;
+            background-image: radial-gradient(circle at 10% 20%, #1a1c29 0%, #0f1016 70%);
         }
+
         .container {
             width: 100%;
-            max-width: 1200px;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        /* --- 头部 --- */
+        header {
             text-align: center;
-            padding: 40px 0;
-        }
-        h1 {
-            font-size: 2.8em;
-            font-weight: 600;
-            color: #FFFFFF;
-            margin-bottom: 10px;
-        }
-        .subtitle {
-            font-size: 1.2em;
-            color: #A0A0A0;
             margin-bottom: 50px;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
         }
-        .calculator-layout {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            text-align: left;
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: 800;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #fff 0%, var(--accent-color) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        .card {
-            background-color: #282828;
-            border: 1px solid #404040;
-            border-radius: 12px;
-            padding: 30px;
-            margin-bottom: 20px;
-        }
-        .card:last-child {
-             margin-bottom: 0;
-        }
-        .card h3 {
-            margin-top: 0;
-            margin-bottom: 20px;
-            color: #FFFFFF;
-            font-size: 1.4em;
-            border-bottom: 1px solid #404040;
-            padding-bottom: 15px;
-        }
-        .input-group {
-            margin-bottom: 15px;
-        }
-        .input-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #B0B0B0;
-        }
-        .input-group input {
-            width: 100%;
-            padding: 10px;
-            background-color: #1E1E1E;
-            border: 1px solid #404040;
-            border-radius: 6px;
-            color: #E0E0E0;
-            font-size: 1em;
-            box-sizing: border-box;
-        }
-        .calc-button {
-            width: 100%;
-            padding: 15px;
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #FFFFFF;
-            background-color: #007BFF;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            margin-top: 10px;
-        }
-        .calc-button:hover {
-            background-color: #0056b3;
-        }
-        .results-card .card-title-wacc { color: #17a2b8; }
-        .results-card .card-title-dcf { color: #28a745; }
-        .result-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 0;
-            border-bottom: 1px solid #383838;
-            font-size: 1.1em;
-        }
-        .result-item:last-child { border-bottom: none; }
-        .result-item .label { color: #B0B0B0; }
-        .result-item .value { color: #FFFFFF; font-weight: bold; font-size: 1.2em; }
-        .result-item .value.positive { color: #28a745; }
-        .result-item .value.negative { color: #dc3545; }
-        
-        /* --- 教程链接样式 --- */
-        .tutorial-link-container {
-            text-align: center;
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 1px solid #404040;
-        }
-        .tutorial-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: #A0A0A0;
-            text-decoration: none;
-            font-size: 0.9em;
-            transition: color 0.3s ease;
-        }
-        .tutorial-link:hover {
-            color: #FFFFFF;
-            text-decoration: underline;
-        }
-        .tutorial-link i {
+
+        .subtitle {
+            color: var(--text-secondary);
             font-size: 1.1em;
         }
 
-        @media (max-width: 900px) {
-            .calculator-layout { grid-template-columns: 1fr; }
-            h1 { font-size: 2em; }
-            .subtitle { font-size: 1em; }
+        /* --- 布局网格 --- */
+        .calculator-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr 350px; /* 左中右三栏 */
+            gap: 25px;
+            align-items: start;
+        }
+
+        /* --- 卡片通用样式 --- */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .card h3 {
+            margin: 0 0 20px 0;
+            font-size: 1.1em;
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* --- 表单组件 --- */
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            padding-right: 40px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 0.95em;
+            font-family: monospace;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.15);
+        }
+
+        .unit {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+            font-size: 0.85em;
+            pointer-events: none;
+        }
+
+        /* --- 按钮 --- */
+        .calc-button {
+            width: 100%;
+            padding: 16px;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #fff;
+            background: linear-gradient(90deg, var(--accent-secondary), var(--accent-color));
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 102, 255, 0.3);
+            margin-top: 10px;
+        }
+
+        .calc-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 102, 255, 0.4);
+        }
+
+        /* --- 结果面板 (右侧) --- */
+        .results-card {
+            position: sticky;
+            top: 20px;
+            border-color: rgba(0, 242, 255, 0.3);
+            background: rgba(20, 25, 35, 0.85);
+        }
+
+        .result-section-title {
+            font-size: 0.85em;
+            color: #666;
+            margin: 20px 0 10px 0;
+            text-transform: uppercase;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 0.95em;
+        }
+
+        .result-val {
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .highlight-result {
+            text-align: center;
+            margin: 25px 0;
+            padding: 20px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .highlight-label {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .highlight-val {
+            font-size: 2.2em;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .upside-bar {
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            margin-top: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .upside-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 1s ease, background-color 0.3s;
+        }
+
+        /* 教程链接 */
+        .tutorial-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            text-decoration: none;
+            padding-top: 15px;
+            border-top: 1px dashed var(--border-color);
+        }
+        .tutorial-link:hover { color: var(--accent-color); }
+
+        /* --- 响应式 --- */
+        @media (max-width: 1100px) {
+            .calculator-layout {
+                grid-template-columns: 1fr 1fr; /* 中等屏幕变为两列 */
+            }
+            .output-section {
+                grid-column: span 2; /* 结果栏横跨底部 */
+            }
+        }
+
+        @media (max-width: 768px) {
+            .calculator-layout {
+                grid-template-columns: 1fr; /* 手机变为单列 */
+            }
+            .output-section {
+                grid-column: span 1;
+            }
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>简化版DCF现金流估值计算器</h1>
-        <p class="subtitle">通过计算WACC并折现未来现金流，评估公司的内在价值</p>
+        <header>
+            <h1>DCF 现金流估值模型</h1>
+            <div class="subtitle">Discounted Cash Flow：透过现金流与资本成本，洞悉内在价值</div>
+        </header>
 
         <div class="calculator-layout">
-            <div class="input-section">
+            
+            <div class="col-left">
                 <div class="card">
-                    <h3>1. WACC 参数</h3>
+                    <h3><i class="fa-solid fa-scale-balanced"></i> WACC 资本参数</h3>
+                    
                     <div class="input-group">
-                        <label>10年期国债收益率 / 无风险收益率 (%)</label>
-                        <input type="number" id="riskFreeRate" placeholder="留空默认 2%">
+                        <label>无风险收益率 (Rf)</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="riskFreeRate" placeholder="默认 2">
+                            <span class="unit">%</span>
+                        </div>
                     </div>
                     <div class="input-group">
-                        <label>市场预期收益率 (%)</label>
-                        <input type="number" id="marketReturn" placeholder="留空默认 13%">
+                        <label>市场预期收益率 (Rm)</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="marketReturn" placeholder="默认 13">
+                            <span class="unit">%</span>
+                        </div>
                     </div>
                     <div class="input-group">
-                        <label>Beta系数</label>
-                        <input type="number" id="beta" placeholder="例如: 1.2">
+                        <label>Beta 系数 (β)</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="beta" value="1.2">
+                        </div>
                     </div>
                     <div class="input-group">
-                        <label>公司平均税率 (%)</label>
-                        <input type="number" id="taxRate" placeholder="例如: 25">
+                        <label>有效税率 (Tax)</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="taxRate" value="21">
+                            <span class="unit">%</span>
+                        </div>
                     </div>
                 </div>
 
                 <div class="card">
-                    <h3>2. 公司资本结构 (亿)</h3>
+                    <h3><i class="fa-solid fa-building"></i> 资本结构 (亿)</h3>
                     <div class="input-group">
-                        <label>公司当前市值 (E)</label>
-                        <input type="number" id="marketCap" placeholder="例如: 1000">
+                        <label>当前市值 (Equity)</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="marketCap" value="1000">
+                            <span class="unit">$</span>
+                        </div>
                     </div>
                     <div class="input-group">
-                        <label>公司债务市值 (D)</label>
-                        <input type="number" id="debtValue" placeholder="例如: 200">
+                        <label>总债务 (Debt)</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="debtValue" value="200">
+                            <span class="unit">$</span>
+                        </div>
                     </div>
-                     <div class="input-group">
-                        <label>公司年度利息成本</label>
-                        <input type="number" id="interestCost" placeholder="例如: 10">
+                    <div class="input-group">
+                        <label>年度利息支出 (Interest)</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="interestCost" value="10">
+                            <span class="unit">$</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-center">
+                <div class="card">
+                    <h3><i class="fa-solid fa-money-bill-trend-up"></i> 现金流预测 (亿)</h3>
+                    <p style="font-size: 0.85em; color: #666; margin-bottom: 15px;">系统将自动取这三年的平均值作为基准。</p>
+                    
+                    <div class="input-group">
+                        <label>当年自由现金流 (CF TTM)</label>
+                        <input type="number" id="cf0" value="50">
+                    </div>
+                    <div class="input-group">
+                        <label>去年自由现金流 (CF T-1)</label>
+                        <input type="number" id="cf_1" value="45">
+                    </div>
+                    <div class="input-group">
+                        <label>前年自由现金流 (CF T-2)</label>
+                        <input type="number" id="cf_2" value="40">
                     </div>
                 </div>
 
-                 <div class="card">
-                    <h3>3. 现金流数据 (亿)</h3>
-                     <div class="input-group">
-                        <label>当年现金流 (CF0)</label>
-                        <input type="number" id="cf0" placeholder="例如: 50">
+                <div class="card">
+                    <h3><i class="fa-solid fa-chart-line"></i> 增长假设</h3>
+                    <div class="input-group">
+                        <label>未来5年复合增长率 (Growth)</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="growthRate" value="12">
+                            <span class="unit">%</span>
+                        </div>
                     </div>
-                     <div class="input-group">
-                        <label>前一年现金流 (CF-1)</label>
-                        <input type="number" id="cf_1" placeholder="例如: 45">
+                    <div class="input-group">
+                        <label>永续增长率 (Terminal)</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="perpetualGrowthRate" value="2.5" placeholder="< WACC">
+                            <span class="unit">%</span>
+                        </div>
                     </div>
-                     <div class="input-group">
-                        <label>前两年现金流 (CF-2)</label>
-                        <input type="number" id="cf_2" placeholder="例如: 40">
-                    </div>
-                     <div class="input-group">
-                        <label>预期现金流年成长率 (%) (未来5年)</label>
-                        <input type="number" id="growthRate" placeholder="例如: 10">
-                    </div>
-                     <div class="input-group">
-                        <label>永续增长率 (%) (用于计算终值)</label>
-                        <input type="number" id="perpetualGrowthRate" placeholder="建议等于或略高于无风险利率，例如: 2.5">
-                    </div>
-                </div>
-                <button id="calculateBtn" class="calc-button">计算内在价值</button>
-                
-                <!-- 新增的教程链接部分 -->
-                <div class="tutorial-link-container">
-                    <a href="tutorial_DCF.html" class="tutorial-link">
-                        <i class="fa-solid fa-circle-question"></i>
-                        <span>如何理解DCF中的参数？</span>
-                    </a>
+
+                    <button id="calculateBtn" class="calc-button">
+                        <i class="fa-solid fa-calculator"></i> 开始估值
+                    </button>
                 </div>
             </div>
 
             <div class="output-section">
                 <div class="card results-card">
-                    <h3 class="card-title-wacc">资本成本分析</h3>
-                    <div class="result-item">
-                        <span class="label">股本成本 (Re)</span>
-                        <span class="value" id="costOfEquityResult">-</span>
+                    <h3><i class="fa-solid fa-clipboard-check"></i> 估值报告</h3>
+                    
+                    <div class="highlight-result">
+                        <div class="highlight-label">DCF 内在价值</div>
+                        <div class="highlight-val" id="dcfTotalResult">-</div>
+                        <div style="font-size: 0.8em; color: #666; margin-top: 5px;">Fair Value Estimate</div>
                     </div>
-                    <div class="result-item">
-                        <span class="label">债务成本 (Rd)</span>
-                        <span class="value" id="costOfDebtResult">-</span>
+
+                    <div class="highlight-result" style="margin-top: -10px; background: transparent; border: none;">
+                        <div class="highlight-label">潜在空间 (Upside)</div>
+                        <div class="highlight-val" id="upsideResult" style="font-size: 1.8em;">-</div>
+                        <div class="upside-bar">
+                            <div class="upside-fill" id="upsideBar"></div>
+                        </div>
                     </div>
-                    <div class="result-item">
-                        <span class="label">加权平均资本成本 (WACC)</span>
-                        <span class="value" id="waccResult">-</span>
+
+                    <div class="result-section-title">资本成本详情</div>
+                    <div class="result-row">
+                        <span>WACC (加权成本)</span>
+                        <span class="result-val" id="waccResult" style="color: var(--accent-color)">-</span>
                     </div>
-                </div>
-                 <div class="card results-card">
-                    <h3 class="card-title-dcf">估值结果</h3>
-                    <div class="result-item">
-                        <span class="label">DCF总额 (公司内在价值)</span>
-                        <span class="value" id="dcfTotalResult">-</span>
+                    <div class="result-row">
+                        <span>Re (股本成本)</span>
+                        <span class="result-val" id="costOfEquityResult">-</span>
                     </div>
-                    <div class="result-item">
-                        <span class="label">当前市值潜在上升空间</span>
-                        <span class="value" id="upsideResult">-</span>
+                    <div class="result-row">
+                        <span>Rd (债务成本)</span>
+                        <span class="result-val" id="costOfDebtResult">-</span>
                     </div>
+
+                    <a href="tutorial_DCF.html" class="tutorial-link">
+                        <i class="fa-regular fa-circle-question"></i> 如何解读这些指标？
+                    </a>
                 </div>
             </div>
+
         </div>
     </div>
 
 <script>
     document.getElementById('calculateBtn').addEventListener('click', function() {
-        // --- 1. 获取所有输入值并处理默认值和单位 ---
+        // 1. 获取输入
         const rf = (parseFloat(document.getElementById('riskFreeRate').value) || 2) / 100;
         const rm = (parseFloat(document.getElementById('marketReturn').value) || 13) / 100;
         const beta = parseFloat(document.getElementById('beta').value) || 0;
         const taxRate = (parseFloat(document.getElementById('taxRate').value) || 0) / 100;
+        
         const E = parseFloat(document.getElementById('marketCap').value) || 0;
         const D = parseFloat(document.getElementById('debtValue').value) || 0;
         const interestCost = parseFloat(document.getElementById('interestCost').value) || 0;
+        
         const cf0 = parseFloat(document.getElementById('cf0').value) || 0;
         const cf_1 = parseFloat(document.getElementById('cf_1').value) || 0;
         const cf_2 = parseFloat(document.getElementById('cf_2').value) || 0;
+        
         const g = (parseFloat(document.getElementById('growthRate').value) || 0) / 100;
         const pg = (parseFloat(document.getElementById('perpetualGrowthRate').value) || 2.5) / 100;
         
-        // --- 2. 计算WACC ---
-        const Re = rf + beta * (rm - rf);
+        // 2. WACC 计算
+        const Re = rf + beta * (rm - rf); // CAPM
         const Rd = (D > 0) ? (interestCost / D) : 0;
         const V = E + D;
         const We = (V > 0) ? (E / V) : 0;
         const Wd = (V > 0) ? (D / V) : 0;
         const WACC = We * Re + Wd * Rd * (1 - taxRate);
 
-        // --- 3. 计算DCF ---
+        // 3. DCF 计算
         let dcfTotal = 0;
         let upside = 0;
-        if (WACC > pg) {
+
+        // WACC 必须大于永续增长率，否则分母为负或无穷
+        if (WACC > pg && WACC > 0) {
+            // 取三年平均作为基准
             const baseCF = (cf0 + cf_1 + cf_2) / 3;
-            let futureCFs = [];
             let discountedCFsSum = 0;
+            let lastCF = baseCF;
+
+            // 折现未来5年
             for (let i = 1; i <= 5; i++) {
-                const cf = baseCF * Math.pow(1 + g, i);
-                futureCFs.push(cf);
-                discountedCFsSum += cf / Math.pow(1 + WACC, i);
+                lastCF = lastCF * (1 + g);
+                discountedCFsSum += lastCF / Math.pow(1 + WACC, i);
             }
-            const terminalValue = (futureCFs[4] * (1 + pg)) / (WACC - pg);
+
+            // 终值 TV (Gordon Growth Model)
+            const terminalValue = (lastCF * (1 + pg)) / (WACC - pg);
             const discountedTV = terminalValue / Math.pow(1 + WACC, 5);
+            
             dcfTotal = discountedCFsSum + discountedTV;
+
             if (E > 0) {
                 upside = (dcfTotal / E) - 1;
             }
         }
         
-        // --- 4. 更新UI显示结果 ---
-        document.getElementById('costOfEquityResult').textContent = `${(Re * 100).toFixed(2)}%`;
-        document.getElementById('costOfDebtResult').textContent = `${(Rd * 100).toFixed(2)}%`;
-        document.getElementById('waccResult').textContent = `${(WACC * 100).toFixed(2)}%`;
+        // 4. UI 更新
+        const toPercent = (num) => (num * 100).toFixed(2) + '%';
+        const toMoney = (num) => num.toLocaleString('en-US', {maximumFractionDigits: 2}) + ' 亿';
 
-        if (WACC > pg) {
-            document.getElementById('dcfTotalResult').textContent = `${dcfTotal.toFixed(2)} 亿`;
-            const upsideValue = document.getElementById('upsideResult');
-            upsideValue.textContent = `${(upside * 100).toFixed(2)}%`;
-            upsideValue.className = 'value';
+        document.getElementById('costOfEquityResult').textContent = toPercent(Re);
+        document.getElementById('costOfDebtResult').textContent = toPercent(Rd);
+        document.getElementById('waccResult').textContent = toPercent(WACC);
+
+        const dcfEl = document.getElementById('dcfTotalResult');
+        const upsideEl = document.getElementById('upsideResult');
+        const barEl = document.getElementById('upsideBar');
+
+        if (WACC > pg && WACC > 0) {
+            dcfEl.textContent = toMoney(dcfTotal);
+            dcfEl.style.color = '#fff';
+            
+            upsideEl.textContent = (upside > 0 ? '+' : '') + toPercent(upside);
+            
             if (upside > 0) {
-                upsideValue.classList.add('positive');
-            } else if (upside < 0) {
-                upsideValue.classList.add('negative');
+                upsideEl.style.color = 'var(--success-color)';
+                barEl.style.backgroundColor = 'var(--success-color)';
+                barEl.style.width = Math.min(upside * 100, 100) + '%'; // 限制最大100%以免溢出
+            } else {
+                upsideEl.style.color = 'var(--danger-color)';
+                barEl.style.backgroundColor = 'var(--danger-color)';
+                barEl.style.width = Math.min(Math.abs(upside) * 100, 100) + '%';
             }
+
         } else {
-            document.getElementById('dcfTotalResult').textContent = '计算错误';
-            document.getElementById('upsideResult').textContent = 'WACC必须大于永续增长率';
+            dcfEl.textContent = "Error";
+            dcfEl.style.color = 'var(--danger-color)';
+            upsideEl.textContent = "WACC需 > 永续增长率";
+            upsideEl.style.fontSize = "1em";
+            barEl.style.width = '0%';
         }
+    });
+
+    // 初始化运行一次
+    document.addEventListener('DOMContentLoaded', () => {
+         document.getElementById('calculateBtn').click();
     });
 </script>
 <script src="nav.js" defer></script>

@@ -3,195 +3,267 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>期权SPD分析工具</title>
-    <!-- 引入Chart.js库 -->
+    <title>MeowFin - 期权SPD分析工具</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- 引入Font Awesome图标库 (用于教程链接图标) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
-        /* --- 全局样式 --- */
+        :root {
+            --bg-color: #0a0b10;
+            --card-bg: rgba(30, 35, 45, 0.6);
+            --accent-color: #00f2ff;
+            --accent-hover: #00c8d3;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a5b0;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --input-bg: rgba(0, 0, 0, 0.3);
+        }
+
         body {
             margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-            background-color: #121212;
-            color: #E0E0E0;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
             min-height: 100vh;
-            padding: 20px;
+            padding: 40px 20px;
             box-sizing: border-box;
+            background-image: radial-gradient(circle at 50% 0%, #1a1f2e 0%, #0a0b10 60%);
         }
+
         .container {
             width: 100%;
-            max-width: 1200px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
             text-align: center;
-            padding: 40px 0;
-        }
-        h1 {
-            font-size: 2.8em;
-            font-weight: 600;
-            color: #FFFFFF;
-            margin-bottom: 10px;
-        }
-        .subtitle {
-            font-size: 1.2em;
-            color: #A0A0A0;
             margin-bottom: 50px;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
         }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #fff 0%, var(--accent-color) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1em;
+        }
+
+        /* --- 布局 --- */
         .calculator-layout {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 350px 1fr; /* 左侧固定宽度，右侧自适应 */
             gap: 30px;
-            text-align: left;
-            align-items: flex-start;
+            align-items: start;
         }
+
+        /* --- 卡片样式 --- */
         .card {
-            background-color: #282828;
-            border: 1px solid #404040;
-            border-radius: 12px;
-            padding: 30px;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 25px;
             margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
         }
-        .card:last-child {
-             margin-bottom: 0;
-        }
+
         .card h3 {
-            margin-top: 0;
-            margin-bottom: 20px;
-            color: #FFFFFF;
-            font-size: 1.4em;
-            border-bottom: 1px solid #404040;
+            margin: 0 0 20px 0;
+            font-size: 1.1em;
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--border-color);
             padding-bottom: 15px;
         }
+
+        /* --- 表单元素 --- */
         .input-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
+
         .input-group label {
             display: block;
+            font-size: 0.9em;
+            color: var(--text-secondary);
             margin-bottom: 8px;
-            font-weight: 500;
-            color: #B0B0B0;
         }
-        .input-group input, .input-group textarea {
+
+        textarea, input[type="number"] {
             width: 100%;
-            padding: 10px;
-            background-color: #1E1E1E;
-            border: 1px solid #404040;
-            border-radius: 6px;
-            color: #E0E0E0;
-            font-size: 1em;
+            padding: 12px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 0.9em;
             box-sizing: border-box;
+            font-family: monospace; /* 数据输入用等宽字体 */
             resize: vertical;
+            transition: border-color 0.3s ease;
         }
-        .input-group textarea {
-            min-height: 100px;
+
+        textarea:focus, input:focus {
+            outline: none;
+            border-color: var(--accent-color);
         }
+
+        textarea { min-height: 120px; }
+
+        /* --- 按钮 --- */
         .calc-button {
             width: 100%;
             padding: 15px;
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #FFFFFF;
-            background-color: #007BFF;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #000;
+            background: var(--accent-color);
             border: none;
-            border-radius: 8px;
+            border-radius: 30px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
-            margin-top: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
+
         .calc-button:hover {
-            background-color: #0056b3;
+            background-color: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
         }
-        .chart-container {
+
+        /* --- 图表区域 --- */
+        .chart-wrapper {
             position: relative;
+            height: 600px; /* 固定高度，确保大屏展示 */
             width: 100%;
-            aspect-ratio: 16 / 10;
-            min-height: 350px;
         }
-        
-        /* --- 教程链接样式 --- */
+
+        /* --- 结果摘要 --- */
+        .result-summary {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0, 242, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(0, 242, 255, 0.1);
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-label {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .summary-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+
+        /* --- 教程链接 --- */
         .tutorial-link-container {
-            text-align: center; /* 居中链接 */
-            margin-top: 25px; /* 与图表的间距 */
-            padding-top: 20px; /* 内边距 */
-            border-top: 1px solid #404040; /* 在上方添加一条分隔线 */
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
         }
 
         .tutorial-link {
             display: inline-flex;
             align-items: center;
-            gap: 8px; /* 图标和文字的间距 */
-            color: #A0A0A0; /* 默认灰色 */
+            gap: 8px;
+            color: var(--text-secondary);
             text-decoration: none;
-            font-size: 0.9em;
+            font-size: 0.95em;
             transition: color 0.3s ease;
         }
 
         .tutorial-link:hover {
-            color: #FFFFFF; /* 悬停时变白 */
-            text-decoration: underline;
+            color: var(--accent-color);
         }
 
-        .tutorial-link i {
-            font-size: 1.1em; /* 图标稍大一点 */
-        }
-
-        @media (max-width: 900px) {
+        /* --- 响应式 --- */
+        @media (max-width: 1000px) {
             .calculator-layout { grid-template-columns: 1fr; }
-            h1 { font-size: 2em; }
-            .subtitle { font-size: 1em; }
+            .chart-wrapper { height: 450px; }
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>期权SPD分析工具</h1>
-        <p class="subtitle">通过期权链数据，生成基于市场隐含波动的股价未来概率密度分布图(SPD)</p>
+        <header>
+            <h1>期权SPD分析工具</h1>
+            <div class="subtitle">基于期权链数据与蝴蝶价差原理，推导市场隐含概率密度 (State Price Density)</div>
+        </header>
 
         <div class="calculator-layout">
             
             <div class="input-section">
                 <div class="card">
-                    <h3>1. 粘贴期权链数据</h3>
+                    <h3><i class="fa-solid fa-pen-to-square"></i> 原始数据输入</h3>
                     <div class="input-group">
-                        <label>行权价 (Strike Prices) - 用逗号分隔</label>
+                        <label>行权价 (Strikes)</label>
                         <textarea id="strikePrices">250, 252.5, 255, 257.5, 260, 262.5, 265, 267.5, 270, 272.5, 275, 277.5, 280, 282.5, 285, 287.5, 290, 292.5, 295, 297.5, 300, 302.5, 305, 307.5, 310, 312.5, 315, 317.5, 320, 322.5, 325, 327.5, 330, 332.5, 335, 337.5, 340, 342.5, 345, 347.5, 350, 352.5, 355, 357.5, 360, 362.5, 365, 367.5, 370, 372.5, 375, 380, 385, 390, 395, 400, 405</textarea>
                     </div>
                     <div class="input-group">
-                        <label>看涨期权价格 (Call Prices)</label>
+                        <label>Call 价格</label>
                         <textarea id="callPrices">73.69, 65.53, 66.3, 70.32, 62.8, 55, 57.35, 56.34, 53.27, 50.85, 49.07, 43.7, 44.23, 44.0, 41.02, 39.58, 34.85, 32.51, 31.07, 29.0, 26.41, 24.42, 22.58, 20.91, 19.16, 17.65, 15.95, 14.55, 13.2, 11.96, 10.66, 9.58, 8.6, 7.74, 6.85, 6.15, 5.41, 4.83, 4.27, 3.8, 3.35, 2.92, 2.62, 2.33, 2.05, 1.79, 1.6, 1.43, 1.27, 1.14, 1.01, 0.8, 0.65, 0.53, 0.42, 0.35, 0.29</textarea>
                     </div>
-                     <div class="input-group">
-                        <label>看跌期权价格 (Put Prices)</label>
+                    <div class="input-group">
+                        <label>Put 价格</label>
                         <textarea id="putPrices">0.42, 0.48, 0.5, 0.53, 0.59, 0.64, 0.68, 0.78, 0.85, 0.85, 1.08, 1.24, 1.39, 1.6, 1.81, 2.05, 2.38, 2.59, 3.1, 3.55, 4.1, 4.6, 5.25, 6.05, 6.85, 7.6, 8.6, 9.66, 10.8, 12.1, 13.45, 14.75, 16.28, 17.7, 19.45, 20.9, 23.1, 24.45, 26.41, 28.35, 30.93, 31.85, 34.05, 36.25, 38.0, 41.1, 42.5, 45.65, 46.5, 50.95, 53.67, 58.0, 62.9, 69.4, 66.5, 78.17, 80.0</textarea>
                     </div>
                 </div>
 
                 <div class="card">
-                    <h3>2. 参数设置</h3>
-                    <div class="input-group">
-                        <label>核密度估计带宽 (KDE Bandwidth)</label>
-                        <input type="number" id="kdeBandwidth" value="10" placeholder="建议是输入行权价范围的5-10%">
+                    <h3><i class="fa-solid fa-sliders"></i> 平滑参数</h3>
+                    <div class="input-group" style="margin-bottom: 0;">
+                        <label>KDE 带宽 (Bandwidth)</label>
+                        <input type="number" id="kdeBandwidth" value="10" placeholder="建议 5-15">
                     </div>
                 </div>
-                <button id="calculateBtn" class="calc-button">生成SPD图像</button>
+                
+                <button id="calculateBtn" class="calc-button"><i class="fa-solid fa-wand-magic-sparkles"></i> 生成图像</button>
             </div>
 
             <div class="output-section">
                 <div class="card">
-                    <div class="chart-container">
+                    <h3><i class="fa-solid fa-chart-area"></i> 概率密度分布 (SPD)</h3>
+                    
+                    <div class="result-summary" id="resultSummary" style="display: none;">
+                        <div class="summary-item">
+                            <div class="summary-label">最高概率对应股价</div>
+                            <div class="summary-value" id="peakPrice">--</div>
+                        </div>
+                    </div>
+
+                    <div class="chart-wrapper">
                         <canvas id="spdChart"></canvas>
                     </div>
-                    <!-- 新增的教程链接部分 -->
+                    
                     <div class="tutorial-link-container">
                         <a href="tutorial_SPD.html" class="tutorial-link">
                             <i class="fa-solid fa-circle-question"></i>
-                            <span>什么是价格的概率密度分布图？</span>
+                            <span>如何解读这张概率密度分布图？</span>
                         </a>
                     </div>
                 </div>
@@ -199,10 +271,12 @@
             
         </div>
     </div>
+
 <script>
-    let spdChartInstance = null; 
+    let spdChartInstance = null;
 
     document.getElementById('calculateBtn').addEventListener('click', function() {
+        // 1. 数据解析
         const parseData = (textareaId) => {
             const text = document.getElementById(textareaId).value;
             return text.split(/[\s,]+/).filter(Boolean).map(Number);
@@ -212,11 +286,13 @@
         const puts = parseData('putPrices');
         const bandwidth = parseFloat(document.getElementById('kdeBandwidth').value) || 10;
 
+        // 2. 校验
         if (strikes.length !== calls.length || strikes.length !== puts.length || strikes.length < 3) {
-            alert('数据输入错误: 请确保行权价、看涨和看跌期权数量一致，且至少有3个数据点。');
+            alert('数据错误: 行权价、Call、Put 数量必须一致且大于3个。');
             return;
         }
 
+        // 3. 计算 RND (Breeden-Litzenberger)
         const diff = (arr, n = 1) => {
             let result = arr;
             for (let i = 0; i < n; i++) {
@@ -234,6 +310,7 @@
 
         let rawRnd = [];
         for (let i = 0; i < d2c_dk2.length; i++) {
+            // 蝴蝶价差必须非负，取 max(0, call_rnd, put_rnd) 增强稳健性
             rawRnd.push(Math.max(0, d2c_dk2[i], d2p_dk2[i]));
         }
         
@@ -242,10 +319,11 @@
         const normalizedRnd = rawRnd.map(v => v / sumRnd);
         const rndStrikes = strikes.slice(1, -1);
 
+        // 4. KDE 平滑处理
         const gaussianKernel = (u) => (1 / Math.sqrt(2 * Math.PI)) * Math.exp(-0.5 * u * u);
         
         const xVals = [];
-        const numPoints = 200;
+        const numPoints = 300; // 增加点数使曲线更平滑
         const minX = Math.min(...strikes);
         const maxX = Math.max(...strikes);
         for (let i = 0; i < numPoints; i++) {
@@ -260,6 +338,7 @@
             return sum / bandwidth;
         });
 
+        // 归一化 KDE 面积为 1
         let totalArea = 0;
         for (let i = 0; i < xVals.length - 1; i++) {
             totalArea += (kdeDensity[i] + kdeDensity[i + 1]) / 2 * (xVals[i + 1] - xVals[i]);
@@ -267,62 +346,104 @@
         if(totalArea === 0) return;
         const normalizedKdeDensity = kdeDensity.map(v => v / totalArea);
 
+        // 5. 寻找峰值 (最高概率对应的股价)
+        let maxDensity = -1;
+        let maxPrice = 0;
+        normalizedKdeDensity.forEach((val, idx) => {
+            if (val > maxDensity) {
+                maxDensity = val;
+                maxPrice = xVals[idx];
+            }
+        });
+
+        // 更新 UI 摘要
+        document.getElementById('resultSummary').style.display = 'flex';
+        document.getElementById('peakPrice').innerText = '$' + maxPrice.toFixed(2);
+
+
+        // 6. 绘图
         const ctx = document.getElementById('spdChart').getContext('2d');
         if (spdChartInstance) {
             spdChartInstance.destroy();
         }
 
+        // Chart.js 全局字体颜色
+        Chart.defaults.color = '#a0a5b0';
+        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+
         spdChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: xVals.map(v => v.toFixed(2)),
-                datasets: [{
-                    label: 'SPD Estimation (KDE)',
-                    data: normalizedKdeDensity,
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    tension: 0.1
-                }, {
-                    type: 'scatter',
-                    label: 'Raw RND Data',
-                    data: rndStrikes.map((strike, i) => ({ x: strike, y: normalizedRnd[i] })),
-                    backgroundColor: 'rgba(255, 99, 132, 1)'
-                }]
+                datasets: [
+                    {
+                        label: 'SPD 概率分布 (KDE平滑)',
+                        data: normalizedKdeDensity,
+                        borderColor: '#00f2ff',
+                        backgroundColor: (context) => {
+                            const ctx = context.chart.ctx;
+                            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                            gradient.addColorStop(0, 'rgba(0, 242, 255, 0.4)');
+                            gradient.addColorStop(1, 'rgba(0, 242, 255, 0.0)');
+                            return gradient;
+                        },
+                        borderWidth: 3,
+                        pointRadius: 0, // 不显示点，只显示线
+                        fill: true,
+                        tension: 0.4 // 曲线平滑度
+                    },
+                    {
+                        type: 'scatter',
+                        label: '原始散点 (Raw Data)',
+                        data: rndStrikes.map((strike, i) => ({ x: strike, y: normalizedRnd[i] })),
+                        backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                        pointRadius: 4,
+                        hidden: true // 默认隐藏
+                    }
+                ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
                 scales: {
                     x: {
                         type: 'linear',
-                        title: { display: true, text: 'Underlying Price', color: '#B0B0B0' },
-                        ticks: { color: '#B0B0B0' },
-                        grid: { color: '#404040' }
+                        title: { display: true, text: '标的股价 (Underlying Price)', color: '#fff' },
+                        ticks: { color: '#a0a5b0' },
+                        grid: { color: 'rgba(255,255,255,0.05)' }
                     },
                     y: {
-                        title: { display: true, text: 'Density', color: '#B0B0B0' },
-                        ticks: { color: '#B0B0B0' },
-                        grid: { color: '#404040' }
+                        title: { display: true, text: '概率密度 (Density)', color: '#fff' },
+                        ticks: { display: false }, // 隐藏Y轴具体数值，只看趋势
+                        grid: { display: false }
                     }
                 },
                 plugins: {
-                    title: {
-                        display: true,
-                        text: 'State Price Density (SPD) Estimation',
-                        color: '#FFFFFF',
-                        font: { size: 18 }
-                    },
                     legend: {
-                        labels: { color: '#B0B0B0' }
+                        labels: { color: '#fff', font: { size: 12 } }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#00f2ff',
+                        callbacks: {
+                            label: function(context) {
+                                return `密度: ${context.parsed.y.toFixed(4)}`;
+                            }
+                        }
+                    },
+                    annotation: { // 如果有chartjs-plugin-annotation可以使用，这里简单用原生逻辑画线
+                        // 略
                     }
                 }
             }
         });
     });
 
-    // 页面加载后自动点击一次按钮，生成初始图表
+    // 初始化运行
     document.addEventListener('DOMContentLoaded', () => {
          document.getElementById('calculateBtn').click();
     });

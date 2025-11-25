@@ -3,196 +3,376 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <title>MeowFin 美股大盘冷暖指数</title>
+    <title>MeowFin - 美股大盘冷暖指数</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@700&display=swap');
+        :root {
+            --bg-frozen: radial-gradient(circle at 50% 30%, #2c3e50, #000000);
+            --bg-cool: radial-gradient(circle at 50% 30%, #1f4068, #0a0b10);
+            --bg-warm: radial-gradient(circle at 50% 30%, #5d4037, #0a0b10);
+            --bg-hot: radial-gradient(circle at 50% 30%, #581b1b, #0a0b10);
+            
+            --text-primary: #ffffff;
+            --text-secondary: #a0a5b0;
+            --card-bg: rgba(255, 255, 255, 0.08);
+            --border-color: rgba(255, 255, 255, 0.15);
+        }
 
         body {
-            font-family: 'Noto Sans SC', Arial, sans-serif;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #0a0b10; /* 默认背景 */
+            color: var(--text-primary);
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            color: #ffffff;
-            margin: 0;
+            transition: background 1s ease; /* 背景平滑过渡 */
+        }
+
+        /* --- 导航栏 --- */
+        nav {
+            width: 100%;
             padding: 20px;
             box-sizing: border-box;
-            background-color: #121212;
-            transition: background-color 0.5s ease;
-        }
-
-        .infographic-container {
-            text-align: center;
-            width: 100%;
-            max-width: 800px;
-            padding: 50px 30px;
-            border-radius: 20px;
-            background-color: #34495e;
-            transition: background-color 0.8s ease;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            margin-bottom: 30px;
-        }
-
-        .index-value-container {
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 10;
         }
 
-        #new0-value {
-            font-size: 12em;
-            font-weight: 700;
-            line-height: 1;
-            letter-spacing: -5px;
+        .home-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 1.2em;
+            transition: color 0.3s;
+        }
+        .home-link:hover { color: var(--text-primary); }
+
+        /* --- 主容器 --- */
+        .main-container {
+            margin-top: 80px;
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+            opacity: 0; /* 加载前隐藏 */
+            animation: fadeIn 1s forwards;
+        }
+
+        @keyframes fadeIn { to { opacity: 1; } }
+
+        /* --- 仪表盘卡片 --- */
+        .dashboard-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 40px 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+            z-index: -1;
         }
 
         h1 {
-            font-size: 2.5em;
-            font-weight: 700;
+            font-size: 1.5em;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .index-value {
+            font-size: 8em;
+            font-weight: 800;
+            line-height: 1;
+            margin: 10px 0;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 1.2em;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .update-time {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            margin-top: 15px;
+        }
+
+        /* --- 解读指南卡片 --- */
+        .guide-card {
+            background: rgba(10, 10, 10, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 25px;
+            text-align: left;
+        }
+
+        .guide-title {
+            font-size: 1.1em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-primary);
+        }
+
+        .guide-list {
+            list-style: none;
+            padding: 0;
             margin: 0;
         }
 
-        .date-display {
-            background-color: rgba(255, 255, 255, 0.9);
-            color: #000;
-            padding: 10px 30px;
-            border-radius: 50px;
-            font-size: 2em;
-            font-weight: 700;
-            margin: 25px 0;
-            display: inline-block;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .status-display {
-            font-size: 2.5em;
-            font-weight: 700;
+        .guide-item {
+            display: flex;
+            align-items: flex-start;
             margin-bottom: 15px;
-        }
-        
-        .last-updated-text {
-            font-size: 0.9em;
-            color: rgba(255, 255, 255, 0.7);
-            margin-bottom: 40px;
+            font-size: 0.95em;
+            line-height: 1.5;
+            color: var(--text-secondary);
         }
 
-        .footer {
-            font-size: 1em;
-            color: rgba(255, 255, 255, 0.8);
+        .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-top: 5px;
+            margin-right: 12px;
+            flex-shrink: 0;
         }
 
-        .footer hr {
-            border: 0;
-            border-top: 1px solid rgba(255, 255, 255, 0.5);
-            width: 80%;
-            max-width: 400px;
-            margin: 0 auto 15px;
+        .guide-item strong {
+            color: var(--text-primary);
+            margin-right: 5px;
         }
-        
+
+        /* 指示灯颜色 */
+        .dot-frozen { background-color: #3498db; box-shadow: 0 0 8px #3498db; }
+        .dot-cool { background-color: #00bcd4; box-shadow: 0 0 8px #00bcd4; }
+        .dot-warm { background-color: #f39c12; box-shadow: 0 0 8px #f39c12; }
+        .dot-hot { background-color: #e74c3c; box-shadow: 0 0 8px #e74c3c; }
+
+        /* --- 底部 --- */
+        .disclaimer {
+            margin-top: 30px;
+            font-size: 0.8em;
+            color: #505050;
+            padding: 0 20px 40px 20px;
+            line-height: 1.6;
+        }
+
+        /* --- 加载动画 --- */
         #loading {
-            font-size: 1.5em;
-            color: #E0E0E0;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.2em;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
         }
-        
-        /* 响应式设计 */
-        @media (max-width: 600px) {
-            #new0-value { font-size: 8em; }
-            h1 { font-size: 1.8em; }
-            .date-display { font-size: 1.5em; padding: 8px 25px; }
-            .status-display { font-size: 1.8em; }
-            .infographic-container { padding: 40px 20px; }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
         }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* 颜色变体类 (JS控制) */
+        .color-frozen { color: #aaddff; }
+        .color-cool { color: #00e5ff; }
+        .color-warm { color: #ffcc00; }
+        .color-hot { color: #ff6b6b; }
+
     </style>
 </head>
 <body>
-    <div id="loading">正在加载数据...</div>
+
+    <nav>
+    </nav>
+
+    <div id="loading">
+        <div class="spinner"></div>
+        <div>正在读取市场温度...</div>
+    </div>
     
-    <div id="content-container" style="display: none;">
-        <div id="container" class="infographic-container">
-            <div class="index-value-container">
-                <span id="new0-value">--</span>
+    <div class="main-container" id="content-container" style="display: none;">
+        
+        <div class="dashboard-card">
+            <h1>MeowFin US Stock Sentiment Index</h1>
+            <div class="index-value" id="new0-value">--</div>
+            <div class="status-badge" id="status-display">--</div>
+            
+            <div class="update-time">
+                <span id="date-display">--月--日</span> •
+                <span id="last-updated">更新中</span>
             </div>
-            <h1>美股大盘冷暖指数</h1>
-            <div id="date-display" class="date-display">--月--日 (-)</div>
-            <div id="status-display" class="status-display">状态 - --</div>
-            <p id="last-updated" class="last-updated-text"></p>
-            <div class="footer">
-                <hr>
-                <p>@喵财经MeowFin</p>
-                <p>自编指标，仅供参考</p>
+        </div>
+
+        <div class="guide-card">
+            <div class="guide-title">
+                <i class="fa-regular fa-lightbulb"></i> 如何解读指数？
             </div>
+            <ul class="guide-list">
+                <li class="guide-item">
+                    <div class="color-dot dot-hot"></div>
+                    <div><strong>80 以上 (过热):</strong> 后市不宜冒进。市场情绪极度高涨，风险累积。</div>
+                </li>
+                <li class="guide-item">
+                    <div class="color-dot dot-warm"></div>
+                    <div><strong>50 - 80 (偏暖):</strong> 市场情绪良好，适宜进取策略。多头占据主导。</div>
+                </li>
+                <li class="guide-item">
+                    <div class="color-dot dot-cool"></div>
+                    <div><strong>20 - 50 (偏冷):</strong> 市场情绪不佳，应当注意波动。观望或防御为主。</div>
+                </li>
+                <li class="guide-item">
+                    <div class="color-dot dot-frozen"></div>
+                    <div><strong>20 以下 (过冷):</strong> 后市反弹概率高。极度恐慌往往孕育机会。</div>
+                </li>
+            </ul>
+        </div>
+
+        <div class="disclaimer">
+            * 仅供参考及实验用途，不成为投资建议，亦不担保具备预测市场的功能。
+            <br>
+            &copy; 2025 MeowFin Global
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const containerElement = document.getElementById('container');
             const loadingElement = document.getElementById('loading');
             const contentContainer = document.getElementById('content-container');
             const new0ValueElement = document.getElementById('new0-value');
             const dateElement = document.getElementById('date-display');
             const statusElement = document.getElementById('status-display');
             const lastUpdatedElement = document.getElementById('last-updated');
+            const bodyElement = document.body;
 
             const CLOUD_RUN_URL = "https://stock-index-service-712102610138.us-central1.run.app/api/indicator";
 
             fetch(CLOUD_RUN_URL)
                 .then(res => {
-                    if (!res.ok) {
-                        throw new Error(`网络响应不正常: ${res.status}`);
-                    }
+                    if (!res.ok) throw new Error(`Error: ${res.status}`);
                     return res.json();
                 })
                 .then(apiResponse => {
-                    let dataArray;
-                    if (Array.isArray(apiResponse)) {
-                        dataArray = apiResponse;
-                    } else if (typeof apiResponse === 'object' && apiResponse !== null) {
-                        dataArray = [apiResponse];
-                    } else {
-                        throw new Error('API返回了无法识别的数据格式');
-                    }
-
-                    if (dataArray.length < 1) {
-                        throw new Error('API未返回任何有效数据');
-                    }
-
+                    // 1. 解析数据
+                    let dataArray = Array.isArray(apiResponse) ? apiResponse : [apiResponse];
+                    if (dataArray.length < 1) throw new Error('No data');
+                    const latestData = dataArray[dataArray.length - 1];
+                    
+                    // 2. 隐藏Loading，显示内容
                     loadingElement.style.display = 'none';
                     contentContainer.style.display = 'block';
 
-                    const latestData = dataArray[dataArray.length - 1];
+                    // 3. 处理核心数值
                     const new0Value = parseFloat(latestData.NEW0);
-                    new0ValueElement.textContent = Math.round(new0Value);
+                    const displayValue = Math.round(new0Value);
+                    
+                    // 动画滚动数字
+                    animateValue(new0ValueElement, 0, displayValue, 1500);
 
+                    // 4. 状态判断逻辑
                     let statusText = '';
-                    let containerBgColor = '';
-                    if (new0Value > 80) { statusText = '过热'; containerBgColor = '#e74c3c'; }
-                    else if (new0Value >= 50) { statusText = '偏暖'; containerBgColor = '#f39c12'; }
-                    else if (new0Value > 20) { statusText = '偏冷'; containerBgColor = '#3498db'; }
-                    else { statusText = '过冷'; containerBgColor = '#34495e'; }
+                    let bgVariable = '';
+                    let textClass = '';
+
+                    if (new0Value > 80) {
+                        statusText = '🔥 市场过热 (Overheated)';
+                        bgVariable = 'var(--bg-hot)';
+                        textClass = 'color-hot';
+                    } else if (new0Value >= 50) {
+                        statusText = '☀️ 市场偏暖 (Warm)';
+                        bgVariable = 'var(--bg-warm)';
+                        textClass = 'color-warm';
+                    } else if (new0Value > 20) {
+                        statusText = '☁️ 市场偏冷 (Cool)';
+                        bgVariable = 'var(--bg-cool)';
+                        textClass = 'color-cool';
+                    } else {
+                        statusText = '❄️ 市场过冷 (Frozen)';
+                        bgVariable = 'var(--bg-frozen)';
+                        textClass = 'color-frozen';
+                    }
                     
-                    containerElement.style.backgroundColor = containerBgColor;
-                    statusElement.textContent = `状态 - ${statusText}`;
+                    // 5. 应用样式
+                    bodyElement.style.background = bgVariable;
+                    statusElement.textContent = statusText;
+                    statusElement.style.color = getComputedStyle(document.documentElement).getPropertyValue(textClass.replace('color-', '--bg-')).replace('radial-gradient', ''); // 简单的fallback颜色
+                    new0ValueElement.classList.add(textClass);
                     
+                    // 6. 处理时间
                     const updateTime = new Date(latestData.last_updated);
                     const month = updateTime.getMonth() + 1;
                     const day = updateTime.getDate();
                     const weekday = ['日', '一', '二', '三', '四', '五', '六'][updateTime.getDay()];
-                    dateElement.textContent = `${month}月${day}日 (${weekday})`;
-
-                    const options = { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Shanghai' };
-                    const formatter = new Intl.DateTimeFormat('zh-CN', options);
-                    lastUpdatedElement.textContent = `最后更新: ${formatter.format(updateTime)} (UTC+8)`;
+                    
+                    dateElement.textContent = `${month}月${day}日 周${weekday}`;
+                    
+                    const formatter = new Intl.DateTimeFormat('zh-CN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false,
+                        timeZone: 'Asia/Shanghai'
+                    });
+                    lastUpdatedElement.textContent = `UTC+8 ${formatter.format(updateTime)} 更新`;
                 })
                 .catch(error => {
-                    loadingElement.textContent = `加载失败: ${error.message}`;
-                    console.error('Fetch error:', error);
+                    loadingElement.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i><br>数据加载失败<br><small>${error.message}</small>`;
                 });
         });
+
+        // 数字滚动动画函数
+        function animateValue(obj, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                // easeOutQuart 缓动效果
+                const easeProgress = 1 - Math.pow(1 - progress, 4);
+                obj.innerHTML = Math.floor(progress * (end - start) + start);
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    obj.innerHTML = end;
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
     </script>
     <script src="nav.js" defer></script>
 </body>

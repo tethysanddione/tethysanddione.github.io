@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>程序化岩石行星生成器</title>
+    <title>程序化岩石行星生成器 (3D预览版)</title>
     <style>
         :root {
             --bg-color: #1a1e23; --panel-bg: #2a2f36; --text-color: #e0e6ec;
@@ -14,6 +14,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color); color: var(--text-color); margin: 0;
             padding: 20px; display: flex; justify-content: center; align-items: flex-start;
+            overflow-x: hidden;
         }
         .container {
             display: flex;
@@ -43,11 +44,21 @@
             background-color: var(--panel-bg); padding: 25px; border-radius: 8px;
             width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); border: 1px solid var(--border-color);
             flex-shrink: 0;
-            max-height: 90vh; /* 增加最大高度以支持滚动 */
-            overflow-y: auto; /* 当内容超出时显示滚动条 */
+            max-height: 90vh;
+            overflow-y: auto;
         }
-        .canvas-container { border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; background-color: #000; }
-        canvas { width: 100%; height: auto; border-radius: 4px; background-color: #111; }
+        .canvas-container { border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; background-color: #000; position: relative; }
+        canvas { width: 100%; height: auto; border-radius: 4px; background-color: #111; display: block; }
+        
+        /* 3D 容器样式 */
+        #three-container {
+            width: 100%;
+            height: 500px;
+            background-color: #000;
+            border-radius: 4px;
+            cursor: move;
+        }
+        
         h1, h2 { color: var(--header-color); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-top: 0; }
         h2 { margin-top: 25px; font-size: 1.1em;}
         .control-group { margin-bottom: 18px; }
@@ -55,7 +66,7 @@
             display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: bold; color: #ccc;
         }
         input[type="range"] { width: 100%; cursor: pointer; }
-        input[type="number"], select, input[type="file"] {
+        input[type="number"], select, input[type="file"], input[type="color"] {
             width: 100%; box-sizing: border-box; padding: 8px; border-radius: 4px;
             border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);
         }
@@ -73,7 +84,13 @@
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(0,0,0,0.7); color: white; border-radius: 10px; z-index: 100;
         }
+        .instructions {
+            font-size: 12px; color: #888; margin-top: 5px; text-align: right;
+        }
     </style>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
 
@@ -81,6 +98,16 @@
     <div class="controls">
         <h1>行星参数</h1>
         
+        <h2>大气参数 (3D)</h2>
+        <div class="control-group">
+            <label for="atmosphere-color">大气颜色</label>
+            <input type="color" id="atmosphere-color" value="#3a9bdc">
+        </div>
+        <div class="control-group">
+            <label for="atmosphere-density">大气密度 <span class="value-display" id="atmosphere-density-value">0.6</span></label>
+            <input type="range" id="atmosphere-density" min="0" max="1" step="0.1" value="0.6">
+        </div>
+
         <h2>地形参数</h2>
         <div class="control-group">
             <label for="seed">随机种子 <span class="value-display" id="seed-value">1234</span></label>
@@ -123,7 +150,6 @@
             <input type="file" id="texture-file-base" style="display: none; margin-top: 5px;" accept="image/*">
         </div>
 
-        <!-- === 新增: 高海拔纹理 === -->
         <div class="control-group">
             <label class="label">高海拔纹理</label>
             <select id="texture-select-high">
@@ -151,7 +177,6 @@
             <label for="blend_smoothness">混合平滑度 <span class="value-display" id="blend_smoothness-value">0.1</span></label>
             <input type="range" id="blend_smoothness" min="0.01" max="0.5" step="0.01" value="0.1">
         </div>
-        <!-- === 结束新增部分 === -->
 
         <div class="control-group">
             <label for="texture_world_scale">纹理缩放 <span class="value-display" id="texture_world_scale-value">2</span></label>
@@ -170,6 +195,12 @@
     </div>
 
     <div class="preview-area">
+        <div class="canvas-container">
+            <h3>3D 实时预览</h3>
+            <div id="three-container"></div>
+            <div class="instructions">左键旋转 | 右键平移 | 滚轮缩放</div>
+        </div>
+
         <div class="canvas-container">
             <h3>地表贴图 (Albedo)</h3>
             <canvas id="planet-canvas" width="2048" height="1024"></canvas>
@@ -194,8 +225,12 @@
     const inputIds = [
         'seed', 'scale', 'octaves', 'crater_scale', 'crater_strength',
         'texture_world_scale', 'perturb_strength', 'shading_strength',
-        'blend_altitude', 'blend_smoothness' // 新增混合参数
+        'blend_altitude', 'blend_smoothness'
     ];
+    // Atmosphere controls
+    const atmoColorInput = document.getElementById('atmosphere-color');
+    const atmoDensityInput = document.getElementById('atmosphere-density');
+    const atmoDensityDisplay = document.getElementById('atmosphere-density-value');
 
     inputIds.forEach(id => {
         controls[id] = document.getElementById(id);
@@ -213,6 +248,14 @@
         }
     });
 
+    // 大气参数监听
+    atmoDensityInput.addEventListener('input', () => {
+        atmoDensityDisplay.textContent = atmoDensityInput.value;
+        updateAtmosphere();
+    });
+    atmoColorInput.addEventListener('input', updateAtmosphere);
+
+
     const generateBtn = document.getElementById('generate-btn');
     const loader = document.getElementById('loader');
     const textureSelectBase = document.getElementById('texture-select-base');
@@ -226,6 +269,9 @@
     const heightmapCtx = heightmapCanvas.getContext('2d');
 
     const worker = new Worker('worker.js', { type: 'module' });
+
+    // --- Three.js 变量 ---
+    let scene, camera, renderer, planetMesh, atmosphereMesh, controls3D;
 
     textureSelectBase.addEventListener('change', () => {
         textureFileBase.style.display = textureSelectBase.value === 'custom' ? 'block' : 'none';
@@ -253,7 +299,7 @@
             let textureSource = selectElement.value;
 
             if (textureSource === 'none') {
-                return resolve(null); // 如果选择 "无", 则返回 null
+                return resolve(null);
             }
 
             if (textureSource === 'custom') {
@@ -300,7 +346,6 @@
         loader.style.display = 'block';
 
         try {
-            // 并行加载两个纹理
             const [textureDataBase, textureDataHigh] = await Promise.all([
                 getTextureImageData(textureSelectBase, textureFileBase),
                 getTextureImageData(textureSelectHigh, textureFileHigh)
@@ -310,7 +355,7 @@
                 width: 2048,
                 height: 1024,
                 textureDataBase: textureDataBase,
-                textureDataHigh: textureDataHigh, // 传递第二个纹理
+                textureDataHigh: textureDataHigh,
             };
             inputIds.forEach(id => {
                 params[id] = parseFloat(controls[id].value);
@@ -342,6 +387,9 @@
         heightmapCtx.putImageData(heightmapImage, 0, 0);
 
         loader.style.display = 'none';
+        
+        // 更新 3D 贴图
+        update3DPlanetTexture();
     };
     
     function setupDownload(buttonId, canvas, getFileType) {
@@ -356,6 +404,152 @@
 
     setupDownload('download-planet-btn', planetCanvas, () => `${textureSelectBase.value}_${textureSelectHigh.value}`);
     setupDownload('download-heightmap-btn', heightmapCanvas, () => 'heightmap');
+
+    // --- Three.js 初始化与逻辑 ---
+
+    function initThreeJS() {
+        const container = document.getElementById('three-container');
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+        camera.position.z = 2.8;
+
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(width, height);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        controls3D = new THREE.OrbitControls(camera, renderer.domElement);
+        controls3D.enableDamping = true;
+        controls3D.dampingFactor = 0.05;
+        controls3D.enableZoom = true;
+        controls3D.autoRotate = true;
+        controls3D.autoRotateSpeed = 0.5;
+
+        // 1. 行星网格
+        const geometry = new THREE.SphereGeometry(1, 64, 64);
+        const material = new THREE.MeshPhongMaterial({
+            map: null, // 稍后设置
+            bumpMap: null,
+            bumpScale: 0.05,
+            specular: new THREE.Color(0x111111),
+            shininess: 5
+        });
+        planetMesh = new THREE.Mesh(geometry, material);
+        scene.add(planetMesh);
+
+        // 2. 大气层 (Shader)
+        const atmosphereGeometry = new THREE.SphereGeometry(1.03, 64, 64);
+        const vertexShader = `
+            varying vec3 vNormal;
+            void main() {
+                vNormal = normalize(normalMatrix * normal);
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+        const fragmentShader = `
+            uniform vec3 glowColor;
+            uniform float coef;
+            uniform float power;
+            varying vec3 vNormal;
+            void main() {
+                float intensity = pow(coef - dot(vNormal, vec3(0, 0, 1.0)), power);
+                gl_FragColor = vec4(glowColor, 1.0) * intensity;
+            }
+        `;
+        const atmosphereMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                coef: { value: 0.5 },
+                power: { value: 4.0 },
+                glowColor: { value: new THREE.Color(0x3a9bdc) }
+            },
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            side: THREE.FrontSide,
+            blending: THREE.AdditiveBlending,
+            transparent: true,
+            depthWrite: false
+        });
+
+        atmosphereMesh = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+        scene.add(atmosphereMesh);
+
+        // 灯光
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        sunLight.position.set(5, 3, 5);
+        scene.add(sunLight);
+        
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+
+        // 星空背景
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 2000;
+        const starPos = new Float32Array(starCount * 3);
+        for(let i=0; i<starCount*3; i++) {
+            starPos[i] = (Math.random() - 0.5) * 100;
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        const starMat = new THREE.PointsMaterial({color: 0xffffff, size: 0.1});
+        const stars = new THREE.Points(starGeo, starMat);
+        scene.add(stars);
+
+        // 响应窗口调整
+        window.addEventListener('resize', () => {
+            const newWidth = container.clientWidth;
+            const newHeight = container.clientHeight;
+            renderer.setSize(newWidth, newHeight);
+            camera.aspect = newWidth / newHeight;
+            camera.updateProjectionMatrix();
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls3D.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+        updateAtmosphere(); // 初始化大气参数
+    }
+
+    function update3DPlanetTexture() {
+        if (!planetMesh) return;
+        
+        // 从 canvas 创建纹理
+        const texture = new THREE.CanvasTexture(planetCanvas);
+        // 重要：设置颜色空间，否则颜色会显得暗淡
+        texture.encoding = THREE.sRGBEncoding;
+        
+        planetMesh.material.map = texture;
+        
+        // 如果也想用高度图做凹凸贴图 (可选，消耗性能)
+        // const bumpMap = new THREE.CanvasTexture(heightmapCanvas);
+        // planetMesh.material.bumpMap = bumpMap;
+
+        planetMesh.material.needsUpdate = true;
+    }
+
+    function updateAtmosphere() {
+        if (!atmosphereMesh) return;
+        
+        const colorHex = atmoColorInput.value;
+        const density = parseFloat(atmoDensityInput.value);
+        
+        atmosphereMesh.material.uniforms.glowColor.value = new THREE.Color(colorHex);
+        
+        // 密度越高，coef 越小 (范围 0.0 - 0.7 左右较为合适)
+        // 系数越小，光晕范围越广
+        let coef = 1.0 - (density * 0.7);
+        atmosphereMesh.material.uniforms.coef.value = coef;
+        
+        // 如果密度为0，直接隐藏
+        atmosphereMesh.visible = density > 0.05;
+    }
+
+    // 初始化
+    initThreeJS();
 
 </script>
 </body>

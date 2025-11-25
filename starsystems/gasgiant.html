@@ -5,79 +5,160 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>气体巨行星贴图生成器 | Gas Giant Texture Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- 引入 Simplex Noise 库 (更换为更稳定的版本) -->
+    <!-- 引入 Simplex Noise 库 -->
     <script src="https://cdn.jsdelivr.net/npm/simplex-noise@2.4.0/simplex-noise.min.js"></script>
+    <!-- 引入 Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- 引入 OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* slate-900 */
         }
-        .canvas-container {
+        .texture-preview {
             background-image: repeating-conic-gradient(#333 0% 25%, #444 0% 50%);
             background-size: 20px 20px;
         }
         #spinner {
             display: inline-block;
         }
+        /* 自定义颜色选择器样式 */
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            padding: 0;
+            background: none;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: 1px solid #4b5563;
+            border-radius: 0.25rem;
+        }
+        canvas { display: block; }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-200 flex flex-col items-center justify-center min-h-screen p-4">
+<body class="text-gray-200 flex flex-col items-center min-h-screen p-4">
 
-    <div class="w-full max-w-4xl bg-gray-800/50 rounded-2xl shadow-2xl p-6 sm:p-8 backdrop-blur-sm border border-gray-700">
-        <div class="text-center">
-            <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">气体巨行星贴图生成器</h1>
-            <p class="text-gray-400 mt-2 mb-6">程序化生成无缝平铺的气体巨行星纹理。</p>
-        </div>
-
-        <!-- 控制选项 -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <div>
-                <label for="resolution" class="block text-sm font-medium text-gray-300 mb-1">分辨率</label>
-                <select id="resolution" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="1k">1K (1024x512)</option>
-                    <option value="2k">2K (2048x1024)</option>
-                </select>
-            </div>
-            <div>
-                <label for="palette" class="block text-sm font-medium text-gray-300 mb-1">调色板</label>
-                <select id="palette" class="w-full bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="random">随机</option>
-                    <!-- 选项会由JS动态填充 -->
-                </select>
-            </div>
-            <div class="flex items-end justify-center">
-                <div class="flex items-center">
-                    <input id="greatStorm" type="checkbox" checked class="h-4 w-4 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500">
-                    <label for="greatStorm" class="ml-2 text-sm font-medium text-gray-300">生成大红斑风暴</label>
+    <div class="w-full max-w-6xl bg-gray-800/80 rounded-2xl shadow-2xl backdrop-blur-md border border-gray-700 overflow-hidden">
+        
+        <!-- Header -->
+        <div class="p-6 sm:p-8 border-b border-gray-700 bg-gray-900/50">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">气体巨行星工坊</h1>
+                    <p class="text-gray-400 text-sm mt-1">程序化生成无缝贴图与 3D 大气渲染预览</p>
+                </div>
+                <div class="flex gap-3">
+                     <button id="generateBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2 px-6 rounded-lg transition-all shadow-lg shadow-indigo-500/20 flex items-center">
+                        <span id="btnText">生成星球</span>
+                        <span id="spinner" class="hidden w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin ml-2"></span>
+                    </button>
+                    <a id="downloadLink" class="bg-gray-700 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-all hidden cursor-pointer flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                        下载贴图
+                    </a>
                 </div>
             </div>
         </div>
-        
-        <!-- 预览和按钮 -->
-        <div class="canvas-container w-full aspect-[2/1] bg-gray-900/50 rounded-lg overflow-hidden border border-gray-700 flex items-center justify-center mb-6">
-            <canvas id="planetCanvas"></canvas>
-        </div>
 
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <button id="generateBtn" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-gray-900 flex items-center justify-center">
-                <span id="btnText">生成贴图</span>
-                <span id="spinner" class="hidden w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin ml-2"></span>
-            </button>
-            <a id="downloadLink" class="w-full sm:w-auto bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 hidden cursor-pointer text-center">
-                下载 PNG
-            </a>
+        <div class="grid grid-cols-1 lg:grid-cols-12 h-auto lg:h-[800px]">
+            
+            <!-- 左侧：控制面板与 2D 预览 -->
+            <div class="lg:col-span-4 p-6 space-y-6 overflow-y-auto bg-gray-800/30 border-r border-gray-700">
+                
+                <!-- Controls -->
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wider">分辨率</label>
+                            <select id="resolution" class="w-full bg-gray-900 border border-gray-600 text-white text-sm rounded-lg p-2.5 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="1k">1K (快速)</option>
+                                <option value="2k">2K (高清)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wider">大红斑</label>
+                            <div class="flex items-center h-[42px]">
+                                <input id="greatStorm" type="checkbox" checked class="w-5 h-5 text-indigo-600 bg-gray-700 border-gray-600 rounded focus:ring-indigo-500 focus:ring-2">
+                                <label for="greatStorm" class="ml-2 text-sm text-gray-300">生成风暴眼</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wider">基础色板</label>
+                        <select id="palette" class="w-full bg-gray-900 border border-gray-600 text-white text-sm rounded-lg p-2.5 focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="random">🎲 随机选择 (Random)</option>
+                            <!-- JS填充 -->
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wider">色调滤镜</label>
+                            <input type="color" id="filterColor" value="#ffffff" class="w-full h-10 cursor-pointer">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-400 mb-1 uppercase tracking-wider">大气辉光色</label>
+                            <input type="color" id="atmosphereColor" value="#4ca1ff" class="w-full h-10 cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2D Canvas Preview -->
+                <div>
+                    <div class="flex justify-between items-end mb-1">
+                        <label class="block text-xs font-medium text-gray-400 uppercase tracking-wider">2D 展开图预览</label>
+                        <span id="statusText" class="text-xs text-indigo-400 animate-pulse"></span>
+                    </div>
+                    <div class="texture-preview w-full aspect-[2/1] rounded-lg overflow-hidden border border-gray-600 shadow-inner relative group">
+                        <canvas id="planetCanvas" class="w-full h-full object-contain"></canvas>
+                        <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                            <span class="text-white text-xs font-mono">Texture Map Preview</span>
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-gray-500 mt-2 text-center">生成大量噪声运算可能导致页面短暂卡顿，请耐心等待。</p>
+                </div>
+
+            </div>
+
+            <!-- 右侧：3D 预览 -->
+            <div class="lg:col-span-8 bg-black relative h-[500px] lg:h-full">
+                <div id="scene-container" class="w-full h-full"></div>
+                
+                <!-- 3D Overlay UI -->
+                <div class="absolute top-4 right-4 flex flex-col gap-2">
+                    <div class="bg-black/60 backdrop-blur text-xs text-gray-300 px-3 py-1.5 rounded-full border border-gray-700">
+                        🖱️ 左键旋转 | 右键平移 | 滚轮缩放
+                    </div>
+                </div>
+                
+                <div class="absolute bottom-4 left-4 pointer-events-none">
+                    <h2 class="text-white/80 font-bold text-lg">3D 实时预览</h2>
+                    <p class="text-white/40 text-xs">Simulated Atmosphere & Rayleigh Scattering</p>
+                </div>
+            </div>
         </div>
-        <p id="statusText" class="text-gray-500 text-sm mt-4 h-5 text-center"></p>
-        <p class="text-xs text-gray-600 mt-2 text-center">注意: 这是一个计算密集型任务，尤其在 2K 分辨率下可能会导致浏览器卡顿。</p>
     </div>
 
     <script>
+        // --- Global Variables for 3D ---
+        let scene, camera, renderer, planetMesh, atmosphereMesh, controls;
+        let planetMaterial, atmosphereMaterial;
+
         // --- DOM Elements ---
         const resolutionSelect = document.getElementById('resolution');
         const paletteSelect = document.getElementById('palette');
         const greatStormCheckbox = document.getElementById('greatStorm');
+        const filterColorInput = document.getElementById('filterColor');
+        const atmosphereColorInput = document.getElementById('atmosphereColor');
         const canvas = document.getElementById('planetCanvas');
         const ctx = canvas.getContext('2d');
         const generateBtn = document.getElementById('generateBtn');
@@ -108,9 +189,149 @@
         const choice = (arr) => arr[Math.floor(random() * arr.length)];
         const biased_randint = (low, high, bias = 2.0) => low + Math.floor(Math.pow(random(), bias) * (high - low + 1));
         const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-        
-        // --- Noise Functions ---
-        let simplex; // will be initialized with a seed
+        const hexToRgb = (hex) => {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [255, 255, 255];
+        }
+
+        // --- 3D Scene Initialization ---
+        function init3D() {
+            const container = document.getElementById('scene-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            // Scene
+            scene = new THREE.Scene();
+            // Starfield background
+            const starGeo = new THREE.BufferGeometry();
+            const starCount = 2000;
+            const posArray = new Float32Array(starCount * 3);
+            for(let i=0; i<starCount*3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 50; // spread
+            }
+            starGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            const starMat = new THREE.PointsMaterial({size: 0.02, color: 0xffffff, transparent: true, opacity: 0.8});
+            const stars = new THREE.Points(starGeo, starMat);
+            scene.add(stars);
+
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+            camera.position.z = 3.5;
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.5;
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.5); // Soft white light
+            scene.add(ambientLight);
+            
+            const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            sunLight.position.set(5, 3, 5);
+            scene.add(sunLight);
+
+            // --- PLANET MESH ---
+            const geometry = new THREE.SphereGeometry(1, 64, 64);
+            planetMaterial = new THREE.MeshStandardMaterial({
+                map: null, // Will be set later
+                roughness: 0.8,
+                metalness: 0.1
+            });
+            planetMesh = new THREE.Mesh(geometry, planetMaterial);
+            scene.add(planetMesh);
+
+            // --- ATMOSPHERE MESH (Shader) ---
+            // Rayleigh scattering approximation using Fresnel shader
+            const atmosphereGeometry = new THREE.SphereGeometry(1.04, 64, 64); // Slightly larger
+            
+            const vertexShader = `
+                varying vec3 vNormal;
+                void main() {
+                    vNormal = normalize(normalMatrix * normal);
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `;
+
+            const fragmentShader = `
+                varying vec3 vNormal;
+                uniform vec3 glowColor;
+                uniform float bias;
+                uniform float power;
+                uniform float scale;
+
+                void main() {
+                    float intensity = pow(bias - dot(vNormal, vec3(0, 0, 1.0)), power);
+                    gl_FragColor = vec4(glowColor, 1.0) * intensity * scale;
+                }
+            `;
+
+            atmosphereMaterial = new THREE.ShaderMaterial({
+                vertexShader: vertexShader,
+                fragmentShader: fragmentShader,
+                uniforms: {
+                    glowColor: { value: new THREE.Color(0x4ca1ff) },
+                    bias: { value: 0.6 }, // 调整光晕起始位置
+                    power: { value: 4.5 }, // 调整光晕衰减
+                    scale: { value: 1.0 }
+                },
+                side: THREE.BackSide, // 渲染背面，模拟大气包裹
+                blending: THREE.AdditiveBlending,
+                transparent: true
+            });
+
+            atmosphereMesh = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+            scene.add(atmosphereMesh);
+
+            // Resize handler
+            window.addEventListener('resize', onWindowResize, false);
+
+            animate();
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('scene-container');
+            if(!container) return;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function update3DTexture() {
+            if (!planetMesh) return;
+            
+            // Create texture from the generated canvas
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.minFilter = THREE.LinearFilter; // Smooth look
+            
+            // Dispose old texture to free memory
+            if (planetMaterial.map) planetMaterial.map.dispose();
+
+            planetMaterial.map = texture;
+            planetMaterial.needsUpdate = true;
+
+            // Update Atmosphere Color
+            const atmHex = atmosphereColorInput.value;
+            atmosphereMaterial.uniforms.glowColor.value = new THREE.Color(atmHex);
+        }
+
+        // --- Noise Functions (Keep Existing) ---
+        let simplex;
         const seamless_horizontal_noise = (x, y, scale, stretch_factor = 4.0) => {
             const angle = 2 * Math.PI * x;
             const nx = Math.cos(angle) * scale / stretch_factor;
@@ -119,8 +340,7 @@
             return simplex.noise3D(nx, ny, nz);
         };
 
-        // --- Graphics & Math Helper Functions ---
-        // A helper class to manage pixel data similar to a NumPy array
+        // --- Graphics & Math Helper Functions (Keep Existing) ---
         class PixelArray {
             constructor(width, height, data = null) {
                 this.width = width;
@@ -136,14 +356,10 @@
                 return new ImageData(clampedData, this.width, this.height);
             }
             get(y, x) {
-                // FIX: Add bounds clamping and wrapping to prevent errors
                 const safeY = Math.max(0, Math.min(this.height - 1, Math.floor(y)));
-                // For horizontal seamlessness, we wrap the x-coordinate
                 let safeX = Math.floor(x);
                 safeX = (safeX % this.width + this.width) % this.width;
-
                 const i = (safeY * this.width + safeX) * 4;
-                // Fallback for safety, although with clamping/wrapping it shouldn't be NaN
                 if (isNaN(i)) { return [0, 0, 0, 255]; }
                 return [this.data[i], this.data[i+1], this.data[i+2], this.data[i+3]];
             }
@@ -159,7 +375,6 @@
             }
         }
 
-        // JS implementation of scipy's map_coordinates
         const mapCoordinates = (inputArray, coordinates) => {
             const outputArray = new PixelArray(inputArray.width, inputArray.height);
             const { width, height } = inputArray;
@@ -167,21 +382,16 @@
                 for (let x = 0; x < width; x++) {
                     const newY = coordinates[0][y][x];
                     const newX = coordinates[1][y][x];
-
                     const x1 = Math.floor(newX);
                     const y1 = Math.floor(newY);
-                    
-                    // Bilinear interpolation
                     const dx = newX - x1;
                     const dy = newY - y1;
-
                     let finalColor = [0, 0, 0, 255];
                     for (let c = 0; c < 3; c++) {
                         const p1 = inputArray.get(y1, x1)[c];
                         const p2 = inputArray.get(y1, x1 + 1)[c];
                         const p3 = inputArray.get(y1 + 1, x1)[c];
                         const p4 = inputArray.get(y1 + 1, x1 + 1)[c];
-                        
                         const val = p1 * (1 - dx) * (1 - dy) + p2 * dx * (1 - dy) + p3 * (1 - dx) * dy + p4 * dx * dy;
                         finalColor[c] = val;
                     }
@@ -191,7 +401,6 @@
             return outputArray;
         };
         
-        // JS implementation of skimage's swirl
         const swirl = (inputArray, centerY, centerX, strength, radius) => {
              const outputArray = inputArray.clone();
              const { width, height } = inputArray;
@@ -207,43 +416,18 @@
                          const sinA = Math.sin(angle);
                          const srcX = dx * cosA - dy * sinA + centerX;
                          const srcY = dx * sinA + dy * cosA + centerY;
-
-                         // The robust .get() method makes this inherently safe
                          outputArray.set(y, x, inputArray.get(srcY, srcX));
                      }
                  }
              }
              return outputArray;
         };
-        
-        const gaussianBlur = (inputArray, sigma) => {
-            // Simplified horizontal blur for performance
-            const outputArray = inputArray.clone();
-            const { width, height } = inputArray;
-            const radius = Math.floor(sigma * 3);
-            for(let y=0; y<height; y++) {
-                for(let x=0; x<width; x++) {
-                    let total = 0;
-                    let weightSum = 0;
-                    for(let i = -radius; i <= radius; i++) {
-                        const sampleX = Math.max(0, Math.min(width-1, x + i));
-                        const weight = Math.exp(-(i*i) / (2*sigma*sigma));
-                        total += inputArray.get(y, sampleX)[0] * weight;
-                        weightSum += weight;
-                    }
-                    const val = total / weightSum;
-                    outputArray.set(y, x, [val, val, val, 255]);
-                }
-            }
-            return outputArray;
-        }
-
 
         // --- Core Generation Logic ---
 
         async function updateStatus(message) {
             statusText.textContent = message;
-            await sleep(20); // Allow UI to update
+            await sleep(10); // slightly faster updates
         }
 
         async function addMainBands(planetArray, palette) {
@@ -252,17 +436,23 @@
             const band_colors = palette.slice(1);
 
             for (let i = 0; i < num_bands; i++) {
-                await updateStatus(`Step 2: Drawing main cloud bands... (${i + 1}/${num_bands})`);
+                // Simplified logging to avoid spam
+                if(i % 5 === 0) await updateStatus(`绘制云带... (${Math.round(i/num_bands*100)}%)`);
+                
                 const y_center = randint(0, height);
                 const band_height = uniform(height * 0.03, height * 0.2);
                 const band_color = choice(band_colors);
-                const wave_amplitude = uniform(0, height * 0.01);
-                const wave_scale = uniform(0.0, 5.0);
+                
+                const wave_amplitude = uniform(height * 0.002, height * 0.008);
+                const wave_scale = uniform(1.0, 6.0);
 
                 const bandLayer = new PixelArray(width, height);
 
                 for (let x = 0; x < width; x++) {
-                    const y_offset = seamless_horizontal_noise(x / width, i / num_bands, wave_scale) * wave_amplitude;
+                    const base_wave = seamless_horizontal_noise(x / width, i / num_bands, wave_scale);
+                    const micro_wave = seamless_horizontal_noise(x / width, (i+10) / num_bands, wave_scale * 4.0) * 0.3;
+                    
+                    const y_offset = (base_wave + micro_wave) * wave_amplitude;
                     const waved_y_center = y_center + y_offset;
 
                     const turbulence_noise = (seamless_horizontal_noise(x / width, waved_y_center / height * 5, 30, 20.0) + 1) / 2;
@@ -278,7 +468,6 @@
                     }
                 }
                 
-                // Blend
                 for(let i=0; i < planetArray.data.length; i += 4) {
                     const band_r = bandLayer.data[i];
                     const alpha = Math.min(1, Math.max(band_r, bandLayer.data[i+1], bandLayer.data[i+2]) / 255.0);
@@ -290,18 +479,39 @@
             return planetArray;
         }
 
+        async function addAtmosphericDetail(planetArray) {
+            const { width, height } = planetArray;
+            await updateStatus("添加大气噪点...");
+
+            const noiseScale = 150.0;
+            const noiseStrength = 0.04;
+
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const noiseVal = (seamless_horizontal_noise(x / width, y / height, noiseScale) + 1) / 2;
+                    const factor = 1.0 + (noiseVal - 0.5) * noiseStrength;
+
+                    const i = (y * width + x) * 4;
+                    planetArray.data[i] *= factor;
+                    planetArray.data[i+1] *= factor;
+                    planetArray.data[i+2] *= factor;
+                }
+            }
+            return planetArray;
+        }
+
         async function addGlowingJetStreams(planetArray) {
             const { width, height } = planetArray;
             const num_jets = randint(0, 8);
             
             for (let i = 0; i < num_jets; i++) {
-                await updateStatus(`Step 3: Adding glowing jet streams... (${i + 1}/${num_jets})`);
+                if(i%2===0) await updateStatus("生成激流...");
                 const jetLayer = new PixelArray(width, height);
                 const y_center = randint(0, height);
                 const jet_height = uniform(height * 0.005, height * 0.015);
                 const glow_color = [240, 240, 255];
                 
-                const main_wave_amp = uniform(height * 0.02, height * 0.04);
+                const main_wave_amp = uniform(height * 0.01, height * 0.03);
                 const main_wave_scale = uniform(2.0, 8.0);
                 const turb_wave_amp = uniform(height * 0.005, height * 0.01);
                 const turb_wave_scale = uniform(1.0, 4.0);
@@ -337,119 +547,169 @@
 
         async function applyFlowDistortion(planetArray) {
             const { width, height } = planetArray;
-            const strength = uniform(1, 8);
+            const scaleFactor = width / 1024.0;
+            const shearStrength = uniform(0, 60) * scaleFactor;
+            const detailStrength = 2.0 * scaleFactor;
+
+            await updateStatus("计算风场...");
+
+            const windProfile = new Float32Array(height);
+            const numZones = randint(8, 15);
             
+            for(let y = 0; y < height; y++) {
+                const lat = (y / height) * 2 - 1;
+                let wind = Math.cos(lat * Math.PI * numZones);
+                wind += Math.exp(-lat*lat * 8) * 1.5;
+                wind += (simplex.noise2D(0, lat * 5) - 0.5) * 0.8;
+                windProfile[y] = wind;
+            }
+
             const coordsY = Array(height).fill(0).map(() => Array(width));
             const coordsX = Array(height).fill(0).map(() => Array(width));
 
             for (let y = 0; y < height; y++) {
-                if (y % 10 === 0) await updateStatus(`Step 4: Generating flow map... (${Math.round(y/height * 100)}%)`);
+                if (y % 50 === 0) await updateStatus(`应用风场扭曲... (${Math.round(y/height * 100)}%)`);
+                
+                const baseWind = windProfile[y];
                 for (let x = 0; x < width; x++) {
                     const x_norm = x / width;
                     const y_norm = y / height;
-                    const y_offset = seamless_horizontal_noise(x_norm, y_norm, 8.0, 1.0);
-                    const x_offset = seamless_horizontal_noise(x_norm, y_norm, 5.0, 5.0);
-                    
-                    coordsY[y][x] = y + y_offset * strength;
-                    coordsX[y][x] = x + x_offset * (strength / 4);
+                    const noiseVal = seamless_horizontal_noise(x_norm, y_norm, 15.0, 1.0);
+                    const shiftX = (baseWind * 1.0 + noiseVal * 0.1) * shearStrength;
+                    const shiftY = noiseVal * detailStrength;
+                    coordsX[y][x] = x + shiftX;
+                    coordsY[y][x] = y + shiftY;
                 }
             }
             
-            await updateStatus(`Step 4: Applying distortion...`);
-            // This is a slow operation in JS
             return mapCoordinates(planetArray, [coordsY, coordsX]);
         }
 
-async function addGreatStorm(planetArray, palette) {
-    const { width, height } = planetArray;
-    const cy = randint(height * 0.2, height * 0.8);
-    const cx = randint(width * 0.2, width * 0.8);
+        async function addGreatStorm(planetArray, palette) {
+            const { width, height } = planetArray;
+            
+            const cy = Math.floor(randint(height * 0.3, height * 0.7));
+            const cx = Math.floor(randint(width * 0.2, width * 0.8));
 
-    // 半径
-    const radius_y = uniform(height * 0.08, height * 0.15);
-    const radius_x = radius_y * uniform(1.5, 2.5);
+            const stormSize = uniform(height * 0.14, height * 0.22);
+            const flattening = uniform(0.6, 0.85);
+            const isDarkCore = random() < 0.35;
 
-    // === 用传入的调色板来选颜色 ===
-    // 从 palette 中挑一个中间色和一个亮色
-    const midIndex = Math.floor(palette.length / 2);
-    const baseColor = palette[midIndex];
-    const highlightColor = palette[Math.min(midIndex + 1, palette.length - 1)];
+            const midIndex = Math.floor(palette.length / 2);
+            const highlightColor = palette[Math.min(midIndex + 1, palette.length - 1)] || [255, 255, 255];
+            const lightCoreColor = [255, 255, 240];
+            const darkCoreColor = palette[0].map(c => c * 0.8);
 
-    await updateStatus(`Step 5: Generating storm texture with layered noise...`);
-    const stormTexture = new PixelArray(width, height);
+            const coreTargetColor = isDarkCore ? darkCoreColor : lightCoreColor;
 
-    for (let y = 0; y < height; y++) {
-        for (let x = 0; x < width; x++) {
-            const dx = (x - cx) / radius_x;
-            const dy = (y - cy) / radius_y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
+            await updateStatus("生成巨型风暴眼...");
 
-            if (dist < 1.6) {
-                // --- 平滑衰减 Mask
-                const mask = Math.exp(-Math.pow(dist, 3.0) * 2.4);
+            const rangeX = Math.ceil(stormSize * 2.5);
+            const rangeY = Math.ceil(stormSize * 2.5 * flattening);
+            
+            const minY = Math.max(0, Math.floor(cy - rangeY));
+            const maxY = Math.min(height, Math.floor(cy + rangeY));
+            const minX = Math.max(0, Math.floor(cx - rangeX));
+            const maxX = Math.min(width, Math.floor(cx + rangeX));
 
-                // --- 噪声分层
-                const lowFreq = simplex.noise2D(x / 1500.0, y / 1500.0);
-                const highFreq = simplex.noise2D(x / 500.0, y / 500.0);
-                const detail = (lowFreq * 0.8 + highFreq * 0.2 + 1) / 2;
+            const arms = 2;
+            const twistFactor = 4.0;
 
-                // --- 基于 palette 的渐变色
-                const r = baseColor[0] * (1 - detail) + highlightColor[0] * detail;
-                const g = baseColor[1] * (1 - detail) + highlightColor[1] * detail;
-                const b = baseColor[2] * (1 - detail) + highlightColor[2] * detail;
+            for (let y = minY; y < maxY; y++) {
+                for (let x = minX; x < maxX; x++) {
+                    let dx = (x - cx) / stormSize;
+                    let dy = (y - cy) / (stormSize * flattening);
+                    let r = Math.sqrt(dx*dx + dy*dy);
 
-                stormTexture.set(y, x, [r * mask, g * mask, b * mask, 255 * mask]);
+                    if (r > 2.2) continue;
+
+                    let angle = Math.atan2(dy, dx);
+
+                    // === 核心算法 ===
+                    let baseShape = Math.exp(-r * r * 2.0);
+                    let spiralPhase = angle * arms + Math.pow(r, 0.7) * twistFactor;
+                    let armPattern = (Math.sin(spiralPhase) + 1) / 2;
+                    let armStrength = Math.min(1.0, r * 1.2);
+                    let pattern = (1 - armStrength) + armStrength * armPattern;
+                    let coreIntensity = Math.exp(-r * r * (isDarkCore ? 5.0 : 10.0));
+                    
+                    let rStorm, gStorm, bStorm;
+
+                    if (isDarkCore) {
+                        let mixT = coreIntensity;
+                        let rMix = highlightColor[0] * (1 - mixT) + coreTargetColor[0] * mixT;
+                        let gMix = highlightColor[1] * (1 - mixT) + coreTargetColor[1] * mixT;
+                        let bMix = highlightColor[2] * (1 - mixT) + coreTargetColor[2] * mixT;
+                        rStorm = rMix;
+                        gStorm = gMix;
+                        bStorm = bMix;
+                    } else {
+                        let rMix = highlightColor[0] * (1 - coreIntensity) + coreTargetColor[0] * coreIntensity;
+                        let gMix = highlightColor[1] * (1 - coreIntensity) + coreTargetColor[1] * coreIntensity;
+                        let bMix = highlightColor[2] * (1 - coreIntensity) + coreTargetColor[2] * coreIntensity;
+                        rStorm = rMix;
+                        gStorm = gMix;
+                        bStorm = bMix;
+                    }
+
+                    let shapeAlpha = 0;
+                    if (isDarkCore) {
+                        let outerAlpha = baseShape * pattern * 1.2;
+                        shapeAlpha = Math.max(outerAlpha, coreIntensity * 0.95);
+                    } else {
+                        let glowAlpha = (baseShape * pattern * 1.5 + coreIntensity);
+                        shapeAlpha = glowAlpha;
+                    }
+
+                    let fade = Math.max(0, 1 - r/2.2);
+                    let finalAlpha = Math.min(1, shapeAlpha * fade);
+
+                    let safeX = (x % width + width) % width;
+                    let idx = (y * width + safeX) * 4;
+
+                    if (idx >= 0 && idx < planetArray.data.length) {
+                        let bgR = planetArray.data[idx];
+                        let bgG = planetArray.data[idx+1];
+                        let bgB = planetArray.data[idx+2];
+                        planetArray.data[idx] = bgR * (1-finalAlpha) + rStorm * finalAlpha;
+                        planetArray.data[idx+1] = bgG * (1-finalAlpha) + gStorm * finalAlpha;
+                        planetArray.data[idx+2] = bgB * (1-finalAlpha) + bStorm * finalAlpha;
+                    }
+                }
             }
+            return planetArray;
         }
-    }
-
-    await updateStatus(`Step 5: Swirling storm with multi-scale flow...`);
-    let stormSwirl = swirl(stormTexture, cy, cx, uniform(4, 7), Math.max(radius_x, radius_y) * 1.6);
-    stormSwirl = swirl(stormSwirl, cy, cx, uniform(1.5, 3.0), Math.max(radius_x, radius_y) * 0.8);
-    
-    // --- Alpha 混合
-    for (let i = 0; i < planetArray.data.length; i += 4) {
-        const alpha = stormSwirl.data[i + 3] / 255.0;
-        if (alpha > 0.01) {
-            planetArray.data[i] = planetArray.data[i] * (1 - alpha) + stormSwirl.data[i] * alpha;
-            planetArray.data[i + 1] = planetArray.data[i + 1] * (1 - alpha) + stormSwirl.data[i + 1] * alpha;
-            planetArray.data[i + 2] = planetArray.data[i + 2] * (1 - alpha) + stormSwirl.data[i + 2] * alpha;
-        }
-    }
-
-    return planetArray;
-}
 
         async function addSeamlessStorms(planetArray) {
             const { width, height } = planetArray;
             const num_storms = randint(0, 16);
+            const scaleFactor = width / 1024.0;
 
             let tempArray = planetArray;
             for (let i = 0; i < num_storms; i++) {
-                await updateStatus(`Step 6: Adding seamless eddies... (${i + 1}/${num_storms})`);
+                if (i%4===0) await updateStatus("添加小型气旋...");
                 const cx = randint(width * 0.25, width * 0.75);
                 const cy = randint(0, height - 1);
                 const radius = randint(width * 0.08, width * 0.2);
-                const strength = uniform(1.5, 4.0) * choice([-1, 1]);
+                const strength = uniform(1.5, 4.0) * choice([-1, 1]) * scaleFactor;
                 tempArray = swirl(tempArray, cy, cx, strength, radius);
             }
             return tempArray;
         }
 
-
         // --- Main Execution ---
         async function generate() {
-            // --- UI Setup ---
             generateBtn.disabled = true;
             spinner.classList.remove('hidden');
-            btnText.textContent = "正在生成...";
+            btnText.textContent = "生成中...";
             downloadLink.classList.add('hidden');
+            statusText.textContent = "初始化...";
 
             try {
-                // --- Get Settings ---
                 const resolution = resolutionSelect.value;
                 const paletteKey = paletteSelect.value;
                 const doGreatStorm = greatStormCheckbox.checked;
+                const filterColor = filterColorInput.value;
 
                 const WIDTH = resolution === '1k' ? 1024 : 2048;
                 const HEIGHT = resolution === '1k' ? 512 : 1024;
@@ -462,63 +722,87 @@ async function addGreatStorm(planetArray, palette) {
                 const paletteName = paletteKey === 'random' ? choice(Object.keys(PALETTES)) : paletteKey;
                 const palette = PALETTES[paletteName];
 
-                // --- Generation Steps ---
-                await updateStatus("Step 1: Generating base color...");
+                await updateStatus("填充底色...");
                 const base_color = palette[0];
                 ctx.fillStyle = `rgb(${base_color[0]}, ${base_color[1]}, ${base_color[2]})`;
                 ctx.fillRect(0, 0, WIDTH, HEIGHT);
                 let planetArray = PixelArray.fromImageData(ctx.getImageData(0, 0, WIDTH, HEIGHT));
 
+                // Pipeline
                 planetArray = await addMainBands(planetArray, palette);
+                planetArray = await addAtmosphericDetail(planetArray);
                 planetArray = await addGlowingJetStreams(planetArray);
                 planetArray = await applyFlowDistortion(planetArray);
+                planetArray = await addSeamlessStorms(planetArray);
+                
                 if (doGreatStorm) {
                     planetArray = await addGreatStorm(planetArray, palette);
                 }
-                planetArray = await addSeamlessStorms(planetArray);
-                
-                await updateStatus("Finalizing image...");
 
-                // Clip values
+                if (filterColor && filterColor.toLowerCase() !== '#ffffff') {
+                    await updateStatus("应用色彩滤镜...");
+                    const [fr, fg, fb] = hexToRgb(filterColor);
+                    const frN = fr / 255;
+                    const fgN = fg / 255;
+                    const fbN = fb / 255;
+                    
+                    for(let i=0; i<planetArray.data.length; i+=4) {
+                        planetArray.data[i]   *= frN;
+                        planetArray.data[i+1] *= fgN;
+                        planetArray.data[i+2] *= fbN;
+                    }
+                }
+                
+                await updateStatus("渲染最终纹理...");
+                
+                // Clamp values
                 for(let i=0; i<planetArray.data.length; i+=4) {
                     planetArray.data[i] = Math.max(0, Math.min(255, planetArray.data[i]));
                     planetArray.data[i+1] = Math.max(0, Math.min(255, planetArray.data[i+1]));
                     planetArray.data[i+2] = Math.max(0, Math.min(255, planetArray.data[i+2]));
-                    planetArray.data[i+3] = 255; // Ensure full opacity
+                    planetArray.data[i+3] = 255;
                 }
                 
                 ctx.putImageData(planetArray.toImageData(), 0, 0);
 
-                // --- UI Teardown on Success ---
-                statusText.textContent = `完成! (调色板: ${paletteName})`;
+                statusText.textContent = "完成";
                 downloadLink.href = canvas.toDataURL('image/png');
                 downloadLink.download = `gas_giant_${paletteName}_${seed}.png`;
                 downloadLink.classList.remove('hidden');
 
+                // --- 3D Update ---
+                await updateStatus("更新3D模型...");
+                update3DTexture();
+                await updateStatus("");
+
             } catch (error) {
                 console.error("An error occurred during texture generation:", error);
-                statusText.textContent = "生成失败，请检查控制台错误。";
+                statusText.textContent = "错误!";
             } finally {
-                // --- UI Teardown (always run) ---
                 generateBtn.disabled = false;
                 spinner.classList.add('hidden');
-                btnText.textContent = "生成贴图";
+                btnText.textContent = "生成星球";
             }
         }
 
-        // --- Initialization ---
         function init() {
-            // Populate palette select
             Object.keys(PALETTES).forEach(key => {
                 const option = document.createElement('option');
                 option.value = key;
                 option.textContent = key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
                 paletteSelect.appendChild(option);
             });
-
             generateBtn.addEventListener('click', generate);
+            atmosphereColorInput.addEventListener('input', () => {
+                 if(atmosphereMaterial) {
+                     atmosphereMaterial.uniforms.glowColor.value = new THREE.Color(atmosphereColorInput.value);
+                 }
+            });
 
-            // Generate on load
+            // Initialize 3D Scene immediately
+            init3D();
+            
+            // Generate texture
             generate();
         }
 
@@ -528,4 +812,3 @@ async function addGreatStorm(planetArray, palette) {
     </script>
 </body>
 </html>
-

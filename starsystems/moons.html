@@ -5,111 +5,205 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>卫星系统生成器</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Three.js Import Map -->
+    <script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/"
+  }
+}
+</script>
+
     <style>
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-            overscroll-behavior: none;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: #e2e8f0;
+            background-color: #0f172a; /* slate-900 */
         }
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        input[type="number"], input[type="text"] {
+            background-color: #1e293b; /* slate-800 */
+            border-color: #334155; /* slate-700 */
+            color: white;
+        }
+        input[type="number"]:focus, input[type="text"]:focus {
+            border-color: #06b6d4; /* cyan-500 */
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
         }
     </style>
 </head>
-<body class="bg-gray-900 text-white">
+<body class="h-screen overflow-hidden flex flex-col lg:flex-row">
 
-    <div class="flex flex-col lg:flex-row h-screen">
-        <!-- 控制面板 -->
-        <div class="lg:w-1/3 p-6 bg-gray-800 shadow-2xl overflow-y-auto">
-            <h1 class="text-3xl font-bold mb-6 text-cyan-400">卫星系统生成器</h1>
-            
-            <div class="space-y-4">
-                <div>
-                    <label for="planetName" class="block text-sm font-medium text-gray-300">行星名称</label>
-                    <input type="text" id="planetName" value="Terra" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
-                </div>
-                <div>
-                    <label for="starName" class="block text-sm font-medium text-gray-300">恒星名称</label>
-                    <input type="text" id="starName" value="Sol" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
-                </div>
-                <div>
-                    <label for="planetMass" class="block text-sm font-medium text-gray-300">行星质量 (地球倍数)</label>
-                    <input type="number" id="planetMass" value="1" step="0.1" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
-                </div>
-                <div>
-                    <label for="planetRadius" class="block text-sm font-medium text-gray-300">行星半径 (km)</label>
-                    <input type="number" id="planetRadius" value="6371" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-cyan-500 focus:border-cyan-500">
-                </div>
-                <div class="flex items-center">
-                    <input id="snowLine" type="checkbox" class="h-4 w-4 text-cyan-600 bg-gray-700 border-gray-600 rounded focus:ring-cyan-500">
-                    <label for="snowLine" class="ml-2 block text-sm text-gray-300">位于雪线以外</label>
-                </div>
-            </div>
-
-            <button id="generateBtn" class="mt-8 w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">
-                生成卫星系统
-            </button>
-            
-            <h2 class="text-2xl font-bold mt-8 mb-4 text-cyan-400">摘要</h2>
-            <div id="summary" class="mb-4 p-4 bg-gray-700 rounded-lg text-gray-300 space-y-2">
-                <p>卫星数量: <span id="satellite-count" class="font-bold text-white">0</span></p>
-                <p>最大卫星: <span id="largest-satellite" class="font-bold text-white">N/A</span></p>
-            </div>
-
-            <h2 class="text-2xl font-bold mt-4 mb-4 text-cyan-400">生成数据</h2>
-            <pre id="output" class="w-full h-80 bg-gray-900 text-sm p-4 rounded-lg overflow-auto whitespace-pre-wrap break-words"></pre>
+    <!-- Left Sidebar: Controls -->
+    <div class="w-full lg:w-96 bg-slate-900 border-r border-slate-800 flex flex-col h-1/3 lg:h-full shadow-2xl z-10">
+        <div class="p-6 border-b border-slate-800">
+            <h1 class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+                <i class="fas fa-globe-americas mr-2"></i>卫星系统生成器
+            </h1>
+            <p class="text-xs text-slate-400 mt-2">基于希尔球和洛希极限的程序化生成</p>
         </div>
 
-        <!-- 3D 预览 -->
-        <div class="flex-1 min-w-0" id="canvas-container">
-            <!-- Three.js canvas will be appended here -->
+        <div class="flex-1 overflow-y-auto p-6 space-y-6">
+            
+            <!-- Config Section -->
+            <div class="space-y-4">
+                <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">系统参数</h3>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">行星名称</label>
+                        <input type="text" id="planetName" value="Terra" class="w-full rounded px-3 py-2 text-sm border">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-1">母恒星 ID</label>
+                        <input type="text" id="starName" value="Sol" class="w-full rounded px-3 py-2 text-sm border">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">行星质量 (地球倍数)</label>
+                    <div class="relative">
+                        <input type="number" id="planetMass" value="1.0" step="0.1" class="w-full rounded px-3 py-2 text-sm border">
+                        <span class="absolute right-3 top-2 text-xs text-slate-500">M⊕</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-300 mb-1">行星半径 (km)</label>
+                    <input type="number" id="planetRadius" value="6371" class="w-full rounded px-3 py-2 text-sm border">
+                </div>
+
+                <div class="flex items-center justify-between bg-slate-800 p-3 rounded-lg border border-slate-700">
+                    <label for="snowLine" class="text-sm text-slate-300 cursor-pointer select-none">位于雪线以外</label>
+                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="toggle" id="snowLine" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer transition-transform duration-200 ease-in-out transform translate-x-0 checked:translate-x-5 checked:border-cyan-500"/>
+                        <label for="snowLine" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-600 cursor-pointer"></label>
+                    </div>
+                </div>
+            </div>
+
+            <button id="generateBtn" class="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3 px-4 rounded-lg shadow-lg transform transition hover:scale-[1.02] active:scale-95">
+                生成系统
+            </button>
+
+            <!-- Stats Section -->
+            <div class="bg-slate-800 rounded-xl p-4 border border-slate-700 space-y-3">
+                <h3 class="text-xs font-semibold text-slate-400 uppercase">统计摘要</h3>
+                <div class="flex justify-between text-sm">
+                    <span class="text-slate-400">卫星数量</span>
+                    <span id="satellite-count" class="font-mono text-cyan-400 font-bold">0</span>
+                </div>
+                <div class="text-sm">
+                    <span class="text-slate-400 block mb-1">最大卫星</span>
+                    <span id="largest-satellite" class="font-mono text-white text-xs">N/A</span>
+                </div>
+            </div>
+
+            <!-- Code Output -->
+            <div class="space-y-2">
+                <div class="flex justify-between items-end">
+                    <label class="text-xs font-semibold text-slate-400 uppercase">STC 数据</label>
+                    <button id="copyBtn" class="text-xs text-cyan-400 hover:text-cyan-300 transition">复制全部</button>
+                </div>
+                <pre id="output" class="w-full h-40 bg-slate-950 text-xs text-slate-300 p-3 rounded-lg border border-slate-800 overflow-auto font-mono"></pre>
+            </div>
+
         </div>
     </div>
 
+    <!-- Right Area: 3D Visualization -->
+    <div class="flex-1 relative bg-black" id="canvas-container">
+        <!-- Canvas injected here -->
+        <div class="absolute top-4 left-4 pointer-events-none z-10">
+            <div class="bg-black/50 backdrop-blur-md text-white px-4 py-2 rounded-full text-xs border border-white/10">
+                <i class="fas fa-mouse pointer-events-none mr-2"></i> 左键旋转 · 右键平移 · 滚轮缩放
+            </div>
+        </div>
+    </div>
+
+    <!-- Tailwind Custom Styles for Toggle -->
+    <style>
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #06b6d4;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #06b6d4;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
     <script type="module">
-        // --- 全局变量和常量 ---
-        const G = 6.67430e-11; // m^3 kg^-1 s^-2
-        const EARTH_MASS = 5.972e24; // kg
-        const EARTH_RADIUS = 6371e3; // m
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { Line2 } from 'three/addons/lines/Line2.js';
+        import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
+        import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 
-        // --- Three.js 初始化 ---
-        let scene, camera, renderer, controls;
+        // --- Config ---
+        const G = 6.67430e-11;
+        const EARTH_MASS = 5.972e24;
+        const EARTH_RADIUS = 6371e3;
+
+        // --- State ---
+        let scene, camera, renderer, controls, animationId;
         const container = document.getElementById('canvas-container');
-        let planetMesh, referencePlane, satelliteGroup;
-
+        
+        // --- Initialization ---
         function initThree() {
             scene = new THREE.Scene();
-            
-            const aspect = container.clientWidth / container.clientHeight || 1;
-            camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1e15);
-            camera.position.set(0, 500000, 1000000);
+            scene.background = new THREE.Color(0x020617); // Dark slate
+            // Add some fog for depth
+            scene.fog = new THREE.FogExp2(0x020617, 0.00000005);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setClearColor( 0x000000, 0 );
-            renderer.setSize(container.clientWidth, container.clientHeight);
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            const aspect = width / height;
+
+            // FIX: Set a consistently large FAR plane initially
+            camera = new THREE.PerspectiveCamera(45, aspect, 100, 1e13);
+            camera.position.set(0, 50000000, 100000000);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(width, height);
             renderer.setPixelRatio(window.devicePixelRatio);
+            // Use Logarithmic Depth Buffer to prevent Z-fighting when range is huge
+            renderer.capabilities.logarithmicDepthBuffer = true;
             container.appendChild(renderer.domElement);
-            container.style.background = `radial-gradient(ellipse at center, #1a202c 0%, #000000 70%)`;
 
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
-
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-            scene.add(ambientLight);
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(1, 1, 1);
-            scene.add(directionalLight);
+            controls.minDistance = 1000;
+            controls.maxDistance = 1e12; // Allow zooming out very far
 
             window.addEventListener('resize', onWindowResize, false);
             animate();
         }
 
         function onWindowResize() {
-            if (container.clientWidth === 0 || container.clientHeight === 0) return;
+            if (!container || container.clientWidth === 0) return;
             camera.aspect = container.clientWidth / container.clientHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(container.clientWidth, container.clientHeight);
@@ -118,11 +212,13 @@
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
-            renderer.render(scene, camera);
+            // For Line2 resolution update if window resizes
+            if (renderer) {
+                 renderer.render(scene, camera);
+            }
         }
 
-        // --- 核心生成逻辑 ---
-
+        // --- Math Utils ---
         function getNormallyDistributedRandom(mean, stddev) {
             let u1 = 0, u2 = 0;
             while (u1 === 0) u1 = Math.random();
@@ -130,223 +226,341 @@
             const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
             return z0 * stddev + mean;
         }
+        
+        // --- Texture Utils ---
+        function createGlowTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const context = canvas.getContext('2d');
+            const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
+            gradient.addColorStop(0, 'rgba(200, 230, 255, 1)');
+            gradient.addColorStop(0.2, 'rgba(100, 180, 255, 0.6)');
+            gradient.addColorStop(0.5, 'rgba(50, 100, 255, 0.2)');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            context.fillStyle = gradient;
+            context.fillRect(0,0,128,128);
+            return new THREE.CanvasTexture(canvas);
+        }
 
+        // New: Create a simple HUD icon (Target style)
+        function createIconTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            
+            // Draw Reticle/Icon
+            ctx.strokeStyle = 'rgba(6, 182, 212, 0.9)'; // Cyan
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.arc(64, 64, 48, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Inner Dot
+            ctx.fillStyle = 'rgba(255, 255, 255, 1.0)';
+            ctx.beginPath();
+            ctx.arc(64, 64, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Crosshairs
+            ctx.beginPath();
+            ctx.moveTo(64, 10);
+            ctx.lineTo(64, 30);
+            ctx.moveTo(64, 118);
+            ctx.lineTo(64, 98);
+            ctx.moveTo(10, 64);
+            ctx.lineTo(30, 64);
+            ctx.moveTo(118, 64);
+            ctx.lineTo(98, 64);
+            ctx.stroke();
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // --- Logic ---
         function generateSystem() {
-            const planetName = document.getElementById('planetName').value || 'PlanetX';
-            const starName = document.getElementById('starName').value || 'StarY';
-            const planetMass = parseFloat(document.getElementById('planetMass').value) * EARTH_MASS;
-            const planetRadius = parseFloat(document.getElementById('planetRadius').value) * 1000; // to meters
+            const planetName = document.getElementById('planetName').value || 'Terra';
+            const starName = document.getElementById('starName').value || 'Sol';
+            const planetMassVal = parseFloat(document.getElementById('planetMass').value);
+            const planetRadiusVal = parseFloat(document.getElementById('planetRadius').value);
             const isBeyondSnowLine = document.getElementById('snowLine').checked;
 
-            if (isNaN(planetMass) || isNaN(planetRadius) || planetMass <= 0 || planetRadius <= 0) {
-                document.getElementById('output').textContent = "请输入有效的行星参数。";
-                return;
-            }
+            const planetMass = planetMassVal * EARTH_MASS;
+            const planetRadius = planetRadiusVal * 1000; // km -> m
 
+            if (planetMass <= 0 || planetRadius <= 0) return;
+
+            // Generate Satellites
             const massExponent = getNormallyDistributedRandom(-1, 0.5);
             const totalSatelliteMassRatio = Math.pow(10, massExponent) / 100;
             let totalSatelliteMass = planetMass * totalSatelliteMassRatio;
 
-            const massInEarths = planetMass / EARTH_MASS;
+            const massInEarths = planetMassVal;
             const meanSatellites = Math.ceil(massInEarths * 0.1);
-            const stdDevSatellites = meanSatellites;
-            let numSatellites = Math.round(getNormallyDistributedRandom(meanSatellites, stdDevSatellites));
+            const baseNum = Math.max(1, meanSatellites);
+            let numSatellites = Math.round(getNormallyDistributedRandom(baseNum * 5, baseNum * 2));
             if (numSatellites < 0) numSatellites = 0;
+            if (numSatellites > 50) numSatellites = 50;
 
             const satelliteProperties = [];
             let remainingMass = totalSatelliteMass;
+            
             for (let i = 0; i < numSatellites; i++) {
                 if (remainingMass <= 0) break;
-                const massFraction = (i === numSatellites - 1) ? 1.0 : Math.random() * 0.9;
+                const massFraction = (i === numSatellites - 1) ? 1.0 : Math.random() * 0.4;
                 const satelliteMass = remainingMass * massFraction;
                 remainingMass -= satelliteMass;
-                if (satelliteMass < 1e15) continue;
-                const density_g_cm3 = isBeyondSnowLine ? 
-                    1.21 + Math.random() * (4.84 - 1.21) : 
-                    2.76 + Math.random() * (6.25 - 2.76);
+                
+                if (satelliteMass < 1e14) continue;
+
+                const density_g_cm3 = isBeyondSnowLine ?
+                    1.2 + Math.random() * 1.0 :
+                    2.8 + Math.random() * 3.0;
                 const density_kg_m3 = density_g_cm3 * 1000;
                 const satelliteRadius = Math.cbrt((3 * satelliteMass) / (4 * Math.PI * density_kg_m3));
+                
                 satelliteProperties.push({ mass: satelliteMass, radius: satelliteRadius, density: density_kg_m3 });
             }
-
-            let outputText = '';
-            const satellitesData = [];
-            let largestSatellite = { radius: 0, name: '', mass: 0 };
             
+            const satellitesData = [];
+            let largestSat = { name: 'None', radius: 0, mass: 0 };
+            let outputText = '';
+
             const planetDensity = planetMass / ((4/3) * Math.PI * Math.pow(planetRadius, 3));
-            let lastApoapsis = 0;
+            let lastApoapsis = planetRadius * 1.5;
 
             for (let i = 0; i < satelliteProperties.length; i++) {
                 const satProp = satelliteProperties[i];
                 
-                let semiMajorAxis;
-                let eccentricity = getNormallyDistributedRandom(0.05, 0.04);
-                if (eccentricity < 0) eccentricity = 0;
-                if (eccentricity >= 0.8) eccentricity = 0.8;
+                let eccentricity = Math.abs(getNormallyDistributedRandom(0.05, 0.05));
+                if (eccentricity > 0.6) eccentricity = 0.6;
 
+                let semiMajorAxis;
                 if (i === 0) {
-                    // 第一颗卫星：在洛希极限外的一个大范围内随机放置，以确定系统规模
                     const rocheLimit = planetRadius * 2.44 * Math.pow(planetDensity / satProp.density, 1/3);
-                    let sma_multiplier = 2 + 7 * Math.pow(Math.random(), 2); // Power law makes closer orbits more likely
-                    if (satProp.radius < 100000) { // Small satellites tend to be further out
-                        sma_multiplier = 2 + 198 * Math.pow(Math.random(), 0.5);
-                    }
-                    semiMajorAxis = rocheLimit * sma_multiplier;
+                    semiMajorAxis = Math.max(rocheLimit * 1.1, planetRadius * 3 + Math.random() * planetRadius * 5);
                 } else {
-                    // 后续卫星：在前一颗轨道外，基于希尔球计算安全距离
-                    const prevSatProp = satelliteProperties[i-1];
-                    const hillRadius = lastApoapsis * Math.cbrt(prevSatProp.mass / (3 * planetMass));
-                    const separation = (6 + Math.random() * 18) * hillRadius;
-                    const minPeriapsis = lastApoapsis + separation;
-                    semiMajorAxis = minPeriapsis / (1 - eccentricity);
+                    const prevSat = satellitesData[i-1];
+                    const spacing = 1.4 + Math.random() * 1.0;
+                    const minPeri = lastApoapsis * spacing;
+                    semiMajorAxis = minPeri / (1 - eccentricity);
                 }
 
-                lastApoapsis = semiMajorAxis * (1 + eccentricity);
-                const AU = 1.496e11; 
-                if (lastApoapsis > 0.5 * AU) break;
+                const starMass = 1.989e30;
+                const distToStar = 1.496e11;
+                const hillSpherePlanet = distToStar * Math.cbrt(planetMass / (3 * starMass));
                 
-                const incStdDev = (satProp.radius < 100000) ? 30 : 3;
-                const inclination = getNormallyDistributedRandom(0, incStdDev);
+                lastApoapsis = semiMajorAxis * (1 + eccentricity);
+                if (lastApoapsis > hillSpherePlanet * 0.5) break;
 
-                const period_seconds = 2 * Math.PI * Math.sqrt(Math.pow(semiMajorAxis, 3) / (G * planetMass));
-                const period_days = period_seconds / 86400;
+                let inclination = Math.abs(getNormallyDistributedRandom(0, 2));
+                if (semiMajorAxis > planetRadius * 50 && Math.random() < 0.3) {
+                    inclination = Math.random() * 180;
+                    eccentricity = 0.2 + Math.random() * 0.5;
+                }
 
                 const ascendingNode = Math.random() * 360;
                 const argOfPericenter = Math.random() * 360;
                 const meanAnomaly = Math.random() * 360;
-
-                const satName = `${planetName}-${i + 1}`;
-                const satCode = `${starName}/${satName}`;
-
-                if (satProp.radius > largestSatellite.radius) {
-                    largestSatellite = { radius: satProp.radius, name: satName, mass: satProp.mass };
-                }
                 
-                const semiMajorAxis_km = semiMajorAxis / 1000;
+                const periodSeconds = 2 * Math.PI * Math.sqrt(Math.pow(semiMajorAxis, 3) / (G * planetMass));
+                const periodDays = periodSeconds / 86400;
+
+                const satName = `${planetName} ${romanize(i + 1)}`;
+                const satCode = `${starName}/${planetName}/${satName}`;
+
+                if (satProp.radius > largestSat.radius) {
+                    largestSat = { name: satName, radius: satProp.radius, mass: satProp.mass };
+                }
 
                 outputText += `"${satName}" "${satCode}"\n{\n`;
-                outputText += `    Texture         "${satName}.*"\n`;
-                outputText += `    Mass            ${(satProp.mass / EARTH_MASS).toExponential(5)}\n`;
-                outputText += `    Radius          ${(satProp.radius / 1000).toFixed(2)}\n\n`;
-                outputText += `    EllipticalOrbit\n    {\n`;
-                outputText += `        Period_days     ${period_days.toFixed(4)}\n`;
-                outputText += `        SemiMajorAxis_km ${semiMajorAxis_km.toFixed(2)}\n`;
-                outputText += `        Eccentricity    ${eccentricity.toFixed(4)}\n`;
-                outputText += `        Inclination     ${inclination.toFixed(2)}\n`;
-                outputText += `        AscendingNode   ${ascendingNode.toFixed(5)}\n`;
-                outputText += `        ArgOfPericenter ${argOfPericenter.toFixed(5)}\n`;
-                outputText += `        MeanAnomaly     ${meanAnomaly.toFixed(2)}\n`;
-                outputText += `    }\n}\n\n`;
+                outputText += `    Mass ${ (satProp.mass/EARTH_MASS).toExponential(4) }\n`;
+                outputText += `    Radius ${ (satProp.radius/1000).toFixed(1) }\n`;
+                outputText += `    EllipticalOrbit {\n`;
+                outputText += `        Period ${periodDays.toFixed(4)}\n`;
+                outputText += `        SemiMajorAxis ${(semiMajorAxis/1000).toFixed(1)}\n`;
+                outputText += `        Eccentricity ${eccentricity.toFixed(4)}\n`;
+                outputText += `        Inclination ${inclination.toFixed(2)}\n`;
+                outputText += `        AscendingNode ${ascendingNode.toFixed(2)}\n`;
+                outputText += `        ArgOfPericenter ${argOfPericenter.toFixed(2)}\n`;
+                outputText += `        MeanAnomaly ${meanAnomaly.toFixed(2)}\n    }\n}\n\n`;
 
                 satellitesData.push({
-                    radius: satProp.radius, semiMajorAxis, eccentricity, inclination, 
-                    ascendingNode, argOfPericenter
+                    radius: satProp.radius,
+                    semiMajorAxis,
+                    eccentricity,
+                    inclination,
+                    ascendingNode,
+                    argOfPericenter
                 });
             }
 
-            document.getElementById('output').textContent = outputText || "未生成卫星（参数可能导致卫星过少或过小）。";
-            updateVisualization({ radius: planetRadius }, satellitesData);
-            
+            document.getElementById('output').textContent = outputText || "// 未生成卫星";
             document.getElementById('satellite-count').textContent = satellitesData.length;
             if (satellitesData.length > 0) {
-                const largestInfo = `${largestSatellite.name} (半径: ${(largestSatellite.radius / 1000).toFixed(0)} km, 质量: ${(largestSatellite.mass / EARTH_MASS).toExponential(2)} 地球质量)`;
-                document.getElementById('largest-satellite').textContent = largestInfo;
+                 document.getElementById('largest-satellite').textContent =
+                 `${largestSat.name}: ${(largestSat.radius/1000).toFixed(0)}km, ${(largestSat.mass/EARTH_MASS).toExponential(2)} M⊕`;
             } else {
-                document.getElementById('largest-satellite').textContent = 'N/A';
+                 document.getElementById('largest-satellite').textContent = "N/A";
             }
-        }
-        
-        function createCheckerboardTexture(size = 128, squares = 8) {
-            const canvas = document.createElement('canvas');
-            canvas.width = size;
-            canvas.height = size;
-            const context = canvas.getContext('2d');
-            const squareSize = size / squares;
-            for (let i = 0; i < squares; i++) {
-                for (let j = 0; j < squares; j++) {
-                    context.fillStyle = ((i + j) % 2 === 0) ? 'rgba(0, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0)';
-                    context.fillRect(i * squareSize, j * squareSize, squareSize, squareSize);
-                }
-            }
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.wrapS = THREE.RepeatWrapping;
-            texture.wrapT = THREE.RepeatWrapping;
-            return texture;
+
+            drawSystem({ radius: planetRadius }, satellitesData);
         }
 
-        function updateVisualization(planet, satellites) {
-            while(scene.children.length > 0){ scene.remove(scene.children[0]); }
+        function drawSystem(planet, satellites) {
+            while(scene.children.length > 0){
+                scene.remove(scene.children[0]);
+            }
             
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            const lightDist = planet.radius * 200;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 2.0);
             scene.add(ambientLight);
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            directionalLight.position.set(1, 1, 1);
-            scene.add(directionalLight);
-
-            satelliteGroup = new THREE.Group();
-            scene.add(satelliteGroup);
             
-            let maxApoapsis = 0;
-            satellites.forEach(sat => {
-                const apoapsis = sat.semiMajorAxis * (1 + sat.eccentricity);
-                if (apoapsis > maxApoapsis) maxApoapsis = apoapsis;
+            const sunLight = new THREE.DirectionalLight(0xffffff, 3.0);
+            sunLight.position.set(lightDist, lightDist * 0.4, lightDist * 0.6);
+            scene.add(sunLight);
+            
+            const pointLight = new THREE.PointLight(0x60a5fa, 2.0, lightDist * 2);
+            scene.add(pointLight);
+            
+            let maxDist = planet.radius * 2;
+            satellites.forEach(s => {
+                const d = s.semiMajorAxis * (1 + s.eccentricity);
+                if (d > maxDist) maxDist = d;
             });
-            if (maxApoapsis === 0) maxApoapsis = planet.radius * 20;
 
-            const SCENE_SCALE_TARGET = 1000000;
-            const scale = SCENE_SCALE_TARGET / maxApoapsis;
-
-            const scaledPlanetRadius = planet.radius * scale;
-            const planetGeometry = new THREE.SphereGeometry(scaledPlanetRadius > 0.1 ? scaledPlanetRadius : 0.1, 64, 32);
-            const planetMaterial = new THREE.MeshStandardMaterial({ color: 0x6699ff, roughness: 0.6, metalness: 0.2 });
-            planetMesh = new THREE.Mesh(planetGeometry, planetMaterial);
-            scene.add(planetMesh);
-            
-            satellites.forEach(sat => {
-                const a = sat.semiMajorAxis * scale;
-                const e = sat.eccentricity;
-                const c = e * a;
-                const b = Math.sqrt(a*a - c*c);
-                const curve = new THREE.EllipseCurve(-c, 0, a, b, 0, 2 * Math.PI, false, 0);
-                const points = curve.getPoints(200);
-                const geometry = new THREE.BufferGeometry().setFromPoints(points);
-                const material = new THREE.LineBasicMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.6 });
-                const orbitLine = new THREE.Line(geometry, material);
-                const orbitGroup = new THREE.Group();
-                orbitGroup.add(orbitLine);
-                const i_rad = THREE.MathUtils.degToRad(sat.inclination);
-                const w_rad = THREE.MathUtils.degToRad(sat.argOfPericenter);
-                const o_rad = THREE.MathUtils.degToRad(sat.ascendingNode);
-                const rot_w = new THREE.Matrix4().makeRotationZ(w_rad);
-                const rot_i = new THREE.Matrix4().makeRotationX(i_rad);
-                const rot_o = new THREE.Matrix4().makeRotationZ(o_rad);
-                const rotationMatrix = new THREE.Matrix4().multiply(rot_o).multiply(rot_i).multiply(rot_w);
-                orbitGroup.setRotationFromMatrix(rotationMatrix);
-                satelliteGroup.add(orbitGroup);
-            });
-            
-            const scaledPlaneSize = maxApoapsis * 2.2 * scale;
-            const texture = createCheckerboardTexture();
-            texture.repeat.set(20, 20);
-            const planeMaterial = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide, transparent: true });
-            const planeGeometry = new THREE.PlaneGeometry(scaledPlaneSize, scaledPlaneSize);
-            referencePlane = new THREE.Mesh(planeGeometry, planeMaterial);
-            referencePlane.rotation.x =0;
-            scene.add(referencePlane);
-
-            const scaledCameraDistance = maxApoapsis * 2.5 * scale;
-            camera.position.set(0, scaledCameraDistance * 0.7, scaledCameraDistance * 0.7);
-            controls.target.set(0, 0, 0);
-            camera.near = scaledPlanetRadius > 0 ? scaledPlanetRadius / 10 : 0.1;
-            camera.far = scaledCameraDistance * 3;
+            camera.near = planet.radius * 0.1;
             camera.updateProjectionMatrix();
-            controls.update();
+
+            // Planet
+            const planetGeo = new THREE.SphereGeometry(planet.radius, 64, 64);
+            const planetMat = new THREE.MeshPhongMaterial({
+                color: 0x3b82f6,
+                emissive: 0x1e3a8a,
+                emissiveIntensity: 0.5,
+                shininess: 30
+            });
+            const planetMesh = new THREE.Mesh(planetGeo, planetMat);
+            scene.add(planetMesh);
+
+            // Glow
+            const spriteMaterial = new THREE.SpriteMaterial({
+                map: createGlowTexture(),
+                color: 0x93c5fd,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                opacity: 0.9,
+                depthWrite: false
+            });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            const glowScale = planet.radius * 6.0;
+            sprite.scale.set(glowScale, glowScale, 1.0);
+            scene.add(sprite);
+
+            // --- HUD ICON (Constant Size) ---
+            const iconMaterial = new THREE.SpriteMaterial({
+                map: createIconTexture(),
+                color: 0xffffff,
+                transparent: true,
+                sizeAttenuation: false, // Critical: Disables distance scaling
+                depthTest: false,       // Critical: Always visible on top
+                depthWrite: false,
+                opacity: 0.8
+            });
+            const iconSprite = new THREE.Sprite(iconMaterial);
+            // With sizeAttenuation: false, scale is relative to screen height (approx)
+            // 0.04 ~= 4% of screen height
+            iconSprite.scale.set(0.04, 0.04, 1.0);
+            scene.add(iconSprite);
+
+            // Grid
+            const gridColor = new THREE.Color(0x1e293b);
+            const gridSize = Math.max(maxDist * 2.5, planet.radius * 50);
+            const gridHelper = new THREE.GridHelper(gridSize, 40, gridColor, gridColor);
+            gridHelper.position.y = -planet.radius * 0.1;
+            scene.add(gridHelper);
+
+            // Orbits
+            satellites.forEach((sat, index) => {
+                const a = sat.semiMajorAxis;
+                const e = sat.eccentricity;
+                const i_rad = sat.inclination * Math.PI / 180;
+                const om_rad = sat.ascendingNode * Math.PI / 180;
+                const w_rad = sat.argOfPericenter * Math.PI / 180;
+
+                const points = [];
+                const segments = 256;
+                
+                for (let j = 0; j <= segments; j++) {
+                    const theta = (j / segments) * 2 * Math.PI;
+                    const r = (a * (1 - e * e)) / (1 + e * Math.cos(theta));
+
+                    const P = r * Math.cos(theta);
+                    const Q = r * Math.sin(theta);
+                    
+                    const x_final = P * (Math.cos(w_rad) * Math.cos(om_rad) - Math.sin(w_rad) * Math.sin(om_rad) * Math.cos(i_rad))
+                                  - Q * (Math.sin(w_rad) * Math.cos(om_rad) + Math.cos(w_rad) * Math.sin(om_rad) * Math.cos(i_rad));
+                                  
+                    const z_final = P * (Math.cos(w_rad) * Math.sin(om_rad) + Math.sin(w_rad) * Math.cos(om_rad) * Math.cos(i_rad))
+                                  - Q * (Math.sin(w_rad) * Math.sin(om_rad) - Math.cos(w_rad) * Math.cos(om_rad) * Math.cos(i_rad));
+                                  
+                    const y_final = P * (Math.sin(w_rad) * Math.sin(i_rad))
+                                  + Q * (Math.cos(w_rad) * Math.sin(i_rad));
+                                  
+                    points.push(x_final, y_final, z_final);
+                }
+
+                const geometry = new LineGeometry();
+                geometry.setPositions(points);
+
+                const hue = (index * 0.13) % 1.0;
+                const color = new THREE.Color().setHSL(hue, 0.8, 0.6);
+
+                const mat = new LineMaterial({
+                    color: color.getHex(),
+                    linewidth: 2,
+                    resolution:  new THREE.Vector2(container.clientWidth, container.clientHeight),
+                    dashed: false,
+                    opacity: 0.8,
+                    transparent: true
+                });
+
+                const line = new Line2(geometry, mat);
+                line.computeLineDistances();
+                scene.add(line);
+            });
+
+            controls.target.set(0,0,0);
+        }
+
+        function romanize(num) {
+            if (isNaN(num)) return NaN;
+            var digits = String(+num).split(""),
+                key = ["","C","CC","CCC","CD","D","DC","DCC","DCCC","CM",
+                       "","X","XX","XXX","XL","L","LX","LXX","LXXX","XC",
+                       "","I","II","III","IV","V","VI","VII","VIII","IX"],
+                roman = "",
+                i = 3;
+            while (i--) roman = (key[+digits.pop() + (i * 10)] || "") + roman;
+            return Array(+digits.join("") + 1).join("M") + roman;
         }
 
         document.getElementById('generateBtn').addEventListener('click', generateSystem);
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            const text = document.getElementById('output').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('copyBtn');
+                const original = btn.textContent;
+                btn.textContent = "已复制!";
+                setTimeout(() => btn.textContent = original, 2000);
+            });
+        });
+
         initThree();
-        generateSystem();
+        setTimeout(generateSystem, 100);
+
     </script>
 </body>
 </html>
-

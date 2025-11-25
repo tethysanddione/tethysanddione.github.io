@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Procedural Planet Generator</title>
+    <title>Procedural Planet Generator with 3D Preview</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -14,12 +14,14 @@
             align-items: flex-start;
             padding: 20px;
             gap: 20px;
+            overflow-x: hidden;
         }
         .container {
             display: flex;
             gap: 30px;
             flex-wrap: wrap;
             justify-content: center;
+            max-width: 1400px;
         }
         .controls {
             background-color: #2b2b2b;
@@ -27,8 +29,19 @@
             border-radius: 8px;
             width: 320px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            height: fit-content;
         }
-        .output {
+        .output-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+        .output-card {
+            background-color: #2b2b2b;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
             text-align: center;
         }
         h1, h2 {
@@ -36,6 +49,7 @@
             border-bottom: 1px solid #444;
             padding-bottom: 10px;
             margin-top: 0;
+            font-size: 1.2rem;
         }
         .control-group {
             margin-bottom: 20px;
@@ -90,12 +104,24 @@
             background-color: #555;
             cursor: not-allowed;
         }
-        #planetCanvas {
+        canvas {
             background-color: #000;
             border: 2px solid #444;
             border-radius: 4px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
             max-width: 100%;
+        }
+        #planetCanvas {
+            /* 2D canvas style */
+            width: 512px;
+            height: 256px;
+        }
+        #threeContainer {
+            width: 512px;
+            height: 512px;
+            border: 2px solid #444;
+            border-radius: 4px;
+            background-color: #000;
+            position: relative;
         }
         #status {
             margin-top: 15px;
@@ -116,7 +142,17 @@
             padding: 5px 10px;
             font-size: 14px;
         }
+        .toggle-3d {
+            margin-top: 10px;
+            text-align: left;
+            font-size: 0.9em;
+            color: #aaa;
+        }
     </style>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
 
@@ -126,9 +162,9 @@
         
         <div class="control-group">
             <label for="size">Resolution</label>
-            <input type="radio" id="size1k" name="size" value="1024" checked>
+            <input type="radio" id="size1k" name="size" value="1024" checked data-center-width="20">
             <label for="size1k" style="display: inline; margin-right: 15px;">1K (1024x512)</label>
-            <input type="radio" id="size2k" name="size" value="2048">
+            <input type="radio" id="size2k" name="size" value="2048" data-center-width="40">
             <label for="size2k" style="display: inline;">2K (2048x1024)</label>
         </div>
 
@@ -149,7 +185,14 @@
         
         <div class="control-group">
             <input type="checkbox" id="lifeless" name="lifeless" style="margin-right: 10px;">
-            <label for="lifeless" style="display: inline;">Lifeless Planet (No Vegetation)</label>
+            <label for="lifeless" style="display: inline;">Lifeless Planet</label>
+        </div>
+
+        <div class="control-group">
+            <label>Atmosphere (3D Only)</label>
+            <input type="color" id="atmosphereColor" value="#3a9bdc">
+            <label for="atmosphereOpacity" style="margin-top:5px; font-weight:normal; font-size:0.9em">Density</label>
+            <input type="range" id="atmosphereOpacity" min="0" max="1" step="0.1" value="0.6">
         </div>
 
         <div class="control-group">
@@ -163,19 +206,29 @@
         <button id="generateBtn" disabled>Generate Planet</button>
         <div id="status"></div>
 
-        <button id="downloadColorBtn" class="download-btn" disabled>Download Color Map</button>
-        <button id="downloadHeightBtn" class="download-btn" disabled>Download Height Map</button>
+        <button id="downloadColorBtn" class="download-btn" disabled>Download Map</button>
+        <button id="downloadHeightBtn" class="download-btn" disabled>Download Height</button>
     </div>
 
-    <div class="output">
-        <h2>Generated Planet Texture</h2>
-        <canvas id="planetCanvas" width="1024" height="512"></canvas>
+    <div class="output-column">
+        <div class="output-card">
+            <h2>3D Preview (Interactive)</h2>
+            <div id="threeContainer"></div>
+            <div class="toggle-3d">
+                Left Click: Rotate | Right Click: Pan | Scroll: Zoom
+            </div>
+        </div>
+
+        <div class="output-card">
+            <h2>Texture Map</h2>
+            <canvas id="planetCanvas" width="1024" height="512"></canvas>
+        </div>
     </div>
 </div>
 
 <script>
 // --- Simplex Noise JS Library (by Jonas Wagner) ---
-const SimplexNoise = (function() { /* ... SNIPPED FOR BREVITY, full library code is here ... */ const F2=0.5*(Math.sqrt(3)-1),G2=(3-Math.sqrt(3))/6,F3=1/3,G3=1/6,F4=(Math.sqrt(5)-1)/4,G4=(5-Math.sqrt(5))/20;function SimplexNoise(randomOrSeed){"function"==typeof randomOrSeed?this.random=randomOrSeed:randomOrSeed?this.random=alea(randomOrSeed):this.random=Math.random,this.p=new Uint8Array(256),this.perm=new Uint8Array(512),this.permMod12=new Uint8Array(512);for(let i=0;i<256;i++)this.p[i]=i;for(let i=255;i>0;i--){const r=Math.floor(this.random()*(i+1)),t=this.p[i];this.p[i]=this.p[r],this.p[r]=t}for(let i=0;i<512;i++)this.perm[i]=this.p[255&i],this.permMod12[i]=this.perm[i]%12}function alea(seed){let s0=0,s1=0,s2=0,c=1;null==seed&&(seed=+new Date),s0=4294967296*(seed>>>0),s1=4294967296*seed,s2=4294967296*seed;for(let i=0;i<20;i++)s0=(s0+s1+c)*.4294967296,s1=(s1+s2+c)*.4294967296,s2=(s2+s0+c)*.4294967296;return function(){let t=(s0+s1+c)*.4294967296;return s0=(s1^s1>>>9)*.4294967296,s1=(s2+(s2<<3))*.4294967296,s2=s2<<21|s2>>>11,c=t>>>0,(t-Math.floor(t))*1}}return SimplexNoise.prototype={grad3:new Float32Array([1,1,0,-1,1,0,1,-1,0,-1,-1,0,1,0,1,-1,0,1,1,0,-1,-1,0,-1,0,1,1,0,-1,1,0,1,-1,0,-1,-1]),noise2D:function(xin,yin){let n0,n1,n2,s=(xin+yin)*F2,i=Math.floor(xin+s),j=Math.floor(yin+s),t=(i+j)*G2,X0=i-t,Y0=j-t,x0=xin-X0,y0=yin-Y0,i1,j1;x0>y0?(i1=1,j1=0):(i1=0,j1=1);let x1=x0-i1+G2,y1=y0-j1+G2,x2=x0-1+2*G2,y2=y0-1+2*G2,ii=255&i,jj=255&j,t0=.5-x0*x0-y0*y0;if(t0<0)n0=0;else{t0*=t0;let gi0=3*this.permMod12[ii+this.perm[jj]];n0=t0*t0*(this.grad3[gi0]*x0+this.grad3[gi0+1]*y0)}let t1=.5-x1*x1-y1*y1;if(t1<0)n1=0;else{t1*=t1;let gi1=3*this.permMod12[ii+i1+this.perm[jj+j1]];n1=t1*t1*(this.grad3[gi1]*x1+this.grad3[gi1+1]*y1)}let t2=.5-x2*x2-y2*y2;if(t2<0)n2=0;else{t2*=t2;let gi2=3*this.permMod12[ii+1+this.perm[jj+1]];n2=t2*t2*(this.grad3[gi2]*x2+this.grad3[gi2+1]*y2)}return 70*(n0+n1+n2)},noise3D:function(xin,yin,zin){let n0,n1,n2,n3,s=(xin+yin+zin)*F3,i=Math.floor(xin+s),j=Math.floor(yin+s),k=Math.floor(zin+s),t=(i+j+k)*G3,X0=i-t,Y0=j-t,Z0=k-t,x0=xin-X0,y0=yin-Y0,z0=zin-Z0,i1,j1,k1,i2,j2,k2;x0>=y0?y0>=z0?(i1=1,j1=0,k1=0,i2=1,j2=1,k2=0):x0>=z0?(i1=1,j1=0,k1=0,i2=1,j2=0,k2=1):(i1=0,j1=0,k1=1,i2=1,j2=0,k2=1):y0<z0?(i1=0,j1=0,k1=1,i2=0,j2=1,k2=1):x0<z0?(i1=0,j1=1,k1=0,i2=0,j2=1,k2=1):(i1=0,j1=1,k1=0,i2=1,j2=1,k2=0);let x1=x0-i1+G3,y1=y0-j1+G3,z1=z0-k1+G3,x2=x0-i2+2*G3,y2=y0-j2+2*G3,z2=z0-k2+2*G3,x3=x0-1+3*G3,y3=y0-1+3*G3,z3=z0-1+3*G3,ii=255&i,jj=255&j,kk=255&k,t0=.6-x0*x0-y0*y0-z0*z0;if(t0<0)n0=0;else{t0*=t0;let gi0=3*this.permMod12[ii+this.perm[jj+this.perm[kk]]];n0=t0*t0*(this.grad3[gi0]*x0+this.grad3[gi0+1]*y0+this.grad3[gi0+2]*z0)}let t1=.6-x1*x1-y1*y1-z1*z1;if(t1<0)n1=0;else{t1*=t1;let gi1=3*this.permMod12[ii+i1+this.perm[jj+j1+this.perm[kk+k1]]];n1=t1*t1*(this.grad3[gi1]*x1+this.grad3[gi1+1]*y1+this.grad3[gi1+2]*z1)}let t2=.6-x2*x2-y2*y2-z2*z2;if(t2<0)n2=0;else{t2*=t2;let gi2=3*this.permMod12[ii+i2+this.perm[jj+j2+this.perm[kk+k2]]];n2=t2*t2*(this.grad3[gi2]*x2+this.grad3[gi2+1]*y2+this.grad3[gi2+2]*z2)}let t3=.6-x3*x3-y3*y3-z3*z3;if(t3<0)n3=0;else{t3*=t3;let gi3=3*this.permMod12[ii+1+this.perm[jj+1+this.perm[kk+1]]];n3=t3*t3*(this.grad3[gi3]*x3+this.grad3[gi3+1]*y3+this.grad3[gi3+2]*z3)}return 32*(n0+n1+n2+n3)}},SimplexNoise })();
+const SimplexNoise = (function() { const F2=0.5*(Math.sqrt(3)-1),G2=(3-Math.sqrt(3))/6,F3=1/3,G3=1/6,F4=(Math.sqrt(5)-1)/4,G4=(5-Math.sqrt(5))/20;function SimplexNoise(randomOrSeed){"function"==typeof randomOrSeed?this.random=randomOrSeed:randomOrSeed?this.random=alea(randomOrSeed):this.random=Math.random,this.p=new Uint8Array(256),this.perm=new Uint8Array(512),this.permMod12=new Uint8Array(512);for(let i=0;i<256;i++)this.p[i]=i;for(let i=255;i>0;i--){const r=Math.floor(this.random()*(i+1)),t=this.p[i];this.p[i]=this.p[r],this.p[r]=t}for(let i=0;i<512;i++)this.perm[i]=this.p[255&i],this.permMod12[i]=this.perm[i]%12}function alea(seed){let s0=0,s1=0,s2=0,c=1;null==seed&&(seed=+new Date),s0=4294967296*(seed>>>0),s1=4294967296*seed,s2=4294967296*seed;for(let i=0;i<20;i++)s0=(s0+s1+c)*.4294967296,s1=(s1+s2+c)*.4294967296,s2=(s2+s0+c)*.4294967296;return function(){let t=(s0+s1+c)*.4294967296;return s0=(s1^s1>>>9)*.4294967296,s1=(s2+(s2<<3))*.4294967296,s2=s2<<21|s2>>>11,c=t>>>0,(t-Math.floor(t))*1}}return SimplexNoise.prototype={grad3:new Float32Array([1,1,0,-1,1,0,1,-1,0,-1,-1,0,1,0,1,-1,0,1,1,0,-1,-1,0,-1,0,1,1,0,-1,1,0,1,-1,0,-1,-1]),noise2D:function(xin,yin){let n0,n1,n2,s=(xin+yin)*F2,i=Math.floor(xin+s),j=Math.floor(yin+s),t=(i+j)*G2,X0=i-t,Y0=j-t,x0=xin-X0,y0=yin-Y0,i1,j1;x0>y0?(i1=1,j1=0):(i1=0,j1=1);let x1=x0-i1+G2,y1=y0-j1+G2,x2=x0-1+2*G2,y2=y0-1+2*G2,ii=255&i,jj=255&j,t0=.5-x0*x0-y0*y0;if(t0<0)n0=0;else{t0*=t0;let gi0=3*this.permMod12[ii+this.perm[jj]];n0=t0*t0*(this.grad3[gi0]*x0+this.grad3[gi0+1]*y0)}let t1=.5-x1*x1-y1*y1;if(t1<0)n1=0;else{t1*=t1;let gi1=3*this.permMod12[ii+i1+this.perm[jj+j1]];n1=t1*t1*(this.grad3[gi1]*x1+this.grad3[gi1+1]*y1)}let t2=.5-x2*x2-y2*y2;if(t2<0)n2=0;else{t2*=t2;let gi2=3*this.permMod12[ii+1+this.perm[jj+1]];n2=t2*t2*(this.grad3[gi2]*x2+this.grad3[gi2+1]*y2)}return 70*(n0+n1+n2)},noise3D:function(xin,yin,zin){let n0,n1,n2,n3,s=(xin+yin+zin)*F3,i=Math.floor(xin+s),j=Math.floor(yin+s),k=Math.floor(zin+s),t=(i+j+k)*G3,X0=i-t,Y0=j-t,Z0=k-t,x0=xin-X0,y0=yin-Y0,z0=zin-Z0,i1,j1,k1,i2,j2,k2;x0>=y0?y0>=z0?(i1=1,j1=0,k1=0,i2=1,j2=1,k2=0):x0>=z0?(i1=1,j1=0,k1=0,i2=1,j2=0,k2=1):(i1=0,j1=0,k1=1,i2=1,j2=0,k2=1):y0<z0?(i1=0,j1=0,k1=1,i2=0,j2=1,k2=1):x0<z0?(i1=0,j1=1,k1=0,i2=0,j2=1,k2=1):(i1=0,j1=1,k1=0,i2=1,j2=1,k2=0);let x1=x0-i1+G3,y1=y0-j1+G3,z1=z0-k1+G3,x2=x0-i2+2*G3,y2=y0-j2+2*G3,z2=z0-k2+2*G3,x3=x0-1+3*G3,y3=y0-1+3*G3,z3=z0-1+3*G3,ii=255&i,jj=255&j,kk=255&k,t0=.6-x0*x0-y0*y0-z0*z0;if(t0<0)n0=0;else{t0*=t0;let gi0=3*this.permMod12[ii+this.perm[jj+this.perm[kk]]];n0=t0*t0*(this.grad3[gi0]*x0+this.grad3[gi0+1]*y0+this.grad3[gi0+2]*z0)}let t1=.6-x1*x1-y1*y1-z1*z1;if(t1<0)n1=0;else{t1*=t1;let gi1=3*this.permMod12[ii+i1+this.perm[jj+j1+this.perm[kk+k1]]];n1=t1*t1*(this.grad3[gi1]*x1+this.grad3[gi1+1]*y1+this.grad3[gi1+2]*z1)}let t2=.6-x2*x2-y2*y2-z2*z2;if(t2<0)n2=0;else{t2*=t2;let gi2=3*this.permMod12[ii+i2+this.perm[jj+j2+this.perm[kk+k2]]];n2=t2*t2*(this.grad3[gi2]*x2+this.grad3[gi2+1]*y2+this.grad3[gi2+2]*z2)}let t3=.6-x3*x3-y3*y3-z3*z3;if(t3<0)n3=0;else{t3*=t3;let gi3=3*this.permMod12[ii+1+this.perm[jj+1+this.perm[kk+1]]];n3=t3*t3*(this.grad3[gi3]*x3+this.grad3[gi3+1]*y3+this.grad3[gi3+2]*z3)}return 32*(n0+n1+n2+n3)}},SimplexNoise })();
 
 let simplex;
 
@@ -190,6 +243,9 @@ const controls = {
     randomSeedBtn: document.getElementById('randomSeedBtn'),
     downloadColorBtn: document.getElementById('downloadColorBtn'),
     downloadHeightBtn: document.getElementById('downloadHeightBtn'),
+    // New controls for Atmosphere
+    atmosphereColor: document.getElementById('atmosphereColor'),
+    atmosphereOpacity: document.getElementById('atmosphereOpacity')
 };
 
 const displays = {
@@ -206,6 +262,10 @@ let heightMapData, currentSeed;
 const textureNames = ['sand', 'grass', 'rock', 'snow', 'ice'];
 let textures = {};
 let texturesLoaded = false;
+
+// --- Three.js Variables ---
+let scene, camera, renderer, planetMesh, atmosphereMesh;
+let controls3D;
 
 // --- Texture Loading ---
 function loadTexture(name) {
@@ -260,6 +320,7 @@ const generateTerrainMaps = (width, height, seed) => {
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const sphereCoords = mapToSphere(x, y, width, height);
+            // Rotate the coords slightly so the seam of the texture isn't obvious 3D Simplex
             const rotated_sx = sphereCoords.x * cos_a - sphereCoords.y * sin_a;
             const rotated_sy = sphereCoords.x * sin_a + sphereCoords.y * cos_a;
             const rotated_sz = sphereCoords.z;
@@ -301,10 +362,9 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
     const MAX_SNOW_LINE = 1.5;
     const SNOW_LINE = MIN_SNOW_LINE * (1 - warmth_factor) + MAX_SNOW_LINE * warmth_factor;
     
-    const ICE_SHARPNESS = 5.0; 
-    // +++ NEW: Parameters for latitude-based ice edge noise +++
-    const LATITUDE_NOISE_SCALE = 5.0; // Controls the "wavelength" of the wiggles
-    const LATITUDE_NOISE_STRENGTH = 0.05; // Controls how far the wiggles extend (as a fraction of map height)
+    const ICE_SHARPNESS = 5.0;
+    const LATITUDE_NOISE_SCALE = 5.0;
+    const LATITUDE_NOISE_STRENGTH = 0.05;
 
     const tex_width = textures.sand.width;
     const tex_height = textures.sand.height;
@@ -339,28 +399,22 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
             let final_color;
 
             if (h < params.SEA_LEVEL) {
-                // --- OCEAN LOGIC ---
+                // Ocean
                 const depth_factor = params.SEA_LEVEL > 0 ? h / params.SEA_LEVEL : 0;
                 base_color = blend(COLOR_DEEP_WATER, COLOR_SHALLOW_WATER, depth_factor);
                 
                 let ice_factor = 0.0;
                 if (temp < 0.15) {
-                    // +++ MODIFIED: Apply latitude-based noise to the raw ice factor +++
-                    const lon_norm = x / width; // Normalized longitude (0 to 1)
-                    // Generate noise that varies with longitude, subtly shifting the "effective" temperature threshold
+                    const lon_norm = x / width;
                     const ice_edge_noise = simplex.noise2D(lon_norm * LATITUDE_NOISE_SCALE + params.SEED, params.SEED + 3000) * LATITUDE_NOISE_STRENGTH;
-                    
-                    // Adjust the temperature slightly based on noise
-                    let effective_temp = temp + ice_edge_noise * 0.15; // Noise influences how "cold" a spot feels
+                    let effective_temp = temp + ice_edge_noise * 0.15;
                     let raw_ice_factor = 1.0 - (effective_temp / 0.15);
-                    
-                    // Sharpen the final transition curve
                     ice_factor = Math.pow(Math.max(0, raw_ice_factor), ICE_SHARPNESS);
                 }
                 final_color = blend(base_color, sample('ice', tx, ty), ice_factor);
 
             } else {
-                // --- LAND LOGIC ---
+                // Land
                 let base_color;
                 if (params.SEA_LEVEL === 0) {
                     base_color = sample('sand', tx, ty);
@@ -378,7 +432,7 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
                 }
 
                 let sand_factor = 0.0;
-                if (params.SEA_LEVEL > 0) { 
+                if (params.SEA_LEVEL > 0) {
                     sand_factor = 1.0 - Math.min(1.0, (h - params.SEA_LEVEL) / 0.03);
                 }
                 if (sand_factor > 0) {
@@ -399,14 +453,12 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
                 }
                 final_color = base_color;
 
-                // Land snow/ice logic
                 const snow_line_dynamic = SNOW_LINE + (1 - temp) * 0.2;
                 let snow_factor = 0.0;
-                if (h > snow_line_dynamic) { 
-                    snow_factor = 1.0; 
+                if (h > snow_line_dynamic) {
+                    snow_factor = 1.0;
                 }
-                if (temp < 0.15) { 
-                    // Apply latitude noise here as well for consistency on land borders
+                if (temp < 0.15) {
                     const lon_norm = x / width;
                     const ice_edge_noise = simplex.noise2D(lon_norm * LATITUDE_NOISE_SCALE + params.SEED, params.SEED + 3000) * LATITUDE_NOISE_STRENGTH;
                     let effective_temp = temp + ice_edge_noise * 0.15;
@@ -416,24 +468,6 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
                 
                 if (snow_factor > 0) {
                     final_color = blend(final_color, sample('ice', tx, ty), snow_factor);
-                }
-            }
-
-            // Center noise (applied only to land after all color calculations)
-            if (h >= params.SEA_LEVEL && params.CENTER_NOISE_STRENGTH > 0) {
-                const center_x = width / 2;
-                const distance_from_center = Math.abs(x - center_x);
-                let center_blend_factor = 0.0;
-                if (distance_from_center < params.CENTER_NOISE_WIDTH) {
-                    center_blend_factor = 1.0 - (distance_from_center / params.CENTER_NOISE_WIDTH);
-                }
-                if (center_blend_factor > 0) {
-                    const sphereCoords = mapToSphere(x, y, width, height);
-                    let noise_val=0,freq=1,amp=1,maxAmp=0;
-                    for(let i=0;i<4;i++){noise_val+=simplex.noise3D(sphereCoords.x*freq*params.CENTER_NOISE_SCALE,sphereCoords.y*freq*params.CENTER_NOISE_SCALE,sphereCoords.z*freq*params.CENTER_NOISE_SCALE+params.SEED+1e3)*amp;maxAmp+=amp;freq*=2;amp*=.5}
-                    noise_val=(noise_val/maxAmp+1)/2;
-                    const noise_offset=(noise_val-.5)*2*params.CENTER_NOISE_STRENGTH*255;
-                    for(let i=0;i<3;i++)final_color[i]+=noise_offset*center_blend_factor;
                 }
             }
             
@@ -447,6 +481,140 @@ const generateTexturedMap = (width, height, params, terrainMaps, textures) => {
     return imageData;
 };
 
+// --- Three.js Setup ---
+function init3D() {
+    const container = document.getElementById('threeContainer');
+    
+    // Scene setup
+    scene = new THREE.Scene();
+    
+    // Camera
+    camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+    camera.position.z = 2.5;
+
+    // Renderer
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
+
+    // Controls
+    controls3D = new THREE.OrbitControls(camera, renderer.domElement);
+    controls3D.enableDamping = true;
+    controls3D.dampingFactor = 0.05;
+    controls3D.enableZoom = true;
+    
+    // 1. Planet Sphere
+    const geometry = new THREE.SphereGeometry(1, 64, 64);
+    const material = new THREE.MeshPhongMaterial({
+        map: null, // Will be set later
+        bumpMap: null,
+        bumpScale: 0.02,
+        specular: new THREE.Color(0x333333),
+        shininess: 5
+    });
+    planetMesh = new THREE.Mesh(geometry, material);
+    scene.add(planetMesh);
+
+    // 2. Atmosphere Sphere (Shader Material for Rayleigh Scattering / Glow)
+    const atmosphereGeometry = new THREE.SphereGeometry(1.025, 64, 64);
+    
+    // Vertex Shader: Calculates normal intensity based on view angle
+    const vertexShader = `
+        varying vec3 vNormal;
+        void main() {
+            vNormal = normalize(normalMatrix * normal);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `;
+
+    // Fragment Shader: Creates a glow on the edges (fresnel-like)
+    const fragmentShader = `
+        uniform vec3 glowColor;
+        uniform float coef;
+        uniform float power;
+        varying vec3 vNormal;
+        void main() {
+            float intensity = pow(coef - dot(vNormal, vec3(0, 0, 1.0)), power);
+            gl_FragColor = vec4(glowColor, 1.0) * intensity;
+        }
+    `;
+
+    const atmosphereMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+            coef: { value: 0.6 },
+            power: { value: 4.0 },
+            glowColor: { value: new THREE.Color(0x3a9bdc) }
+        },
+        vertexShader: vertexShader,
+        fragmentShader: fragmentShader,
+        side: THREE.FrontSide,
+        blending: THREE.AdditiveBlending,
+        transparent: true,
+        depthWrite: false
+    });
+
+    atmosphereMesh = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+    scene.add(atmosphereMesh);
+
+    // Lighting
+    const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    sunLight.position.set(5, 3, 5);
+    scene.add(sunLight);
+    
+    const ambientLight = new THREE.AmbientLight(0x404040); // Soft white light
+    scene.add(ambientLight);
+
+    // Starfield Background (Simple points)
+    const starGeometry = new THREE.BufferGeometry();
+    const starCount = 1000;
+    const starPositions = new Float32Array(starCount * 3);
+    for(let i=0; i<starCount*3; i++) {
+        starPositions[i] = (Math.random() - 0.5) * 100;
+    }
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+    const starMaterial = new THREE.PointsMaterial({color: 0xffffff, size: 0.1});
+    const stars = new THREE.Points(starGeometry, starMaterial);
+    scene.add(stars);
+
+    // Animation Loop
+    function animate() {
+        requestAnimationFrame(animate);
+        controls3D.update();
+        
+        // Slow rotation
+        planetMesh.rotation.y += 0.001;
+        atmosphereMesh.rotation.y += 0.001;
+        stars.rotation.y -= 0.0002;
+
+        renderer.render(scene, camera);
+    }
+    animate();
+}
+
+function update3DTexture() {
+    if (!planetMesh) return;
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.encoding = THREE.sRGBEncoding;
+    
+    planetMesh.material.map = texture;
+    planetMesh.material.needsUpdate = true;
+
+    // Update Atmosphere settings
+    const colorHex = controls.atmosphereColor.value;
+    const opacity = parseFloat(controls.atmosphereOpacity.value);
+    
+    if (atmosphereMesh) {
+        atmosphereMesh.material.uniforms.glowColor.value = new THREE.Color(colorHex);
+        // We use coefficient to control the "thickness" or spread of the atmosphere
+        // Higher opacity slider -> lower coefficient -> broader glow (logic inverted for visual feel)
+        // Adjusting power can also change sharpness.
+        atmosphereMesh.material.uniforms.coef.value = 0.5 + (1.0 - opacity) * 0.5;
+        atmosphereMesh.visible = opacity > 0.1;
+    }
+}
+
 // --- UI and Event Handling ---
 function updateSliderValue(slider, display) {
     display.textContent = parseFloat(slider.value).toFixed(2);
@@ -456,6 +624,10 @@ function attachSliderEvents() {
     controls.seaLevel.addEventListener('input', () => updateSliderValue(controls.seaLevel, displays.seaLevelValue));
     controls.desertification.addEventListener('input', () => updateSliderValue(controls.desertification, displays.desertificationValue));
     controls.iceCapLatitude.addEventListener('input', () => updateSliderValue(controls.iceCapLatitude, displays.iceCapLatitudeValue));
+    
+    // Live Atmosphere Updates
+    controls.atmosphereColor.addEventListener('input', update3DTexture);
+    controls.atmosphereOpacity.addEventListener('input', update3DTexture);
 }
 
 function downloadCanvas(filename, canvasToDownload) {
@@ -500,9 +672,6 @@ function main() {
         DESERTIFICATION: parseFloat(controls.desertification.value),
         ICE_CAP_LATITUDE: parseFloat(controls.iceCapLatitude.value),
         LIFELESS: controls.lifeless.checked,
-        CENTER_NOISE_WIDTH: parseFloat(document.querySelector('input[name=size]:checked').dataset.centerWidth),
-        CENTER_NOISE_STRENGTH: 0.0, // Disabled this feature as it's not needed with texture loading
-        CENTER_NOISE_SCALE: 0.0
     };
 
     setTimeout(() => {
@@ -512,10 +681,11 @@ function main() {
         if (texturesLoaded) {
             const texturedMapImageData = generateTexturedMap(width, height, params, terrainMaps, textures);
             ctx.putImageData(texturedMapImageData, 0, 0);
+            
+            // Sync 3D
+            update3DTexture();
         } else {
-            // Fallback for local testing without a server
             displays.status.textContent = `Error: Textures not loaded. Displaying solid colors.`;
-            // You would need a generateColorMap function here for a true fallback.
         }
 
         displays.status.textContent = `Done! (Seed: ${params.SEED})`;
@@ -528,8 +698,9 @@ function main() {
 // --- Initial Setup ---
 document.addEventListener('DOMContentLoaded', () => {
     attachSliderEvents();
-    document.getElementById('size1k').dataset.centerWidth = "20";
-    document.getElementById('size2k').dataset.centerWidth = "40";
+    
+    // Initialize 3D Scene
+    init3D();
 
     controls.randomSeedBtn.addEventListener('click', () => {
         controls.seed.value = Math.floor(Math.random() * 99999);
@@ -560,11 +731,10 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(error => {
             console.error(error);
             displays.status.textContent = `Error: ${error}. Check textures folder.`;
-            alert(`Texture loading failed: ${error}\n\nPlease ensure a 'textures' folder with the required .png files exists in the same directory as this HTML file.`);
+            // Fallback: still init 3D if textures fail, just won't look right
         });
 });
 
 </script>
 </body>
 </html>
-
