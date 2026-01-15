@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <title>MeowFin - 前瞻估值计算器</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <title>MeowFin - Forward Valuation</title>
     <style>
         :root {
             --bg-color: #0a0b10;
@@ -15,11 +14,9 @@
             --text-primary: #ffffff;
             --text-secondary: #a0a5b0;
             --border-color: rgba(255, 255, 255, 0.1);
-            --success-color: #00ff9d;
             --input-bg: rgba(0, 0, 0, 0.3);
         }
 
-        /* --- 全局样式 --- */
         body {
             margin: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -31,14 +28,12 @@
             background-image: radial-gradient(circle at 50% 0%, #1a1f2e 0%, #0a0b10 60%);
         }
 
-        /* --- 主容器 --- */
         .container {
             width: 100%;
             max-width: 1200px;
             margin: 0 auto;
         }
 
-        /* --- 头部 --- */
         header {
             text-align: center;
             margin-bottom: 50px;
@@ -58,7 +53,6 @@
             font-size: 1.1em;
         }
 
-        /* --- 布局网格 --- */
         .calculator-layout {
             display: grid;
             grid-template-columns: 1.5fr 1fr;
@@ -66,7 +60,6 @@
             align-items: start;
         }
 
-        /* --- 卡片通用样式 --- */
         .card {
             background: var(--card-bg);
             backdrop-filter: blur(10px);
@@ -88,7 +81,6 @@
             padding-bottom: 15px;
         }
 
-        /* --- 表单元素 --- */
         .input-grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -97,7 +89,7 @@
 
         .input-grid-4 {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
+            grid-template-columns: repeat(4, 1fr);
             gap: 10px;
         }
 
@@ -130,9 +122,8 @@
             box-shadow: 0 0 10px rgba(0, 242, 255, 0.2);
         }
 
-        /* 隐藏/显示手动输入区 */
         #manualInputSection {
-            display: none; /* 默认隐藏 */
+            display: none;
             margin-top: 20px;
             padding-top: 20px;
             border-top: 1px dashed var(--border-color);
@@ -144,7 +135,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* --- 按钮 --- */
         .calc-button {
             width: 100%;
             padding: 16px;
@@ -157,6 +147,10 @@
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
         }
 
         .calc-button:hover {
@@ -164,7 +158,6 @@
             transform: translateY(-2px);
         }
 
-        /* --- 结果展示 --- */
         .results-card {
             position: sticky;
             top: 20px;
@@ -205,13 +198,12 @@
             font-weight: normal !important;
         }
 
-        /* --- 响应式 --- */
         @media (max-width: 900px) {
             .calculator-layout {
                 grid-template-columns: 1fr;
             }
             .input-grid-4 {
-                grid-template-columns: 1fr 1fr; /* 手机上4列变2列 */
+                grid-template-columns: 1fr 1fr;
             }
         }
     </style>
@@ -220,69 +212,69 @@
 
     <div class="container">
         <header>
-            <h1>前瞻估值计算器</h1>
-            <div class="subtitle">基于趋势回归或自定义预测，测算 Forward PE / PS</div>
+            <h1 class="i18n" data-key="fv_title">前瞻估值计算器</h1>
+            <div class="subtitle i18n" data-key="fv_subtitle">基于趋势回归或自定义预测，测算 Forward PE / PS</div>
         </header>
 
         <div class="calculator-layout">
             <div class="input-section">
                 
                 <div class="card">
-                    <h3><i class="fa-solid fa-clock-rotate-left"></i> 历史季度数据 (亿)</h3>
+                    <h3 class="i18n" data-key="fv_card_history"><i class="fa-solid fa-clock-rotate-left"></i> 历史季度数据 (亿)</h3>
                     <div class="input-grid-2">
                         <div class="form-group">
-                            <label>Q1 (历史) 营收 / 净利</label>
+                            <label class="i18n" data-key="fv_label_q1">Q1 (历史) 营收 / 净利</label>
                             <div class="input-grid-2" style="gap:5px">
-                                <input type="number" id="revQ1" placeholder="营收">
-                                <input type="number" id="niQ1" placeholder="净利">
+                                <input type="number" id="revQ1" data-key-ph="ph_rev" placeholder="营收">
+                                <input type="number" id="niQ1" data-key-ph="ph_ni" placeholder="净利">
                             </div>
                         </div>
                         <div class="form-group">
-                            <label>Q2 (历史) 营收 / 净利</label>
+                            <label class="i18n" data-key="fv_label_q2">Q2 (历史) 营收 / 净利</label>
                             <div class="input-grid-2" style="gap:5px">
-                                <input type="number" id="revQ2" placeholder="营收">
-                                <input type="number" id="niQ2" placeholder="净利">
+                                <input type="number" id="revQ2" data-key-ph="ph_rev" placeholder="营收">
+                                <input type="number" id="niQ2" data-key-ph="ph_ni" placeholder="净利">
                             </div>
                         </div>
                         <div class="form-group">
-                            <label>Q3 (历史) 营收 / 净利</label>
+                            <label class="i18n" data-key="fv_label_q3">Q3 (历史) 营收 / 净利</label>
                             <div class="input-grid-2" style="gap:5px">
-                                <input type="number" id="revQ3" placeholder="营收">
-                                <input type="number" id="niQ3" placeholder="净利">
+                                <input type="number" id="revQ3" data-key-ph="ph_rev" placeholder="营收">
+                                <input type="number" id="niQ3" data-key-ph="ph_ni" placeholder="净利">
                             </div>
                         </div>
                         <div class="form-group">
-                            <label>Q4 (最新) 营收 / 净利</label>
+                            <label class="i18n" data-key="fv_label_q4">Q4 (最新) 营收 / 净利</label>
                             <div class="input-grid-2" style="gap:5px">
-                                <input type="number" id="revQ4" placeholder="营收">
-                                <input type="number" id="niQ4" placeholder="净利">
+                                <input type="number" id="revQ4" data-key-ph="ph_rev" placeholder="营收">
+                                <input type="number" id="niQ4" data-key-ph="ph_ni" placeholder="净利">
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div class="card">
-                    <h3><i class="fa-solid fa-sliders"></i> 核心参数设置</h3>
+                    <h3 class="i18n" data-key="fv_card_params"><i class="fa-solid fa-sliders"></i> 核心参数设置</h3>
                     
                     <div class="form-group">
-                        <label>当前总市值 (亿)</label>
-                        <input type="number" id="marketCap" placeholder="例如: 5000">
+                        <label class="i18n" data-key="fv_label_mktcap">当前总市值 (亿)</label>
+                        <input type="number" id="marketCap" data-key-ph="ph_example_cap" placeholder="例如: 5000">
                     </div>
 
                     <div class="form-group">
-                        <label>推演模式</label>
+                        <label class="i18n" data-key="fv_label_mode">推演模式</label>
                         <select id="mode">
-                            <option value="linear">线性回归 (智能预测趋势)</option>
-                            <option value="fixed">年化最新季度 (Q4 * 4)</option>
-                            <option value="manual">手动输入未来预期 (自定义)</option>
+                            <option value="linear" class="i18n" data-key="opt_linear">线性回归 (智能预测趋势)</option>
+                            <option value="fixed" class="i18n" data-key="opt_fixed">年化最新季度 (Q4 * 4)</option>
+                            <option value="manual" class="i18n" data-key="opt_manual">手动输入未来预期 (自定义)</option>
                         </select>
                     </div>
 
                     <div id="manualInputSection">
-                        <h4 style="margin: 0 0 15px 0; color: #fff; font-size: 0.95em;">手动输入未来4个季度的预测值：</h4>
+                        <h4 class="i18n" data-key="manual_intro" style="margin: 0 0 15px 0; color: #fff; font-size: 0.95em;">手动输入未来4个季度的预测值：</h4>
                         
                         <div style="margin-bottom: 15px;">
-                            <label>未来营收预测 (Future Revenue)</label>
+                            <label class="i18n" data-key="manual_future_rev">未来营收预测 (Future Revenue)</label>
                             <div class="input-grid-4">
                                 <input type="number" id="man_rev_1" placeholder="Q1">
                                 <input type="number" id="man_rev_2" placeholder="Q2">
@@ -292,7 +284,7 @@
                         </div>
 
                         <div>
-                            <label>未来净利润预测 (Future Net Profit)</label>
+                            <label class="i18n" data-key="manual_future_ni">未来净利润预测 (Future Net Profit)</label>
                             <div class="input-grid-4">
                                 <input type="number" id="man_ni_1" placeholder="Q1">
                                 <input type="number" id="man_ni_2" placeholder="Q2">
@@ -304,54 +296,56 @@
                 </div>
 
                 <div class="card">
-                    <h3><i class="fa-solid fa-crosshairs"></i> 目标估值 (可选)</h3>
+                    <h3 class="i18n" data-key="fv_card_target"><i class="fa-solid fa-crosshairs"></i> 目标估值 (可选)</h3>
                     <div class="input-grid-2">
                         <div>
-                            <label>合理市盈率 (Target PE)</label>
-                            <input type="number" id="targetPe" placeholder="例如: 25">
+                            <label class="i18n" data-key="fv_label_target_pe">合理市盈率 (Target PE)</label>
+                            <input type="number" id="targetPe" data-key-ph="ph_example_pe" placeholder="例如: 25">
                         </div>
                         <div>
-                            <label>合理市销率 (Target PS)</label>
-                            <input type="number" id="targetPs" placeholder="例如: 5">
+                            <label class="i18n" data-key="fv_label_target_ps">合理市销率 (Target PS)</label>
+                            <input type="number" id="targetPs" data-key-ph="ph_example_ps" placeholder="例如: 5">
                         </div>
                     </div>
                 </div>
 
-                <button id="calculateBtn" class="calc-button">开始计算 <i class="fa-solid fa-arrow-right"></i></button>
+                <button id="calculateBtn" class="calc-button">
+                    <span class="i18n" data-key="btn_calc">开始计算</span> <i class="fa-solid fa-arrow-right"></i>
+                </button>
             </div>
 
             <div class="output-section">
                 <div class="card results-card">
-                    <h3><i class="fa-solid fa-clipboard-check"></i> 计算结果</h3>
+                    <h3 class="i18n" data-key="fv_card_result"><i class="fa-solid fa-clipboard-check"></i> 计算结果</h3>
                     
                     <div class="result-item">
-                        <span class="label">Forward P/S (前瞻市销率)</span>
+                        <span class="label i18n" data-key="res_ps">Forward P/S (前瞻市销率)</span>
                         <span class="value highlight-value" id="forwardPsResult">-</span>
                     </div>
                     <div class="result-item">
-                        <span class="label">Forward P/E (前瞻市盈率)</span>
+                        <span class="label i18n" data-key="res_pe">Forward P/E (前瞻市盈率)</span>
                         <span class="value highlight-value" id="forwardPeResult">-</span>
                     </div>
                     
                     <div style="margin: 20px 0; border-top: 1px dashed var(--border-color);"></div>
 
                     <div class="result-item">
-                        <span class="label">未来12个月预测营收</span>
-                        <span class="value sub-value" id="forwardRevenueResult">待计算</span>
+                        <span class="label i18n" data-key="res_fut_rev">未来12个月预测营收</span>
+                        <span class="value sub-value" id="forwardRevenueResult">---</span>
                     </div>
                     <div class="result-item">
-                        <span class="label">未来12个月预测净利</span>
-                        <span class="value sub-value" id="forwardNetProfitResult">待计算</span>
+                        <span class="label i18n" data-key="res_fut_ni">未来12个月预测净利</span>
+                        <span class="value sub-value" id="forwardNetProfitResult">---</span>
                     </div>
 
                     <div style="margin: 20px 0; border-top: 1px dashed var(--border-color);"></div>
 
                     <div class="result-item">
-                        <span class="label">目标市值 (基于 P/S)</span>
+                        <span class="label i18n" data-key="res_target_cap_ps">目标市值 (基于 P/S)</span>
                         <span class="value" id="targetMarketCapPsResult">-</span>
                     </div>
                     <div class="result-item">
-                        <span class="label">目标市值 (基于 P/E)</span>
+                        <span class="label i18n" data-key="res_target_cap_pe">目标市值 (基于 P/E)</span>
                         <span class="value" id="targetMarketCapPeResult">-</span>
                     </div>
                 </div>
@@ -360,10 +354,144 @@
     </div>
 
 <script>
-    // 1. 监听下拉菜单变化，切换手动输入框的显示状态
+    /* =========================================
+       1. 国际化 (I18N) 逻辑
+       ========================================= */
+    const fvTranslations = {
+        'zh-CN': {
+            fv_title: '前瞻估值计算器',
+            fv_subtitle: '基于趋势回归或自定义预测，测算 Forward PE / PS',
+            fv_card_history: '<i class="fa-solid fa-clock-rotate-left"></i> 历史季度数据 (亿)',
+            fv_label_q1: 'Q1 (历史) 营收 / 净利',
+            fv_label_q2: 'Q2 (历史) 营收 / 净利',
+            fv_label_q3: 'Q3 (历史) 营收 / 净利',
+            fv_label_q4: 'Q4 (最新) 营收 / 净利',
+            ph_rev: '营收',
+            ph_ni: '净利',
+            fv_card_params: '<i class="fa-solid fa-sliders"></i> 核心参数设置',
+            fv_label_mktcap: '当前总市值 (亿)',
+            ph_example_cap: '例如: 5000',
+            fv_label_mode: '推演模式',
+            opt_linear: '线性回归 (智能预测趋势)',
+            opt_fixed: '年化最新季度 (Q4 * 4)',
+            opt_manual: '手动输入未来预期 (自定义)',
+            manual_intro: '手动输入未来4个季度的预测值：',
+            manual_future_rev: '未来营收预测 (Future Revenue)',
+            manual_future_ni: '未来净利润预测 (Future Net Profit)',
+            fv_card_target: '<i class="fa-solid fa-crosshairs"></i> 目标估值 (可选)',
+            fv_label_target_pe: '合理市盈率 (Target PE)',
+            fv_label_target_ps: '合理市销率 (Target PS)',
+            ph_example_pe: '例如: 25',
+            ph_example_ps: '例如: 5',
+            btn_calc: '开始计算',
+            fv_card_result: '<i class="fa-solid fa-clipboard-check"></i> 计算结果',
+            res_ps: 'Forward P/S (前瞻市销率)',
+            res_pe: 'Forward P/E (前瞻市盈率)',
+            res_fut_rev: '未来12个月预测营收',
+            res_fut_ni: '未来12个月预测净利',
+            res_target_cap_ps: '目标市值 (基于 P/S)',
+            res_target_cap_pe: '目标市值 (基于 P/E)'
+        },
+        'zh-TW': {
+            fv_title: '前瞻估值計算器',
+            fv_subtitle: '基於趨勢回歸或自定義預測，測算 Forward PE / PS',
+            fv_card_history: '<i class="fa-solid fa-clock-rotate-left"></i> 歷史季度數據 (億)',
+            fv_label_q1: 'Q1 (歷史) 營收 / 淨利',
+            fv_label_q2: 'Q2 (歷史) 營收 / 淨利',
+            fv_label_q3: 'Q3 (歷史) 營收 / 淨利',
+            fv_label_q4: 'Q4 (最新) 營收 / 淨利',
+            ph_rev: '營收',
+            ph_ni: '淨利',
+            fv_card_params: '<i class="fa-solid fa-sliders"></i> 核心參數設置',
+            fv_label_mktcap: '當前總市值 (億)',
+            ph_example_cap: '例如: 5000',
+            fv_label_mode: '推演模式',
+            opt_linear: '線性回歸 (智能預測趨勢)',
+            opt_fixed: '年化最新季度 (Q4 * 4)',
+            opt_manual: '手動輸入未來預期 (自定義)',
+            manual_intro: '手動輸入未來4個季度的預測值：',
+            manual_future_rev: '未來營收預測 (Future Revenue)',
+            manual_future_ni: '未來淨利潤預測 (Future Net Profit)',
+            fv_card_target: '<i class="fa-solid fa-crosshairs"></i> 目標估值 (可選)',
+            fv_label_target_pe: '合理市盈率 (Target PE)',
+            fv_label_target_ps: '合理市銷率 (Target PS)',
+            ph_example_pe: '例如: 25',
+            ph_example_ps: '例如: 5',
+            btn_calc: '開始計算',
+            fv_card_result: '<i class="fa-solid fa-clipboard-check"></i> 計算結果',
+            res_ps: 'Forward P/S (前瞻市銷率)',
+            res_pe: 'Forward P/E (前瞻市盈率)',
+            res_fut_rev: '未來12個月預測營收',
+            res_fut_ni: '未來12個月預測淨利',
+            res_target_cap_ps: '目標市值 (基於 P/S)',
+            res_target_cap_pe: '目標市值 (基於 P/E)'
+        },
+        'en': {
+            fv_title: 'Forward Valuation Calc',
+            fv_subtitle: 'Calculate Forward PE/PS based on regression or custom forecasts',
+            fv_card_history: '<i class="fa-solid fa-clock-rotate-left"></i> Historical Quarterly Data (100M)',
+            fv_label_q1: 'Q1 (Hist) Rev / Net Inc',
+            fv_label_q2: 'Q2 (Hist) Rev / Net Inc',
+            fv_label_q3: 'Q3 (Hist) Rev / Net Inc',
+            fv_label_q4: 'Q4 (Latest) Rev / Net Inc',
+            ph_rev: 'Rev',
+            ph_ni: 'Net Inc',
+            fv_card_params: '<i class="fa-solid fa-sliders"></i> Key Parameters',
+            fv_label_mktcap: 'Current Market Cap (100M)',
+            ph_example_cap: 'e.g. 5000',
+            fv_label_mode: 'Projection Mode',
+            opt_linear: 'Linear Regression (Trend)',
+            opt_fixed: 'Annualize Latest (Q4 * 4)',
+            opt_manual: 'Manual Forecast (Custom)',
+            manual_intro: 'Enter forecasts for the next 4 quarters:',
+            manual_future_rev: 'Future Revenue Forecast',
+            manual_future_ni: 'Future Net Profit Forecast',
+            fv_card_target: '<i class="fa-solid fa-crosshairs"></i> Target Valuation (Optional)',
+            fv_label_target_pe: 'Target PE',
+            fv_label_target_ps: 'Target PS',
+            ph_example_pe: 'e.g. 25',
+            ph_example_ps: 'e.g. 5',
+            btn_calc: 'Calculate',
+            fv_card_result: '<i class="fa-solid fa-clipboard-check"></i> Results',
+            res_ps: 'Forward P/S',
+            res_pe: 'Forward P/E',
+            res_fut_rev: 'Next 12M Forecast Rev',
+            res_fut_ni: 'Next 12M Forecast NI',
+            res_target_cap_ps: 'Target Cap (via P/S)',
+            res_target_cap_pe: 'Target Cap (via P/E)'
+        }
+    };
+
+    function initPageLanguage() {
+        const savedLang = localStorage.getItem('userLanguage') || 'zh-CN';
+        const langData = fvTranslations[savedLang];
+        
+        if (!langData) return;
+
+        // 1. 替换普通文本
+        document.querySelectorAll('.i18n').forEach(el => {
+            const key = el.getAttribute('data-key');
+            if (langData[key]) {
+                el.innerHTML = langData[key];
+            }
+        });
+
+        // 2. 替换 Input 的 Placeholder
+        document.querySelectorAll('[data-key-ph]').forEach(el => {
+            const key = el.getAttribute('data-key-ph');
+            if (langData[key]) {
+                el.placeholder = langData[key];
+            }
+        });
+    }
+
+    /* =========================================
+       2. 计算器逻辑
+       ========================================= */
     const modeSelect = document.getElementById('mode');
     const manualSection = document.getElementById('manualInputSection');
 
+    // 切换模式显示
     modeSelect.addEventListener('change', function() {
         if (this.value === 'manual') {
             manualSection.style.display = 'block';
@@ -372,9 +500,7 @@
         }
     });
 
-    // 2. 计算逻辑
     document.getElementById('calculateBtn').addEventListener('click', function() {
-        // 获取基础输入
         const marketCap = parseFloat(document.getElementById('marketCap').value) || 0;
         const mode = document.getElementById('mode').value;
         const targetPe = parseFloat(document.getElementById('targetPe').value) || 0;
@@ -383,10 +509,8 @@
         let forwardRevenue = 0;
         let forwardNetProfit = 0;
 
-        // 根据模式计算
         if (mode === 'manual') {
-            // --- 手动模式 ---
-            // 获取手动输入的8个值
+            // 手动模式
             const fRev = [
                 parseFloat(document.getElementById('man_rev_1').value) || 0,
                 parseFloat(document.getElementById('man_rev_2').value) || 0,
@@ -400,12 +524,11 @@
                 parseFloat(document.getElementById('man_ni_4').value) || 0
             ];
 
-            // 汇总
             forwardRevenue = fRev.reduce((a, b) => a + b, 0);
             forwardNetProfit = fNi.reduce((a, b) => a + b, 0);
 
         } else {
-            // --- 历史数据模式 (线性 or 固定) ---
+            // 自动模式 (历史数据)
             const revs = [
                 parseFloat(document.getElementById('revQ1').value) || 0,
                 parseFloat(document.getElementById('revQ2').value) || 0,
@@ -420,11 +543,8 @@
             ];
 
             if (mode === 'linear') {
-                // 线性回归函数
                 const linearRegression = (y) => {
-                    // 如果数据不全（例如全为0），直接返回0
                     if(y.every(val => val === 0)) return 0;
-
                     const x = [1, 2, 3, 4];
                     const n = x.length;
                     const sum_x = x.reduce((a, b) => a + b, 0);
@@ -435,11 +555,9 @@
                     const slope = (n * sum_xy - sum_x * sum_y) / (n * sum_xx - sum_x * sum_x);
                     const intercept = (sum_y - slope * sum_x) / n;
                     
-                    // 预测未来四个季度 (Q5, Q6, Q7, Q8) 并求和
                     const next_quarters_x = [5, 6, 7, 8];
                     const predicted_sum = next_quarters_x.reduce((acc, val) => acc + (slope * val + intercept), 0);
-                    
-                    return predicted_sum > 0 ? predicted_sum : 0; // 避免负数
+                    return predicted_sum > 0 ? predicted_sum : 0;
                 };
                 forwardRevenue = linearRegression(revs);
                 forwardNetProfit = linearRegression(nis);
@@ -450,17 +568,14 @@
             }
         }
         
-        // --- 计算指标 ---
-        // 前瞻市销率
+        // 计算指标
         const forwardPs = (forwardRevenue > 0) ? (marketCap / forwardRevenue) : 0;
-        // 前瞻市盈率
         const forwardPe = (forwardNetProfit > 0) ? (marketCap / forwardNetProfit) : 0;
         
-        // 期望市值
         const targetMarketCapPs = (targetPs > 0 && forwardRevenue > 0) ? (forwardRevenue * targetPs) : 0;
         const targetMarketCapPe = (targetPe > 0 && forwardNetProfit > 0) ? (forwardNetProfit * targetPe) : 0;
 
-        // --- 更新 UI ---
+        // 格式化输出
         const formatNum = (num) => num.toLocaleString('en-US', { maximumFractionDigits: 2 });
 
         document.getElementById('forwardPsResult').textContent = forwardPs > 0 ? forwardPs.toFixed(2) + 'x' : 'N/A';
@@ -472,7 +587,12 @@
         document.getElementById('forwardRevenueResult').textContent = `${formatNum(forwardRevenue)} 亿`;
         document.getElementById('forwardNetProfitResult').textContent = `${formatNum(forwardNetProfit)} 亿`;
     });
+
+    // 初始化：页面加载即翻译
+    document.addEventListener('DOMContentLoaded', initPageLanguage);
 </script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6101670991692066"
+     crossorigin="anonymous"></script>
 <script src="nav.js" defer></script>
 </body>
 </html>

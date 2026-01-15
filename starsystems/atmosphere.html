@@ -3,453 +3,799 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Celestia 综合大气预览器</title>
+    <title>物理大气渲染器 (带光照阴影版)</title>
     <style>
         :root {
             --bg-color: #1a1e23;
             --panel-bg: #2a2f36;
             --text-color: #e0e6ec;
-            --header-color: #ffffff;
             --border-color: #404853;
             --accent-color: #00aaff;
             --accent-hover: #0088cc;
-            --secondary-accent-color: #3d4a5b;
-            --secondary-accent-hover: #505d70;
         }
         body {
+            margin: 0;
+            overflow: hidden;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
-            margin: 0;
-            padding: 24px;
             display: flex;
-            justify-content: center;
-            min-height: 100vh;
-            box-sizing: border-box;
+            height: 100vh;
         }
-        .container {
-            display: flex;
-            gap: 24px;
-            width: 100%;
-            max-width: 1400px;
-            flex-wrap: wrap;
-        }
-        .controls {
+        
+        /* 左侧控制面板 */
+        .sidebar {
+            width: 350px;
             background-color: var(--panel-bg);
-            padding: 25px;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            flex: 1;
-            min-width: 400px;
-            max-width: 500px;
-            align-self: flex-start;
-        }
-        .previews {
-            flex: 2;
-            min-width: 600px;
+            border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 10;
+            overflow-y: auto;
+            flex-shrink: 0;
         }
-        .preview-panel {
-            background-color: var(--panel-bg);
-            padding: 25px;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-        }
-        h1, h2 {
-            color: var(--header-color);
+        
+        h1 {
+            font-size: 18px;
+            margin: 0 0 10px 0;
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 10px;
-            margin-top: 0;
+            color: #fff;
+        }
+        .desc {
+            font-size: 12px;
+            color: #9ca3af;
             margin-bottom: 20px;
-            font-weight: 600;
-        }
-        #atmosphere-code {
-            width: 100%;
-            height: 320px;
-            background-color: #111315;
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-            font-family: 'SF Mono', 'Courier New', Courier, monospace;
-            font-size: 14px;
-            box-sizing: border-box;
-            resize: vertical;
-        }
-        .mode-toggle {
-            display: flex;
-            align-items: center;
-            margin-top: 20px;
-            padding: 10px;
-            background-color: var(--bg-color);
-            border-radius: 8px;
-        }
-        .mode-toggle label {
-            margin-left: 10px;
-            cursor: pointer;
-            font-weight: 500;
-        }
-        .button-group {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 12px;
-        }
-        button {
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            background-color: var(--accent-color);
-            color: white;
-        }
-        button:hover {
-            background-color: var(--accent-hover);
-        }
-        #random-btn {
-            background-color: var(--secondary-accent-color);
-        }
-        #random-btn:hover {
-            background-color: var(--secondary-accent-hover);
+            line-height: 1.5;
         }
 
-        .preview-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            align-items: center;
-        }
-        .preview-item {
+        .editor-container {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            text-align: center;
+            flex: 1;
+            min-height: 250px;
+            margin-bottom: 20px;
         }
-        .preview-item-label {
-            font-size: 14px;
+        label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-color);
             margin-bottom: 8px;
-            font-weight: 500;
+            display: block;
         }
-        .preview-box {
+        textarea {
             width: 100%;
-            height: 120px;
+            flex: 1;
+            background-color: #111315;
+            color: #a5b3ce;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'SF Mono', 'Courier New', Courier, monospace;
+            font-size: 12px;
+            resize: none;
+            outline: none;
+            box-sizing: border-box;
+            line-height: 1.5;
+        }
+        textarea:focus {
+            border-color: var(--accent-color);
+        }
+
+        .controls-area {
+            background-color: var(--bg-color);
+            padding: 15px;
             border-radius: 8px;
             border: 1px solid var(--border-color);
         }
-        #surface-sky-preview {
-             height: 250px;
+        
+        .control-group {
+            margin-bottom: 15px;
         }
-        #orbital-view-container {
-            width: 150px;
-            height: 150px;
-            position: relative;
+        
+        .slider-header {
             display: flex;
-            justify-content: center;
-            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 5px;
+            color: #ccc;
         }
-        #orbital-limb-preview {
+        
+        input[type="range"] {
             width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            position: absolute;
-            transition: box-shadow 0.3s ease;
+            cursor: pointer;
         }
-        #orbital-surface-preview {
+
+        input[type="file"] {
+            font-size: 11px;
+            color: #9ca3af;
             width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background-image: url('https://placehold.co/150x150/555/ccc?text=Surface');
-            background-size: cover;
+        }
+        input[type="file"]::file-selector-button {
+            background-color: #3d4a5b;
+            color: white;
+            border: 1px solid var(--border-color);
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: background 0.2s;
+        }
+        input[type="file"]::file-selector-button:hover {
+            background-color: #505d70;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 8px 0;
+            border: none;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            color: white;
+        }
+        .btn-random { background-color: #3d4a5b; }
+        .btn-random:hover { background-color: #505d70; }
+        .btn-reset { background-color: var(--accent-color); }
+        .btn-reset:hover { background-color: var(--accent-hover); }
+
+        #canvas-container {
+            flex: 1;
             position: relative;
+            background-color: #000;
             overflow: hidden;
         }
-        #orbital-surface-preview::after {
-            content: '';
+
+        .hud {
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(0,0,0,0.5);
-            transition: background-color 0.3s ease;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 5px;
+            pointer-events: none;
+            user-select: none;
         }
-        .swatch-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 15px;
+        .hud-item {
+            background-color: rgba(0,0,0,0.6);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #ddd;
+            border: 1px solid rgba(255,255,255,0.1);
         }
-        .swatch-box {
-            width: 100%;
-            height: 60px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            transition: opacity 0.3s ease;
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; height: 40%; }
+            #canvas-container { height: 60%; }
         }
     </style>
+    
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
 </head>
 <body>
 
-<div class="container">
-    <div class="controls">
-        <h1>大气参数输入</h1>
-        <textarea id="atmosphere-code">
+    <div class="sidebar">
+        <div>
+            <h1>物理大气渲染器</h1>
+            <div class="desc">
+                已启用物理光照。上传贴图后，请旋转太阳位置观察昼夜交替、晨昏线以及地表的大气散射效果。
+            </div>
+        </div>
+
+        <div class="editor-container">
+            <label>Atmosphere Configuration (.ssc)</label>
+            <textarea id="config-input" spellcheck="false">
 Atmosphere
 {
-    Height 107
-    Lower [ 0.347 0.237 1 ]
-    Upper [ 0.47 0.275 1 ]
-    Sky [ 0.372 0.229 0.959 ]
-    Sunset [ 0.235 0.64 0.979 ]
-    MieScaleHeight 13
-    Mie 0.0041
-    MieAsymmetry 0
+    Height 60
+    MieScaleHeight 12
+    Mie 0.002
+    MieAsymmetry -0.92
     Rayleigh [ 0.0026 0.0029 0.0077 ]
-}
-        </textarea>
-        <div class="mode-toggle">
-            <input type="checkbox" id="physics-mode-toggle" name="physics-mode">
-            <label for="physics-mode-toggle">启用物理计算模式 (忽略颜色参数)</label>
+}</textarea>
         </div>
-        <div class="button-group">
-            <button id="render-btn">渲染 / 更新预览</button>
-            <button id="random-btn">随机生成大气</button>
+
+        <div class="controls-area">
+            <div class="control-group">
+                <div class="slider-header">
+                    <span>行星表面贴图 (2:1 Rect)</span>
+                </div>
+                <input type="file" id="texture-input" accept="image/*">
+            </div>
+
+            <div class="control-group">
+                <div class="slider-header">
+                    <span>太阳位置 (时间)</span>
+                    <span id="time-display">12.0h</span>
+                </div>
+                <input type="range" id="sun-slider" min="0" max="3.14159" step="0.01" value="1.57">
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-random" id="btn-random">🎲 随机生成</button>
+                <button class="btn-reset" id="btn-reset">↺ 重置视角</button>
+            </div>
+        </div>
+        
+        <div style="margin-top:auto; font-size:11px; color:#666; padding-top:10px;">
+            提示: 右键平移，左键旋转，滚轮缩放。<br>
+            观察晨昏线（光影交界处）的大气发红效果。
         </div>
     </div>
 
-    <div class="previews">
-        <div class="preview-panel">
-            <h2>地面视角 (Surface View)</h2>
-            <div class="preview-grid">
-                <div class="preview-item">
-                    <span class="preview-item-label">天空（地平线到天顶）</span>
-                    <div id="surface-sky-preview" class="preview-box"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="preview-panel">
-            <h2>轨道视角 (Orbital View)</h2>
-            <div class="preview-grid">
-                <div class="preview-item">
-                    <span class="preview-item-label">大气辉光与地表滤镜</span>
-                    <div id="orbital-view-container">
-                        <div id="orbital-limb-preview"></div>
-                        <div id="orbital-surface-preview"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="preview-panel">
-            <h2>参数色板 (Parameter Swatches)</h2>
-            <div class="swatch-grid">
-                <div class="preview-item">
-                    <span class="preview-item-label">瑞利散射 (Rayleigh)</span>
-                    <div id="rayleigh-swatch" class="swatch-box"></div>
-                </div>
-                <div class="preview-item">
-                    <span class="preview-item-label">地平线辉光 (Lower)</span>
-                    <div id="lower-swatch" class="swatch-box"></div>
-                </div>
-                <div class="preview-item">
-                    <span class="preview-item-label">高空颜色 (Upper)</span>
-                    <div id="upper-swatch" class="swatch-box"></div>
-                </div>
-                 <div class="preview-item">
-                    <span class="preview-item-label">天空颜色 (Sky)</span>
-                    <div id="sky-swatch" class="swatch-box"></div>
-                </div>
-                <div class="preview-item">
-                    <span class="preview-item-label">日落颜色 (Sunset)</span>
-                    <div id="sunset-swatch" class="swatch-box"></div>
-                </div>
-            </div>
+    <div id="canvas-container">
+        <div class="hud">
+            <div class="hud-item" id="hud-r">Rayleigh R: -</div>
+            <div class="hud-item" id="hud-g">Rayleigh G: -</div>
+            <div class="hud-item" id="hud-b">Rayleigh B: -</div>
         </div>
     </div>
-</div>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const codeInput = document.getElementById('atmosphere-code');
-    const renderBtn = document.getElementById('render-btn');
-    const randomBtn = document.getElementById('random-btn');
-    const physicsModeToggle = document.getElementById('physics-mode-toggle');
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-    const surfaceSkyPreview = document.getElementById('surface-sky-preview');
-    const orbitalLimbPreview = document.getElementById('orbital-limb-preview');
+        // ==========================================
+        // 1. GLSL Shader 代码 (保持核心算法不变)
+        // ==========================================
 
-    const swatches = {
-        rayleigh: document.getElementById('rayleigh-swatch'),
-        lower: document.getElementById('lower-swatch'),
-        upper: document.getElementById('upper-swatch'),
-        sky: document.getElementById('sky-swatch'),
-        sunset: document.getElementById('sunset-swatch'),
-    };
+        const atmosphereVertexShader = `
+            varying vec3 vNormal;
+            varying vec3 vWorldPosition;
 
-    const parse = {
-        color: (key, text) => {
-            const regex = new RegExp(key + "\\s*\\[\\s*([\\d.\\-]+)\\s+([\\d.\\-]+)\\s+([\\d.\\-]+)\\s*\\]", "i");
-            const match = text.match(regex);
-            return match ? [parseFloat(match[1]), parseFloat(match[2]), parseFloat(match[3])] : [0, 0, 0];
-        },
-        value: (key, text) => {
-            const regex = new RegExp(key + "\\s+([\\d.\\-]+)");
-            const match = text.match(regex);
-            return match ? parseFloat(match[1]) : 0;
-        }
-    };
-
-    const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
-    const toCssRgb = (c) => `rgb(${clamp(c[0]*255,0,255)}, ${clamp(c[1]*255,0,255)}, ${clamp(c[2]*255,0,255)})`;
-    const toCssRgba = (c, a) => `rgba(${clamp(c[0]*255,0,255)}, ${clamp(c[1]*255,0,255)}, ${clamp(c[2]*255,0,255)}, ${a})`;
-    
-    function renderPreviews() {
-        const text = codeInput.value;
-        const physicsMode = physicsModeToggle.checked;
-        let params;
-
-        const baseParams = {
-            height: parse.value("Height", text),
-            mieScaleHeight: parse.value("MieScaleHeight", text),
-            mie: parse.value("Mie", text),
-            rayleigh: parse.color("Rayleigh", text),
-        };
-        
-        const normalizedRayleigh = (() => {
-            const sum = Math.max(0.00001, baseParams.rayleigh.reduce((a, b) => a + Math.abs(b), 0));
-            return baseParams.rayleigh.map(v => v / sum);
-        })();
-
-        if (physicsMode) {
-            const calcFilteredSunlight = (pathFactorMultiplier) => {
-                const pathLengthFactor = clamp(baseParams.height / 50, 1, 4) * pathFactorMultiplier;
-                return [
-                    clamp(1 - baseParams.rayleigh[0] * pathLengthFactor * 100, 0, 1),
-                    clamp(1 - baseParams.rayleigh[1] * pathLengthFactor * 100, 0, 1),
-                    clamp(1 - baseParams.rayleigh[2] * pathLengthFactor * 100, 0, 1)
-                ];
-            };
-
-            params = {
-                ...baseParams,
-                sky: normalizedRayleigh.map(c => clamp(c, 0, 1)),
-                lower: calcFilteredSunlight(1.5),
-                upper: normalizedRayleigh.map(c => clamp(c * 1.2, 0, 1)),
-                sunset: calcFilteredSunlight(3.0),
-            };
-
-            const ignoredSwatches = ['lower', 'upper', 'sky', 'sunset'];
-            Object.keys(swatches).forEach(key => {
-                swatches[key].style.opacity = ignoredSwatches.includes(key) ? '0.5' : '1';
-            });
-
-        } else {
-            params = {
-                ...baseParams,
-                lower: parse.color("Lower", text),
-                upper: parse.color("Upper", text),
-                sky: parse.color("Sky", text),
-                sunset: parse.color("Sunset", text),
-            };
-            Object.values(swatches).forEach(sw => sw.style.opacity = '1');
-        }
-
-        // --- RENDER ALL PREVIEWS USING THE FINAL 'params' OBJECT ---
-
-        // A. Surface View
-        (() => {
-            const pathLengthFactor = clamp(params.height / 50, 1, 4);
-            const filteredSunlight = [
-                clamp(1 - params.rayleigh[0] * pathLengthFactor * 100, 0, 1),
-                clamp(1 - params.rayleigh[1] * pathLengthFactor * 100, 0, 1),
-                clamp(1 - params.rayleigh[2] * pathLengthFactor * 100, 0, 1)
-            ];
-
-            const horizonColorSource = physicsMode ? filteredSunlight : params.lower;
-            const hazeBase = horizonColorSource.map((c, i) => (c * 0.8 + (physicsMode ? 0 : params.lower[i]) * 0.2));
-            const finalHazeColor = hazeBase.map(c => clamp(c + params.mie * 20, 0, 1));
-            
-            const hazeStopPercent = clamp(params.mieScaleHeight / params.height * 150, 5, 80);
-            const zenithColor = params.sky.map(c => c * 0.5);
-            
-            surfaceSkyPreview.style.background = `linear-gradient(to top, ${toCssRgb(finalHazeColor)}, ${toCssRgb(params.sky)} ${hazeStopPercent}%, ${toCssRgb(zenithColor)})`;
-        })();
-        
-        // B. Orbital View
-        (() => {
-            const limbGlowColor = toCssRgb(normalizedRayleigh);
-            orbitalLimbPreview.style.boxShadow = `0 0 30px 10px ${limbGlowColor}`;
-
-            const surfaceFilterColor = params.sunset.map((c, i) => clamp(c*0.6 + normalizedRayleigh[i]*0.4, 0, 1));
-            const filterOpacity = clamp(params.height / 150, 0.2, 0.7);
-            
-            let style = document.getElementById('orbital-style');
-            if (!style) {
-                style = document.createElement('style');
-                style.id = 'orbital-style';
-                document.head.appendChild(style);
+            void main() {
+                vNormal = normalize(normalMatrix * normal);
+                vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                vWorldPosition = worldPosition.xyz;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
             }
-            style.textContent = `#orbital-surface-preview::after { background-color: ${toCssRgba(surfaceFilterColor, filterOpacity)}; }`;
-        })();
-        
-        // C. Swatches
-        swatches.rayleigh.style.backgroundColor = toCssRgb(normalizedRayleigh);
-        swatches.lower.style.backgroundColor = toCssRgb(params.lower);
-        swatches.upper.style.backgroundColor = toCssRgb(params.upper);
-        swatches.sky.style.backgroundColor = toCssRgb(params.sky);
-        swatches.sunset.style.backgroundColor = toCssRgb(params.sunset);
-    }
-    
-    function generateRandomAtmosphere() {
-        const rand = (min, max) => min + Math.random() * (max - min);
-        
-        const r = rand(0.001, 0.01);
-        const g = rand(0.001, 0.01);
-        const b = rand(0.001, 0.01);
-        const rayleigh = [r,g,b].map(v => parseFloat(v.toFixed(4)));
+        `;
 
-        const baseColor = [rand(0,1), rand(0,1), rand(0,1)];
+        const atmosphereFragmentShader = `
+            uniform vec3 uSunPosition;
+            uniform vec3 uRayleigh;
+            uniform float uMie;
+            uniform float uMieDirectionalG;
+            uniform float uAtmosphereRadius;
+            uniform float uPlanetRadius;
+            uniform float uScaleHeightRayleigh;
+            uniform float uScaleHeightMie;
+            uniform float uSunIntensity;
 
-        const atmosphere = {
-            Height: Math.round(rand(40, 200)),
-            Lower: baseColor.map(c => parseFloat(clamp(c * rand(0.8, 1.2), 0, 1).toFixed(3))),
-            Upper: baseColor.map(c => parseFloat(clamp(c * rand(1.0, 1.4), 0, 1).toFixed(3))),
-            Sky: baseColor.map(c => parseFloat(clamp(c, 0, 1).toFixed(3))),
-            Sunset: [rand(0.5, 1), rand(0.2, 0.8), rand(0.1, 0.9)].map(c => parseFloat(c.toFixed(3))),
-            MieScaleHeight: Math.round(rand(10, 80)),
-            Mie: parseFloat(rand(0.0005, 0.008).toFixed(4)),
-            Rayleigh: rayleigh
+            varying vec3 vNormal;
+            varying vec3 vWorldPosition;
+
+            const float PI = 3.14159265359;
+            const int SAMPLES = 16;
+
+            vec2 raySphereIntersect(vec3 ro, vec3 rd, float rad) {
+                float b = dot(ro, rd);
+                float c = dot(ro, ro) - rad * rad;
+                float h = b * b - c;
+                if (h < 0.0) return vec2(-1.0);
+                h = sqrt(h);
+                return vec2(-b - h, -b + h);
+            }
+
+            float phaseRayleigh(float cosTheta) {
+                return 3.0 / (16.0 * PI) * (1.0 + cosTheta * cosTheta);
+            }
+
+            float phaseMie(float cosTheta, float g) {
+                float g2 = g * g;
+                return 3.0 / (8.0 * PI) * ((1.0 - g2) * (1.0 + cosTheta * cosTheta)) /
+                       ((2.0 + g2) * pow(1.0 + g2 - 2.0 * g * cosTheta, 1.5));
+            }
+
+            float getOpticalDepth(vec3 start, vec3 dir, float len, float scaleHeight) {
+                float opticalDepth = 0.0;
+                float stepSize = len / float(SAMPLES);
+                vec3 currentPos = start;
+                for(int i = 0; i < SAMPLES; i++) {
+                    float height = length(currentPos) - uPlanetRadius;
+                    height = max(0.0, height);
+                    float density = exp(-height / scaleHeight);
+                    opticalDepth += density * stepSize;
+                    currentPos += dir * stepSize;
+                }
+                return opticalDepth;
+            }
+
+            void main() {
+                vec3 viewDirection = normalize(vWorldPosition - cameraPosition);
+                vec3 camPos = cameraPosition;
+                vec3 rayDir = normalize(vWorldPosition - camPos);
+
+                vec2 atmosIntersect = raySphereIntersect(camPos, rayDir, uAtmosphereRadius);
+                if (atmosIntersect.x < 0.0) discard;
+
+                float startDist = 0.0;
+                float endDist = 0.0;
+                
+                bool insideAtmosphere = length(camPos) < uAtmosphereRadius;
+
+                if (insideAtmosphere) {
+                    startDist = 0.0;
+                    endDist = atmosIntersect.y;
+                } else {
+                    startDist = atmosIntersect.x;
+                    endDist = atmosIntersect.y;
+                }
+
+                vec2 planetIntersect = raySphereIntersect(camPos, rayDir, uPlanetRadius);
+                if (planetIntersect.x > 0.0) {
+                    endDist = min(endDist, planetIntersect.x);
+                }
+                
+                float segmentLength = endDist - startDist;
+                if (segmentLength <= 0.0) discard;
+
+                float stepSize = segmentLength / float(SAMPLES);
+                vec3 currentPos = camPos + rayDir * startDist;
+                
+                vec3 totalRayleigh = vec3(0.0);
+                vec3 totalMie = vec3(0.0);
+                
+                float opticalDepthR = 0.0;
+                float opticalDepthM = 0.0;
+
+                vec3 sunDir = normalize(uSunPosition);
+                float mu = dot(rayDir, sunDir);
+
+                for(int i = 0; i < SAMPLES; i++) {
+                    vec3 samplePos = currentPos + rayDir * (stepSize * 0.5);
+                    float sampleHeight = length(samplePos) - uPlanetRadius;
+                    if (sampleHeight < 0.0) sampleHeight = 0.0;
+
+                    float densityR = exp(-sampleHeight / uScaleHeightRayleigh) * stepSize;
+                    float densityM = exp(-sampleHeight / uScaleHeightMie) * stepSize;
+                    
+                    opticalDepthR += densityR;
+                    opticalDepthM += densityM;
+
+                    vec2 sunRayIntersect = raySphereIntersect(samplePos, sunDir, uAtmosphereRadius);
+                    // 简单的阴影检查：如果向着太阳的方向会穿过地球，则该点在阴影中 (Atmosphere Self-Shadowing)
+                    // 注意：这只是针对大气的自阴影。
+                    float distToSpace = sunRayIntersect.y;
+                    
+                    float sunRayOpticalDepthR = getOpticalDepth(samplePos, sunDir, distToSpace, uScaleHeightRayleigh);
+                    float sunRayOpticalDepthM = getOpticalDepth(samplePos, sunDir, distToSpace, uScaleHeightMie);
+                    
+                    vec3 transmittance = exp(-(uRayleigh * (opticalDepthR + sunRayOpticalDepthR) +
+                                               uMie * (opticalDepthM + sunRayOpticalDepthM)));
+                    
+                    totalRayleigh += densityR * transmittance;
+                    totalMie += densityM * transmittance;
+
+                    currentPos += rayDir * stepSize;
+                }
+
+                vec3 color = (totalRayleigh * uRayleigh * phaseRayleigh(mu) +
+                              totalMie * uMie * phaseMie(mu, uMieDirectionalG)) * uSunIntensity;
+
+                // 简单的 Tone Mapping
+                color = 1.0 - exp(-color * 4.0);
+                color = pow(color, vec3(1.0/2.2));
+
+                gl_FragColor = vec4(color, 1.0);
+            }
+        `;
+
+        const planetVertexShader = `
+            varying vec3 vNormal;
+            varying vec3 vWorldPosition;
+            varying vec2 vUv;
+
+            void main() {
+                vUv = uv;
+                vNormal = normalize(normalMatrix * normal);
+                vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                vWorldPosition = worldPosition.xyz;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const planetFragmentShader = `
+            uniform sampler2D uMap;
+            uniform vec3 uSunPosition;
+            uniform vec3 uRayleigh;
+            uniform float uMie;
+            uniform float uPlanetRadius;
+            uniform float uAtmosphereRadius;
+            uniform float uScaleHeightRayleigh;
+            uniform float uScaleHeightMie;
+            uniform float uSunIntensity;
+
+            varying vec3 vNormal;
+            varying vec3 vWorldPosition;
+            varying vec2 vUv;
+
+            const int SAMPLES = 24;
+
+            // --- 必须补全以下辅助函数 ---
+            vec2 raySphereIntersect(vec3 ro, vec3 rd, float rad) {
+                float b = dot(ro, rd);
+                float c = dot(ro, ro) - rad * rad;
+                float h = b * b - c;
+                if (h < 0.0) return vec2(-1.0);
+                h = sqrt(h);
+                return vec2(-b - h, -b + h);
+            }
+
+            float getOpticalDepth(vec3 start, vec3 dir, float len, float scaleHeight) {
+                float opticalDepth = 0.0;
+                float stepSize = len / float(SAMPLES);
+                vec3 currentPos = start;
+                for(int i = 0; i < SAMPLES; i++) {
+                    float height = length(currentPos) - uPlanetRadius;
+                    height = max(0.0, height);
+                    float density = exp(-height / scaleHeight);
+                    opticalDepth += density * stepSize;
+                    currentPos += dir * stepSize;
+                }
+                return opticalDepth;
+            }
+
+            void main() {
+                vec3 sunDir = normalize(uSunPosition);
+                // 1. 获取贴图颜色
+                vec4 texColor = texture2D(uMap, vUv);
+                
+                // 2. 计算地表基础光照 (漫反射)
+                float diffuse = max(0.0, dot(vNormal, sunDir));
+                
+                // 3. 计算阳光穿过大气的衰减 (Mie/Rayleigh 消光)
+                vec2 sunAtmosIntersect = raySphereIntersect(vWorldPosition, sunDir, uAtmosphereRadius);
+                float odSunR = getOpticalDepth(vWorldPosition, sunDir, sunAtmosIntersect.y, uScaleHeightRayleigh);
+                float odSunM = getOpticalDepth(vWorldPosition, sunDir, sunAtmosIntersect.y, uScaleHeightMie);
+                vec3 transmittance = exp(-(uRayleigh * odSunR + uMie * odSunM));
+                
+                // 最终组合
+                vec3 finalColor = texColor.rgb * diffuse * transmittance * uSunIntensity * 0.5;
+
+                // Tone Mapping
+                finalColor = 1.0 - exp(-finalColor * 2.0);
+                gl_FragColor = vec4(pow(finalColor, vec3(1.0/2.2)), 1.0);
+            }
+        `;
+        
+        const sunGlowVertexShader = `
+            varying vec3 vLocalPosition;
+            void main() {
+                vLocalPosition = position; // 获取模型局部坐标
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const sunGlowFragmentShader = `
+            varying vec3 vLocalPosition;
+            void main() {
+                // 计算当前像素到球心的归一化距离
+                float d = length(vLocalPosition);
+                float maxRadius = 150.0;
+                
+                // 使用反比例函数或更陡峭的指数函数，产生“中心极亮、向外迅速扩散”的效果
+                // 这是消除“蛋壳感”的关键，不能用线性减法
+                float falloff = pow(1.0 / (d * 0.05 + 1.0), 4.0);
+                
+                // 核心热力感：越靠近中心颜色越白，边缘变暖色
+                vec3 color = mix(vec3(1.0, 0.4, 0.1), vec3(1.0, 1.0, 1.0), falloff);
+                
+                // 最终光强度
+                float intensity = falloff * 4.5;
+                
+                gl_FragColor = vec4(color * intensity, intensity);
+            }
+        `;
+        // ==========================================
+        // 2. 初始化 Three.js 场景
+        // ==========================================
+        
+        const container = document.getElementById('canvas-container');
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x020205);
+
+        const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 10000);
+        camera.position.set(0, 0, 320);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(width, height);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        // 开启物理光照计算
+        renderer.useLegacyLights = false;
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxDistance = 1000;
+        
+        // --- 场景灯光 ---
+        // 1. 主光源（太阳）
+        const sunLight = new THREE.DirectionalLight(0xffffff, 2.5);
+        scene.add(sunLight);
+
+        // 2. 环境光（非常弱，模拟星光反射，避免背光面死黑看不清纹理）
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.05);
+        scene.add(ambientLight);
+
+        // --- 物理对象 ---
+        const VISUAL_PLANET_RADIUS = 100.0;
+        const REAL_PLANET_RADIUS_KM = 3000.0;
+        const KM_TO_UNIT = VISUAL_PLANET_RADIUS / REAL_PLANET_RADIUS_KM;
+
+        // 1. 行星本体
+        // 改为 StandardMaterial 以支持光照和阴影
+        const planetGeo = new THREE.SphereGeometry(VISUAL_PLANET_RADIUS, 128, 128);
+        const sharedUniforms = {
+            uSunPosition: { value: new THREE.Vector3(1, 0, 0) },
+            uRayleigh: { value: new THREE.Vector3(0.1, 0.1, 0.3) },
+            uMie: { value: 0.01 },
+            uMieDirectionalG: { value: 0.8 },
+            uAtmosphereRadius: { value: 105.0 },
+            uPlanetRadius: { value: VISUAL_PLANET_RADIUS },
+            uScaleHeightRayleigh: { value: 1.0 },
+            uScaleHeightMie: { value: 0.2 },
+            uSunIntensity: { value: 12.0 }
         };
 
-        const formatColor = (arr) => `[ ${arr.join(' ')} ]`;
+        const planetMat = new THREE.ShaderMaterial({
+            vertexShader: planetVertexShader,
+            fragmentShader: planetFragmentShader, // 注意：请确保将辅助函数合并入此 Shader
+            uniforms: {
+                ...sharedUniforms,
+                uMap: { value: new THREE.Texture() },
+            }
+        });
+        const planet = new THREE.Mesh(planetGeo, planetMat);
+        planet.rotation.y = -Math.PI / 2;
+        scene.add(planet);
 
-        let text = `Atmosphere\n{\n`;
-        text += `    Height ${atmosphere.Height}\n`;
-        text += `    Lower ${formatColor(atmosphere.Lower)}\n`;
-        text += `    Upper ${formatColor(atmosphere.Upper)}\n`;
-        text += `    Sky ${formatColor(atmosphere.Sky)}\n`;
-        text += `    Sunset ${formatColor(atmosphere.Sunset)}\n`;
-        text += `    MieScaleHeight ${atmosphere.MieScaleHeight}\n`;
-        text += `    Mie ${atmosphere.Mie}\n`;
-        text += `    MieAsymmetry 0\n`;
-        text += `    Rayleigh ${formatColor(atmosphere.Rayleigh)}\n`;
-        text += `}`;
+        // 2. 大气层 (Shader Material)
+        const atmosGeo = new THREE.SphereGeometry(VISUAL_PLANET_RADIUS * 1.05, 128, 128);
+        const atmosMat = new THREE.ShaderMaterial({
+            vertexShader: atmosphereVertexShader,
+            fragmentShader: atmosphereFragmentShader,
+            uniforms: sharedUniforms,
+            side: THREE.BackSide, // 渲染球体内表面
+            transparent: true,
+            blending: THREE.AdditiveBlending, // 叠加模式
+            depthWrite: false // 不写入深度，保证能罩在地球表面
+        });
+        const atmosphere = new THREE.Mesh(atmosGeo, atmosMat);
+        // 重要：确保大气层最后渲染，这样它才能叠加在有纹理的地球表面上
+        scene.add(atmosphere);
+        
+        // --- 恒星组 ---
+        const sunGroup = new THREE.Group();
+        scene.add(sunGroup);
 
-        codeInput.value = text;
-        renderPreviews();
-    }
+        // 1. 太阳核心：依然用一个小球表示极亮中心
+        const sunCore = new THREE.Mesh(
+            new THREE.SphereGeometry(22, 32, 32),
+            new THREE.MeshBasicMaterial({ color: 0xffffff })
+        );
+        sunGroup.add(sunCore);
 
+        // 2. 辉光层：改用 Sprite。Sprite 永远面向相机，没有正背面，没有阴影
+        const canvas = document.createElement('canvas');
+        canvas.width = 256; // 提高分辨率减少锯齿
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
 
-    renderBtn.addEventListener('click', renderPreviews);
-    randomBtn.addEventListener('click', generateRandomAtmosphere);
-    physicsModeToggle.addEventListener('change', renderPreviews);
+        // 明确清除画布，防止旧像素残留
+        ctx.clearRect(0, 0, 256, 256);
 
-    renderPreviews();
-});
-</script>
+        const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+        // 使用更自然的色值，并确保边缘 Alpha 绝对为 0
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
+        gradient.addColorStop(0.1, 'rgba(255, 255, 220, 0.8)');
+        gradient.addColorStop(0.3, 'rgba(255, 180, 50, 0.4)');
+        gradient.addColorStop(0.6, 'rgba(255, 80, 0, 0.1)');
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)'); // 边缘必须彻底透明
 
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 256, 256);
+
+        const sunTexture = new THREE.CanvasTexture(canvas);
+        // 禁用 Mipmapping 和设置过滤，防止采样产生的边缘杂色
+        sunTexture.minFilter = THREE.LinearFilter;
+
+        const sunSpriteMat = new THREE.SpriteMaterial({
+            map: sunTexture,
+            color: 0xffffff,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            depthTest: true
+        });
+
+        const sunSprite = new THREE.Sprite(sunSpriteMat);
+        sunSprite.scale.set(450, 450, 1);
+        sunGroup.add(sunSprite);
+
+        // ==========================================
+        // 3. 逻辑控制
+        // ==========================================
+
+        const configInput = document.getElementById('config-input');
+        const sunSlider = document.getElementById('sun-slider');
+        const textureInput = document.getElementById('texture-input');
+        const timeDisplay = document.getElementById('time-display');
+        const btnRandom = document.getElementById('btn-random');
+        const btnReset = document.getElementById('btn-reset');
+        
+        const hudR = document.getElementById('hud-r');
+        const hudG = document.getElementById('hud-g');
+        const hudB = document.getElementById('hud-b');
+
+        const textureLoader = new THREE.TextureLoader();
+
+        function parseConfig(text) {
+            const parseColor = (key) => {
+                const regex = new RegExp(key + "\\s*\\[\\s*([\\d.\\-]+)\\s+([\\d.\\-]+)\\s+([\\d.\\-]+)\\s*\\]", "i");
+                const match = text.match(regex);
+                return match ? [parseFloat(match[1]), parseFloat(match[2]), parseFloat(match[3])] : null;
+            };
+            const parseVal = (key) => {
+                const regex = new RegExp(key + "\\s+([\\d.\\-]+)", "i");
+                const match = text.match(regex);
+                return match ? parseFloat(match[1]) : null;
+            };
+
+            return {
+                height: parseVal("Height") || 60,
+                mieScale: parseVal("MieScaleHeight") || 15,
+                mie: parseVal("Mie") || 0.001,
+                mieG: parseVal("MieAsymmetry") || -0.9,
+                rayleigh: parseColor("Rayleigh") || [0.0026, 0.0029, 0.0077]
+            };
+        }
+
+        function updateScene() {
+            const params = parseConfig(configInput.value);
+            const sunAngle = parseFloat(sunSlider.value);
+            const sunDist = 2000;
+                
+                // 计算太阳在 3D 空间的位置 (以 Y轴 为转轴)
+                const sunPos = new THREE.Vector3(
+                    Math.cos(sunAngle) * sunDist,
+                    Math.sin(sunAngle) * 0.2 * sunDist, // 保持微小倾角
+                    Math.sin(sunAngle) * sunDist
+                );
+                
+                // 1. 更新视觉模型位置
+                sunGroup.position.copy(sunPos);
+                
+                // 2. 更新 Shader 和灯光所需的单位向量
+                const sunDir = sunPos.clone().normalize();
+                sharedUniforms.uSunPosition.value.copy(sunDir);
+                sunLight.position.copy(sunDir).multiplyScalar(sunDist);
+                
+            hudR.textContent = `Rayleigh R: ${params.rayleigh[0]}`;
+            hudG.textContent = `Rayleigh G: ${params.rayleigh[1]}`;
+            hudB.textContent = `Rayleigh B: ${params.rayleigh[2]}`;
+            timeDisplay.textContent = `${((sunAngle / Math.PI) * 12).toFixed(1)}h`;
+            
+            const atmosphereThickness = params.height * KM_TO_UNIT;
+            const outerRadius = VISUAL_PLANET_RADIUS + atmosphereThickness;
+            const meshScale = (outerRadius / VISUAL_PLANET_RADIUS) * 1.001;
+            atmosphere.scale.set(meshScale, meshScale, meshScale);
+            
+            const u = atmosMat.uniforms;
+            u.uAtmosphereRadius.value = outerRadius;
+            
+            u.uRayleigh.value.set(
+                params.rayleigh[0] * 40.0,
+                params.rayleigh[1] * 40.0,
+                params.rayleigh[2] * 40.0
+            );
+            
+            u.uMie.value = params.mie * 40.0;
+            u.uMieDirectionalG.value = params.mieG;
+            
+            const dynamicRayleighH = Math.max(2.0, params.height / 8.0);
+            u.uScaleHeightRayleigh.value = dynamicRayleighH * KM_TO_UNIT;
+            u.uScaleHeightMie.value = params.mieScale * KM_TO_UNIT;
+            
+            // --- 计算太阳向量 ---
+            const sunVec = new THREE.Vector3(
+                Math.cos(sunAngle),
+                Math.sin(sunAngle) * 0.2, // 给一点倾角，稍微好看点
+                Math.sin(sunAngle)
+            ).normalize();
+
+            // 1. 更新 Shader 中的太阳位置
+            u.uSunPosition.value.copy(sunVec);
+
+            // 2. 更新 Three.js 场景灯光位置 (用于照亮地表)
+            // 放到很远的地方，保证是平行光效果
+            sunLight.position.copy(sunVec).multiplyScalar(500);
+        }
+
+        function randomize() {
+            const r = () => Math.random();
+            const rr = (min, max) => min + Math.random() * (max - min);
+            
+            const txt = `Atmosphere
+{
+    Height ${Math.floor(rr(50, 150))}
+    MieScaleHeight ${Math.floor(rr(5, 15))}
+    Mie ${rr(0.001, 0.01).toFixed(4)}
+    MieAsymmetry ${rr(-0.99, 0.99).toFixed(2)}
+    Rayleigh [ ${rr(0.001, 0.005).toFixed(4)} ${rr(0.001, 0.005).toFixed(4)} ${rr(0.005, 0.02).toFixed(4)} ]
+}`;
+            configInput.value = txt;
+            updateScene();
+        }
+
+        // 事件监听
+        configInput.addEventListener('input', updateScene);
+        sunSlider.addEventListener('input', updateScene);
+        
+        textureInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const url = URL.createObjectURL(file);
+            textureLoader.load(url, (texture) => {
+                // 设置正确的色彩空间
+                texture.colorSpace = THREE.SRGBColorSpace;
+                
+                // 关键修复点：通过 uniforms 传递纹理
+                if (planet.material.uniforms && planet.material.uniforms.uMap) {
+                    planet.material.uniforms.uMap.value = texture;
+                    planet.material.needsUpdate = true;
+                }
+            });
+        });
+
+        btnRandom.addEventListener('click', randomize);
+        btnReset.addEventListener('click', () => {
+            controls.reset();
+            sunSlider.value = 1.57;
+            updateScene();
+        });
+        
+        window.addEventListener('resize', () => {
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+            renderer.setSize(w, h);
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+        });
+
+        updateScene();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+    </script>
 </body>
 </html>
-

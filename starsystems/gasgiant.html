@@ -174,7 +174,7 @@
             "golden_saturn": [[181, 158, 123], [180, 160, 130], [140, 120, 100], [250, 240, 220], [86, 78, 68], [155, 149, 127]],
             "sunset_dream": [[255, 94, 77], [255, 142, 101], [255, 184, 128], [255, 215, 160], [180, 110, 90], [120, 60, 50]],
             "frosted_mint": [[200, 255, 230], [160, 240, 210], [120, 220, 190], [80, 200, 160], [40, 180, 130], [0, 150, 100]],
-            "cosmic_violet": [[90, 50, 120], [120, 70, 150], [160, 100, 180], [200, 140, 210], [230, 190, 240], [50, 20, 80]],
+            "cosmic_violet": [[90, 50, 120], [120, 70, 150], [160, 100, 180], [200, 140, 210], [230, 190, 240], [25, 10, 40]],
             "desert_ember": [[210, 120, 80], [230, 150, 100], [245, 180, 120], [250, 210, 150], [180, 100, 70], [120, 60, 40]],
             "oceanic_tide": [[20, 60, 120], [30, 90, 160], [50, 120, 200], [80, 160, 220], [100, 180, 240], [10, 40, 100]],
             "forest_moss": [[50, 80, 40], [70, 110, 60], [100, 140, 90], [130, 170, 120], [160, 200, 150], [30, 60, 20]],
@@ -244,49 +244,99 @@
             const geometry = new THREE.SphereGeometry(1, 64, 64);
             planetMaterial = new THREE.MeshStandardMaterial({
                 map: null, // Will be set later
-                roughness: 0.8,
-                metalness: 0.1
+                roughness: 1.0,
+                metalness: 0.0
             });
             planetMesh = new THREE.Mesh(geometry, planetMaterial);
             scene.add(planetMesh);
 
-            // --- ATMOSPHERE MESH (Shader) ---
-            // Rayleigh scattering approximation using Fresnel shader
-            const atmosphereGeometry = new THREE.SphereGeometry(1.04, 64, 64); // Slightly larger
-            
+// --- ATMOSPHERE MESH (Stable & Realistic) ---
+            // 半径设为 1.12，模拟厚实的大气层
+            const atmosphereGeometry = new THREE.SphereGeometry(1.02, 64, 64);
+
             const vertexShader = `
                 varying vec3 vNormal;
+                varying vec3 vViewPosition;
+                varying vec3 vWorldPosition;
+
                 void main() {
+                    // 计算法线
                     vNormal = normalize(normalMatrix * normal);
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    
+                    // 计算世界坐标 (用于计算太阳光方向)
+                    vec4 worldPos = modelMatrix * vec4(position, 1.0);
+                    vWorldPosition = worldPos.xyz;
+
+                    // 计算视图空间位置 (用于计算视线角度)
+                    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                    vViewPosition = -mvPosition.xyz;
+
+                    gl_Position = projectionMatrix * mvPosition;
                 }
             `;
 
             const fragmentShader = `
+                uniform vec3 sunDirection;
+                uniform vec3 colorDay;
+                uniform vec3 colorSunset;
+                uniform float atmosphereDensity;
+                uniform float atmospherePower;
+
                 varying vec3 vNormal;
-                uniform vec3 glowColor;
-                uniform float bias;
-                uniform float power;
-                uniform float scale;
+                varying vec3 vViewPosition;
+                varying vec3 vWorldPosition;
 
                 void main() {
-                    float intensity = pow(bias - dot(vNormal, vec3(0, 0, 1.0)), power);
-                    gl_FragColor = vec4(glowColor, 1.0) * intensity * scale;
+                    vec3 normal = normalize(vNormal);
+                    vec3 viewDir = normalize(vViewPosition);
+                    vec3 sunDir = normalize(sunDirection);
+
+                    // 1. 计算视线角度 (View Dot)
+                    // 1.0 = 正对相机 (中心), 0.0 = 垂直相机 (边缘)
+                    float viewDot = max(0.0, dot(normal, viewDir));
+
+                    // 2. 核心修复算法：软边缘光晕
+                    // 之前的 bug 是因为边缘没处理好。现在我们用两段混合：
+                    // pow(1.0 - viewDot, power): 经典的 Fresnel，边缘亮，中心暗
+                    // * viewDot: 关键修复！在 viewDot 接近 0 (最外缘) 时强制归零，消除"硬切边"
+                    float rim = pow(1.0 - viewDot, atmospherePower) * viewDot; 
+
+                    // 3. 计算昼夜光照
+                    float sunDot = dot(normalize(vWorldPosition), sunDir); // 使用世界坐标更准确
+                    
+                    // 晨昏线颜色混合 (Rayleigh Shift)
+                    // 在 sunDot 接近 0 的地方混合夕阳色
+                    float sunsetFactor = smoothstep(-0.2, 0.4, 1.0 - abs(sunDot));
+                    vec3 atmosphereColor = mix(colorDay, colorSunset, sunsetFactor * 0.5);
+
+                    // 4. 昼夜亮度遮罩
+                    // 背光面渐隐，但保留微弱的散射光 (0.1) 避免完全死黑
+                    float dayMask = smoothstep(-0.4, 0.5, sunDot) * 0.9 + 0.1;
+
+                    // 5. 组合最终颜色
+                    // 增强系数 6.0 让光晕更明亮
+                    vec3 finalColor = atmosphereColor * dayMask * rim * atmosphereDensity * 2.0;
+
+                    gl_FragColor = vec4(finalColor, 1.0);
                 }
             `;
+
+            const sunDirVector = new THREE.Vector3(5, 3, 5).normalize();
 
             atmosphereMaterial = new THREE.ShaderMaterial({
                 vertexShader: vertexShader,
                 fragmentShader: fragmentShader,
                 uniforms: {
-                    glowColor: { value: new THREE.Color(0x4ca1ff) },
-                    bias: { value: 0.6 }, // 调整光晕起始位置
-                    power: { value: 4.5 }, // 调整光晕衰减
-                    scale: { value: 1.0 }
+                    sunDirection: { value: sunDirVector },
+                    colorDay: { value: new THREE.Color(0x4ca1ff) },
+                    colorSunset: { value: new THREE.Color(0xff8833) },
+                    atmosphereDensity: { value: 1.0 }, // 整体浓度
+                    atmospherePower: { value: 2.0 }    // 衰减指数 (越高越薄)
                 },
-                side: THREE.BackSide, // 渲染背面，模拟大气包裹
-                blending: THREE.AdditiveBlending,
-                transparent: true
+                side: THREE.FrontSide, // 改回 FrontSide，这是最稳定不出错的渲染方式
+                blending: THREE.AdditiveBlending, // 线性减淡叠加，产生发光感且透明
+                transparent: true,
+                depthWrite: false // 关键：禁止写入深度，防止遮挡星球
             });
 
             atmosphereMesh = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
@@ -326,8 +376,18 @@
             planetMaterial.needsUpdate = true;
 
             // Update Atmosphere Color
-            const atmHex = atmosphereColorInput.value;
-            atmosphereMaterial.uniforms.glowColor.value = new THREE.Color(atmHex);
+            // 简单的逻辑：主色调作为白天色，计算一个互补暖色作为夕阳色
+            const atmColor = new THREE.Color(atmosphereColorInput.value);
+            if(atmosphereMaterial) {
+                atmosphereMaterial.uniforms.colorDay.value = atmColor;
+                
+                // 自动生成一个"夕阳色" (将色相向红偏移，增加饱和度)
+                const hsl = {};
+                atmColor.getHSL(hsl);
+                // 稍微偏红，亮度减半
+                const sunsetColor = new THREE.Color().setHSL(Math.max(0, hsl.h - 0.1), 1.0, 0.6);
+                atmosphereMaterial.uniforms.colorSunset.value = sunsetColor;
+            }
         }
 
         // --- Noise Functions (Keep Existing) ---
@@ -443,7 +503,7 @@
                 const band_height = uniform(height * 0.03, height * 0.2);
                 const band_color = choice(band_colors);
                 
-                const wave_amplitude = uniform(height * 0.002, height * 0.008);
+                const wave_amplitude = uniform(height * 0.002, height * 0.006);
                 const wave_scale = uniform(1.0, 6.0);
 
                 const bandLayer = new PixelArray(width, height);
@@ -484,7 +544,7 @@
             await updateStatus("添加大气噪点...");
 
             const noiseScale = 150.0;
-            const noiseStrength = 0.04;
+            const noiseStrength = 0.01;
 
             for (let y = 0; y < height; y++) {
                 for (let x = 0; x < width; x++) {
@@ -502,7 +562,7 @@
 
         async function addGlowingJetStreams(planetArray) {
             const { width, height } = planetArray;
-            const num_jets = randint(0, 8);
+            const num_jets = randint(1, 8);
             
             for (let i = 0; i < num_jets; i++) {
                 if(i%2===0) await updateStatus("生成激流...");
@@ -522,7 +582,8 @@
                     const turb_offset = seamless_horizontal_noise(x_norm, i / num_jets, turb_wave_scale, 2.0) * turb_wave_amp;
                     const waved_y_center = y_center + main_offset + turb_offset;
                     
-                    const mask = (simplex.noise2D(x_norm * (width / 60.0), i * 5) + 1) / 2;
+                    const maskNoise = seamless_horizontal_noise(x_norm, i * 10.0, (width / 120), 1.0);
+                    const mask = (maskNoise + 1) / 2;
                     let alpha = Math.pow(mask, 1.5);
                     if (random() < 0.002) alpha *= uniform(0.0, 0.3);
 
@@ -548,7 +609,7 @@
         async function applyFlowDistortion(planetArray) {
             const { width, height } = planetArray;
             const scaleFactor = width / 1024.0;
-            const shearStrength = uniform(0, 60) * scaleFactor;
+            const shearStrength = uniform(0, 30) * scaleFactor;
             const detailStrength = 2.0 * scaleFactor;
 
             await updateStatus("计算风场...");
@@ -559,8 +620,8 @@
             for(let y = 0; y < height; y++) {
                 const lat = (y / height) * 2 - 1;
                 let wind = Math.cos(lat * Math.PI * numZones);
-                wind += Math.exp(-lat*lat * 8) * 1.5;
-                wind += (simplex.noise2D(0, lat * 5) - 0.5) * 0.8;
+                wind += Math.exp(-lat*lat * 8) * 1.0;
+                wind += (simplex.noise2D(0, lat * 5) - 0.5) * 0.4;
                 windProfile[y] = wind;
             }
 
@@ -571,12 +632,17 @@
                 if (y % 50 === 0) await updateStatus(`应用风场扭曲... (${Math.round(y/height * 100)}%)`);
                 
                 const baseWind = windProfile[y];
+                const nextWind = windProfile[Math.min(height-1, y + 4)];
+                const shear = Math.abs(baseWind - nextWind);
+                const turbulenceMask = 0.2 + (shear * 2.0);
                 for (let x = 0; x < width; x++) {
-                    const x_norm = x / width;
-                    const y_norm = y / height;
-                    const noiseVal = seamless_horizontal_noise(x_norm, y_norm, 15.0, 1.0);
+                    const u = x / width;
+                    const v = y / height;
+                    const flowNoise = seamless_horizontal_noise(u, v, 4.0, 2.0);
+                    const detailNoise = seamless_horizontal_noise(u, v, 40.0, 2.0);
+                    const noiseVal = flowNoise * 0.3 + detailNoise * 0.7;
                     const shiftX = (baseWind * 1.0 + noiseVal * 0.1) * shearStrength;
-                    const shiftY = noiseVal * detailStrength;
+                    const shiftY = noiseVal * detailStrength * turbulenceMask;
                     coordsX[y][x] = x + shiftX;
                     coordsY[y][x] = y + shiftY;
                 }
@@ -793,9 +859,24 @@
                 paletteSelect.appendChild(option);
             });
             generateBtn.addEventListener('click', generate);
+// 修复：颜色选择器实时更新逻辑
             atmosphereColorInput.addEventListener('input', () => {
                  if(atmosphereMaterial) {
-                     atmosphereMaterial.uniforms.glowColor.value = new THREE.Color(atmosphereColorInput.value);
+                     const selectedColor = new THREE.Color(atmosphereColorInput.value);
+                     
+                     // 1. 更新白天颜色 (主要颜色)
+                     atmosphereMaterial.uniforms.colorDay.value = selectedColor;
+                     
+                     // 2. 自动计算匹配的夕阳颜色 (基于色相偏移)
+                     // 获取当前颜色的 HSL
+                     const hsl = {};
+                     selectedColor.getHSL(hsl);
+                     
+                     // 计算夕阳色：色相向红/橙偏移，饱和度拉满，亮度降低
+                     // 简单的算法：如果选蓝色，夕阳就是橙色；如果选红色，夕阳是深红
+                     const sunsetColor = new THREE.Color().setHSL((hsl.h - 0.05 + 1.0) % 1.0, 1.0, 0.5);
+                     
+                     atmosphereMaterial.uniforms.colorSunset.value = sunsetColor;
                  }
             });
 

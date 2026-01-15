@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <title>MeowFin - 交易模拟器 (指标增强版)</title>
+    <!-- 引入 Lightweight Charts (TradingView) - 锁定版本 @4.2.0 -->
+    <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        :root {
+            --bg-color: #0a0b10;
+            --card-bg: rgba(30, 35, 45, 0.7);
+            --accent-color: #00f2ff;
+            --accent-hover: #00c8d3;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a5b0;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --success-color: #00ff9d;
+            --danger-color: #ff3366;
+            --input-bg: rgba(0, 0, 0, 0.3);
+            --sma-color: #ffaa00;
+            --bb-color: #0088ff;
+            --sar-color: #ff00ff;
+        }
+        #tv-attr-logo {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            width: 0 !important;
+            height: 0 !important;
+            pointer-events: none !important;
+        }
+        /* --- 全局样式 --- */
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            background-image: radial-gradient(circle at 50% 0%, #1a1f2e 0%, #0a0b10 60%);
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* --- 头部 --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .header-title h1 {
+            font-size: 2em;
+            font-weight: 700;
+            margin: 0;
+            background: linear-gradient(135deg, #fff 0%, var(--accent-color) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(0, 242, 255, 0.3);
+        }
+
+        .header-title .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.85em;
+            letter-spacing: 1px;
+            margin-top: 5px;
+        }
+
+        /* --- 顶部重置按钮 --- */
+        .btn-restart-top {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-restart-top:hover {
+            background: var(--accent-color);
+            color: #000;
+        }
+
+        /* --- 卡片 --- */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .card-title {
+            color: var(--accent-color);
+            font-size: 1.1em;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* --- 仪表盘数据 --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .stat-box {
+            background: rgba(0,0,0,0.2);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid transparent;
+            transition: border-color 0.3s;
+        }
+
+        .stat-box.danger { border-color: var(--danger-color); box-shadow: 0 0 10px rgba(255, 51, 102, 0.2); }
+
+        .stat-label {
+            font-size: 0.8em;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.2em;
+            font-weight: 700;
+            font-family: 'Roboto Mono', monospace;
+        }
+
+        .text-green { color: var(--success-color); }
+        .text-red { color: var(--danger-color); }
+        .text-blue { color: var(--accent-color); }
+
+        /* --- 图表区域 --- */
+        .chart-container {
+            height: 320px;
+            width: 100%;
+            position: relative;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px 8px 0 0; /* 如果有副图，圆角变一下 */
+            overflow: hidden;
+        }
+
+        .sub-chart-container {
+            height: 120px;
+            width: 100%;
+            position: relative;
+            background: rgba(0,0,0,0.2);
+            border-radius: 0 0 8px 8px;
+            overflow: hidden;
+            margin-top: 2px; /* 小缝隙 */
+            display: none; /* 默认隐藏 */
+        }
+        
+        .sub-chart-container.active {
+            display: block;
+        }
+
+        /* --- 控制区 --- */
+        .controls-wrapper {
+            margin-top: 20px;
+            border-top: 1px dashed var(--border-color);
+            padding-top: 20px;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .left-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .position-selector {
+            display: flex;
+            gap: 10px;
+            background: var(--input-bg);
+            padding: 5px;
+            border-radius: 30px;
+            border: 1px solid var(--border-color);
+        }
+
+        .pos-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 10px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .pos-btn.active {
+            background: var(--accent-color);
+            color: #000;
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
+        }
+
+        /* --- 设置面板 (指标) --- */
+        .settings-panel {
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .settings-row:last-child { margin-bottom: 0; }
+
+        .settings-label {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* 切换按钮组 */
+        .toggle-group {
+            display: flex;
+            gap: 4px;
+            background: var(--input-bg);
+            padding: 2px;
+            border-radius: 4px;
+        }
+
+        .tog-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: all 0.2s;
+        }
+
+        .tog-btn:hover { background: rgba(255,255,255,0.1); }
+        .tog-btn.active {
+            background: var(--accent-color);
+            color: #000;
+        }
+
+        .sma-input {
+            width: 50px;
+            background: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: #fff;
+            padding: 4px 6px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 0.85em;
+        }
+
+        /* 开关样式 */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 18px;
+        }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #444;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 12px;
+            width: 12px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--accent-color); }
+        input:checked + .slider:before { transform: translateX(18px); }
+
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 15px;
+        }
+
+        .btn {
+            border: none;
+            padding: 15px 10px;
+            border-radius: 12px;
+            font-size: 1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:active { transform: scale(0.98); }
+
+        .btn-buy { background: rgba(0, 255, 157, 0.15); color: var(--success-color); border: 1px solid var(--success-color); }
+        .btn-buy:hover { background: var(--success-color); color: #000; box-shadow: 0 0 15px rgba(0, 255, 157, 0.4); }
+
+        .btn-sell { background: rgba(255, 51, 102, 0.15); color: var(--danger-color); border: 1px solid var(--danger-color); }
+        .btn-sell:hover { background: var(--danger-color); color: #fff; box-shadow: 0 0 15px rgba(255, 51, 102, 0.4); }
+
+        .btn-hold { background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+        .btn-hold:hover { background: #fff; color: #000; }
+
+        .btn-close {
+            grid-column: 1 / -1; /* 跨两列 */
+            background: rgba(255, 255, 255, 0.1);
+            color: #ddd;
+            border: 1px solid rgba(255,255,255,0.2);
+            flex-direction: row; /* 横向布局 */
+            padding: 12px;
+        }
+        .btn-close:hover { background: #fff; color: #000; border-color: #fff; }
+
+        .btn sub { font-size: 0.75em; opacity: 0.7; font-weight: normal; font-family: 'Roboto Mono', monospace; }
+
+        /* --- 游戏结束遮罩 --- */
+        #gameOverOverlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 11, 16, 0.9);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+        }
+
+        .game-over-box {
+            text-align: center;
+            border: 2px solid var(--danger-color);
+            padding: 40px;
+            border-radius: 20px;
+            background: rgba(30, 0, 0, 0.6);
+            box-shadow: 0 0 50px rgba(255, 51, 102, 0.2);
+            animation: shake 0.5s ease-in-out;
+        }
+
+        .restart-btn {
+            margin-top: 20px;
+            background: var(--accent-color);
+            color: #000;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
+
+        /* --- 响应式 --- */
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .controls-grid { grid-template-columns: 1fr; }
+            .action-buttons { grid-template-columns: 1fr 1fr; }
+            .btn-hold { grid-column: 1 / -1; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="header-title">
+            <h1 class="i18n" data-key="title_sim">MeowFin <span style="font-size:0.5em; vertical-align: middle; border:1px solid var(--accent-color); border-radius:4px; padding:2px 6px; color:var(--accent-color)">交易模拟器</span></h1>
+            <div class="subtitle i18n" data-key="subtitle_sim">1x 波动模拟 仅供练习及娱乐作用！</div>
+        </div>
+        <button class="btn-restart-top" onclick="game.init()">
+            <i class="fa-solid fa-rotate-right"></i> <span class="i18n" data-key="reset_btn">重置游戏</span>
+        </button>
+    </header>
+
+    <!-- 主面板 -->
+    <div class="card">
+        <div id="gameOverOverlay">
+            <div class="game-over-box">
+                <h2 style="color: var(--danger-color); font-size: 2.5em; margin: 0;"><i class="fa-solid fa-skull-crossbones"></i> GAME OVER</h2>
+                <p class="i18n" data-key="game_over_desc" style="color: #fff; margin: 10px 0;">资产归零，交易结束。</p>
+                <div style="margin: 20px 0; font-family: monospace; color: #aaa;">
+                    <span class="i18n" data-key="final_equity">最终净值</span>: <span style="color:var(--danger-color)">$0.00</span><br>
+                    <span class="i18n" data-key="survived_steps">存活回合</span>: <span id="finalSteps" style="color:var(--accent-color)">0</span>
+                </div>
+                <button class="restart-btn i18n" data-key="try_again" onclick="game.init()">再试一次</button>
+            </div>
+        </div>
+
+        <div class="card-header">
+            <div class="card-title i18n" data-key="market_chart"><i class="fa-solid fa-chart-candlestick"></i> 市场行情 (1D)</div>
+            <div style="font-family: monospace; color: var(--text-secondary)">Steps: <span id="stepCount">0</span></div>
+        </div>
+
+        <!-- 资金数据 -->
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-label i18n" data-key="stat_equity">总资产 (Equity)</div>
+                <div class="stat-value text-blue" id="equityDisplay">$10,000</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label i18n" data-key="stat_close">最新价 (Close)</div>
+                <div class="stat-value" id="priceDisplay">100.00</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label i18n" data-key="stat_pnl">持仓盈亏 (PnL)</div>
+                <div class="stat-value" id="pnlDisplay">$0.00</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label i18n" data-key="stat_cash">可用现金 (Cash)</div>
+                <div class="stat-value" id="cashDisplay">$10,000</div>
+            </div>
+        </div>
+
+        <!-- K线图容器 -->
+        <div class="chart-container" id="chartDiv"></div>
+        <!-- 附图容器 -->
+        <div class="sub-chart-container" id="indicatorDiv"></div>
+
+        <div class="controls-wrapper">
+            <div class="controls-grid">
+                <!-- 左侧：仓位和指标设置 -->
+                <div class="left-controls">
+                    <!-- 仓位选择 -->
+                    <div>
+                        <div style="margin-bottom:8px; font-size:0.9em; color:var(--text-secondary); display:flex; justify-content:space-between;">
+                            <span class="i18n" data-key="position_ratio">下单资金比例</span>
+                        </div>
+                        <div class="position-selector">
+                            <button class="pos-btn" onclick="game.setTradeRatio(0.5)" id="btnHalf">Half (50%)</button>
+                            <button class="pos-btn active" onclick="game.setTradeRatio(1.0)" id="btnFull">Full (100%)</button>
+                        </div>
+                    </div>
+
+                    <!-- 主图指标设置 -->
+                    <div class="settings-panel">
+                        <div class="settings-row">
+                            <span class="settings-label" style="color:var(--sma-color)">
+                                <i class="fa-solid fa-wave-square"></i> <span class="i18n" data-key="ind_sma">均线 (SMA)</span>
+                            </span>
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <input type="number" id="smaPeriod" class="sma-input" value="20" min="2" max="200" onchange="game.updateIndicators()">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="smaToggle" onchange="game.toggleIndicators()">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <span class="settings-label" style="color:var(--bb-color)">
+                                <i class="fa-solid fa-grip-lines"></i> <span class="i18n" data-key="ind_bb">布林带 (BB)</span>
+                            </span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="bbToggle" onchange="game.toggleIndicators()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="settings-row">
+                            <span class="settings-label" style="color:var(--sar-color)">
+                                <i class="fa-solid fa-ellipsis"></i> <span class="i18n" data-key="ind_sar">抛物线 (SAR)</span>
+                            </span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="sarToggle" onchange="game.toggleIndicators()">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <!-- 附图指标切换 -->
+                         <div style="border-top:1px solid rgba(255,255,255,0.1); margin: 10px 0;"></div>
+                         <div class="settings-row">
+                            <span class="settings-label" style="color:#ddd">
+                                <i class="fa-solid fa-chart-line"></i> <span class="i18n" data-key="ind_sub">附图指标</span>
+                            </span>
+                            <div class="toggle-group" id="subChartToggle">
+                                <button class="tog-btn active" onclick="game.setSubChart('none')">OFF</button>
+                                <button class="tog-btn" onclick="game.setSubChart('macd')">MACD</button>
+                                <button class="tog-btn" onclick="game.setSubChart('rsi')">RSI</button>
+                                <button class="tog-btn" onclick="game.setSubChart('kdj')">KDJ</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧：操作按钮 -->
+                <div class="action-buttons">
+                    <button class="btn btn-buy" onclick="game.executeOrder('buy')">
+                        <i class="fa-solid fa-arrow-trend-up fa-lg"></i>
+                        <span>BUY / LONG</span>
+                        <sub id="buyAmountDisplay">Vol: 0</sub>
+                    </button>
+                    
+                    <button class="btn btn-sell" onclick="game.executeOrder('sell')">
+                        <i class="fa-solid fa-arrow-trend-down fa-lg"></i>
+                        <span>SELL / SHORT</span>
+                        <sub id="sellAmountDisplay">Vol: 0</sub>
+                    </button>
+
+                    <button class="btn btn-hold" onclick="game.nextStep()">
+                        <i class="fa-solid fa-forward fa-lg"></i>
+                        <span>HOLD</span>
+                        <sub class="i18n" data-key="btn_hold_desc">跳过本轮</sub>
+                    </button>
+
+                    <button class="btn btn-close" onclick="game.closePosition()">
+                        <i class="fa-solid fa-ban"></i>
+                        <span>CLOSE ALL <span class="i18n" data-key="btn_close_all">(平仓)</span></span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 持仓信息 -->
+            <div style="margin-top: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; font-size: 0.9em; display: flex; justify-content: space-between; color: var(--text-secondary);">
+                <span><span class="i18n" data-key="current_pos">当前持仓</span>: <strong id="positionSizeDisplay" style="color: #fff">0</strong></span>
+                <span><span class="i18n" data-key="avg_price">持仓均价</span>: <strong id="avgPriceDisplay" style="color: #fff">-</strong></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- 语言包 ---
+    const i18n = {
+        'zh-CN': {
+            title_sim: 'MeowFin <span style="font-size:0.5em; vertical-align: middle; border:1px solid var(--accent-color); border-radius:4px; padding:2px 6px; color:var(--accent-color)">交易模拟器</span>',
+            subtitle_sim: '1x 波动模拟 仅供练习及娱乐作用！',
+            reset_btn: '重置游戏',
+            game_over_desc: '资产归零，交易结束。',
+            final_equity: '最终净值',
+            survived_steps: '存活回合',
+            try_again: '再试一次',
+            market_chart: '<i class="fa-solid fa-chart-candlestick"></i> 市场行情 (1D)',
+            stat_equity: '总资产 (Equity)',
+            stat_close: '最新价 (Close)',
+            stat_pnl: '持仓盈亏 (PnL)',
+            stat_cash: '可用现金 (Cash)',
+            position_ratio: '下单资金比例',
+            ind_sma: '均线 (SMA)',
+            ind_bb: '布林带 (BB)',
+            ind_sar: '抛物线 (SAR)',
+            ind_sub: '附图指标',
+            btn_hold_desc: '跳过本轮',
+            btn_close_all: '(平仓)',
+            current_pos: '当前持仓',
+            avg_price: '持仓均价'
+        },
+        'zh-TW': {
+            title_sim: 'MeowFin <span style="font-size:0.5em; vertical-align: middle; border:1px solid var(--accent-color); border-radius:4px; padding:2px 6px; color:var(--accent-color)">交易模擬器</span>',
+            subtitle_sim: '1x 波動模擬 僅供練習及娛樂作用！',
+            reset_btn: '重置遊戲',
+            game_over_desc: '資產歸零，交易結束。',
+            final_equity: '最終淨值',
+            survived_steps: '存活回合',
+            try_again: '再試一次',
+            market_chart: '<i class="fa-solid fa-chart-candlestick"></i> 市場行情 (1D)',
+            stat_equity: '總資產 (Equity)',
+            stat_close: '最新價 (Close)',
+            stat_pnl: '持倉盈虧 (PnL)',
+            stat_cash: '可用現金 (Cash)',
+            position_ratio: '下單資金比例',
+            ind_sma: '均線 (SMA)',
+            ind_bb: '布林帶 (BB)',
+            ind_sar: '拋物線 (SAR)',
+            ind_sub: '附圖指標',
+            btn_hold_desc: '跳過本輪',
+            btn_close_all: '(平倉)',
+            current_pos: '當前持倉',
+            avg_price: '持倉均價'
+        },
+        'en': {
+            title_sim: 'MeowFin <span style="font-size:0.5em; vertical-align: middle; border:1px solid var(--accent-color); border-radius:4px; padding:2px 6px; color:var(--accent-color)">Simulator</span>',
+            subtitle_sim: '1x Volatility Simulation. For practice & entertainment only!',
+            reset_btn: 'Reset Game',
+            game_over_desc: 'Equity wiped out. Game Over.',
+            final_equity: 'Final Equity',
+            survived_steps: 'Survived Steps',
+            try_again: 'Try Again',
+            market_chart: '<i class="fa-solid fa-chart-candlestick"></i> Market Chart (1D)',
+            stat_equity: 'Total Equity',
+            stat_close: 'Last Price',
+            stat_pnl: 'Unrealized PnL',
+            stat_cash: 'Available Cash',
+            position_ratio: 'Order Size Ratio',
+            ind_sma: 'SMA Line',
+            ind_bb: 'Bollinger Bands',
+            ind_sar: 'Parabolic SAR',
+            ind_sub: 'Sub-Chart',
+            btn_hold_desc: 'Skip Turn',
+            btn_close_all: '(Close All)',
+            current_pos: 'Position',
+            avg_price: 'Avg Price'
+        }
+    };
+
+    // --- 应用语言设置 ---
+    function applyLanguage() {
+        const lang = localStorage.getItem('userLanguage') || 'zh-CN';
+        const texts = i18n[lang] || i18n['zh-CN'];
+        
+        document.querySelectorAll('.i18n').forEach(el => {
+            const key = el.getAttribute('data-key');
+            if (texts[key]) {
+                el.innerHTML = texts[key];
+            }
+        });
+    }
+
+    // --- 音效合成器 ---
+    class SoundSynthesizer {
+        constructor() {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            this.masterGain = this.ctx.createGain();
+            this.masterGain.gain.value = 0.3;
+            this.masterGain.connect(this.ctx.destination);
+        }
+
+        playTone(freq, type, duration, startTime = 0) {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime + startTime);
+            gain.gain.setValueAtTime(0.3, this.ctx.currentTime + startTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + startTime + duration);
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            osc.start(this.ctx.currentTime + startTime);
+            osc.stop(this.ctx.currentTime + startTime + duration);
+        }
+
+        playBuy() {
+            if(this.ctx.state === 'suspended') this.ctx.resume();
+            this.playTone(523.25, 'sine', 0.3, 0);
+            this.playTone(659.25, 'sine', 0.3, 0.1);
+            this.playTone(783.99, 'sine', 0.6, 0.2);
+        }
+
+        playSell() {
+            if(this.ctx.state === 'suspended') this.ctx.resume();
+            this.playTone(783.99, 'sine', 0.1, 0);
+            this.playTone(523.25, 'triangle', 0.4, 0.1);
+        }
+
+        playGameOver() {
+            if(this.ctx.state === 'suspended') this.ctx.resume();
+            this.playTone(300, 'sawtooth', 0.5, 0);
+            this.playTone(200, 'sawtooth', 0.5, 0.3);
+            this.playTone(100, 'sawtooth', 1.0, 0.6);
+        }
+        
+        playClose() {
+            if(this.ctx.state === 'suspended') this.ctx.resume();
+            this.playTone(880, 'square', 0.1, 0);
+            this.playTone(880, 'square', 0.1, 0.15);
+        }
+    }
+
+    // --- 日期处理工具 ---
+    class BusinessDayCounter {
+        constructor() {
+            const startYear = 2010 + Math.floor(Math.random() * 14);
+            const startMonth = Math.floor(Math.random() * 12);
+            const startDay = Math.floor(Math.random() * 28) + 1;
+            this.currentDate = new Date(startYear, startMonth, startDay);
+            this.skipWeekends();
+        }
+        skipWeekends() {
+            let day = this.currentDate.getDay();
+            if (day === 6) this.currentDate.setDate(this.currentDate.getDate() + 2);
+            else if (day === 0) this.currentDate.setDate(this.currentDate.getDate() + 1);
+        }
+        nextDay() {
+            this.currentDate.setDate(this.currentDate.getDate() + 1);
+            this.skipWeekends();
+            return Math.floor(this.currentDate.getTime() / 1000);
+        }
+        getCurrentTimestamp() {
+            return Math.floor(this.currentDate.getTime() / 1000);
+        }
+    }
+
+    // --- 市场生成模型 ---
+    function gaussianRandom(mean=0, stdev=1) {
+        const u = 1 - Math.random();
+        const v = Math.random();
+        const z = Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
+        return z * stdev + mean;
+    }
+
+    function marketReturn() {
+        let vol = 0.015;
+        if (Math.random() < 0.05) vol = 0.06;
+        return gaussianRandom(0, vol);
+    }
+
+    class TradingGame {
+        constructor() {
+            this.chartInitialized = false;
+            this.sound = new SoundSynthesizer();
+            this.subChartType = 'none'; // 'none', 'macd', 'rsi', 'kdj'
+            setTimeout(() => {
+                this.initChart();
+                this.init();
+                applyLanguage();
+            }, 100);
+        }
+
+        init() {
+            // 基础状态
+            this.cash = 10000;
+            this.equity = 10000;
+            this.price = 100;
+            this.shares = 0;
+            this.avgPrice = 0;
+            this.step = 0;
+            this.isGameOver = false;
+            this.tradeRatio = 1.0;
+
+            this.dateCounter = new BusinessDayCounter();
+            this.candleData = [];
+            
+            // 指标数据
+            this.smaData = [];
+            this.bbUpperData = [];
+            this.bbLowerData = [];
+            this.sarData = [];
+
+            // 附图指标数据
+            this.macdData = { dif: [], dea: [], hist: [] };
+            this.rsiData = [];
+            this.kdjData = { k: [], d: [], j: [] };
+
+            // 附图指标状态记录 (用于增量计算)
+            this.indState = {
+                macd: { ema12: 0, ema26: 0, dea: 0, inited: false },
+                rsi: { avgGain: 0, avgLoss: 0, inited: false, prevClose: 0 },
+                kdj: { k: 50, d: 50, inited: false }
+            };
+            
+            // SAR 内部状态
+            this.sarState = { sar: 0, af: 0.02, ep: 0, isRising: true };
+
+            // 生成历史
+            let tempPrice = 100;
+            for(let i=0; i<50; i++) {
+                let time = this.dateCounter.getCurrentTimestamp();
+                let open = tempPrice;
+                let change = marketReturn();
+                let close = open * (1 + change);
+                let bodyMax = Math.max(open, close);
+                let bodyMin = Math.min(open, close);
+                let high = bodyMax + Math.abs(gaussianRandom(0, open * 0.005));
+                let low = bodyMin - Math.abs(gaussianRandom(0, open * 0.005));
+                
+                let candle = { time, open, high, low, close };
+                this.candleData.push(candle);
+                tempPrice = close;
+                if (i < 49) this.dateCounter.nextDay();
+            }
+            this.price = tempPrice;
+
+            // 初始化指标计算
+            this.initSARState();
+            this.recalculateIndicators();
+            this.recalculateSubIndicators(); // 初始化附图
+
+            document.getElementById('gameOverOverlay').style.display = 'none';
+            this.updateUI();
+            
+            if(this.chartInitialized) {
+                this.candleSeries.setData(this.candleData);
+                this.updateIndicatorSeries();
+                this.updateSubChartSeries(); // 渲染附图
+                this.chart.timeScale().fitContent();
+            }
+        }
+
+        // --- 指标计算逻辑 (Sub Indicators) ---
+
+        recalculateSubIndicators() {
+            // 重置状态
+            this.macdData = { dif: [], dea: [], hist: [] };
+            this.rsiData = [];
+            this.kdjData = { k: [], d: [], j: [] };
+            
+            this.indState = {
+                macd: { ema12: 0, ema26: 0, dea: 0, inited: false },
+                rsi: { avgGain: 0, avgLoss: 0, inited: false, prevClose: this.candleData[0].close },
+                kdj: { k: 50, d: 50, inited: false }
+            };
+
+            // 增量计算整个历史
+            for(let i=0; i<this.candleData.length; i++) {
+                this.updateSubIndicatorsOneStep(this.candleData[i], i);
+            }
+        }
+
+        updateSubIndicatorsOneStep(candle, index) {
+            const time = candle.time;
+            const close = candle.close;
+            
+            // 1. MACD (12, 26, 9)
+            if (!this.indState.macd.inited) {
+                this.indState.macd.ema12 = close;
+                this.indState.macd.ema26 = close;
+                this.indState.macd.dea = 0;
+                this.indState.macd.inited = true;
+                // 第一个点通常没有 MACD 意义，设为 0
+                this.macdData.dif.push({time, value: 0});
+                this.macdData.dea.push({time, value: 0});
+                this.macdData.hist.push({time, value: 0});
+            } else {
+                const s = this.indState.macd;
+                s.ema12 = s.ema12 * (11/13) + close * (2/13);
+                s.ema26 = s.ema26 * (25/27) + close * (2/27);
+                const dif = s.ema12 - s.ema26;
+                s.dea = s.dea * (8/10) + dif * (2/10);
+                const hist = 2 * (dif - s.dea);
+                
+                this.macdData.dif.push({time, value: dif});
+                this.macdData.dea.push({time, value: s.dea});
+                this.macdData.hist.push({time, value: hist, color: hist >= 0 ? '#26a69a' : '#ef5350'});
+            }
+
+            // 2. RSI (14)
+            if (index === 0) {
+                this.indState.rsi.prevClose = close;
+                // 前14个点 RSI 不准或为空，这里简单填充
+                this.rsiData.push({time, value: 50});
+            } else {
+                const change = close - this.indState.rsi.prevClose;
+                this.indState.rsi.prevClose = close;
+                
+                let gain = change > 0 ? change : 0;
+                let loss = change < 0 ? -change : 0;
+
+                if (index < 14) {
+                    // 简单平均初始化
+                    this.indState.rsi.avgGain += gain;
+                    this.indState.rsi.avgLoss += loss;
+                    if (index === 13) {
+                        this.indState.rsi.avgGain /= 14;
+                        this.indState.rsi.avgLoss /= 14;
+                    }
+                    this.rsiData.push({time, value: 50});
+                } else {
+                    // Wilder's Smoothing
+                    this.indState.rsi.avgGain = (this.indState.rsi.avgGain * 13 + gain) / 14;
+                    this.indState.rsi.avgLoss = (this.indState.rsi.avgLoss * 13 + loss) / 14;
+                    
+                    let rs = this.indState.rsi.avgLoss === 0 ? 100 : this.indState.rsi.avgGain / this.indState.rsi.avgLoss;
+                    let rsi = 100 - (100 / (1 + rs));
+                    this.rsiData.push({time, value: rsi});
+                }
+            }
+
+            // 3. KDJ (9, 3, 3)
+            // 需要获取过去9天的最高最低
+            let start = Math.max(0, index - 8);
+            let periodSlice = this.candleData.slice(start, index + 1);
+            // 注意：如果是增量更新，candleData 已经包含了当前 candle
+            // 如果是在 nextStep 里，可能还没 push，需要注意调用顺序。
+            // 本逻辑假设 candleData 已经包含当前 candle (index 指向当前)
+            
+            // 为了简化，我们在 nextStep 总是先 push candleData，再调这个
+            // 但在 recalculate 循环里，slice 是安全的
+            
+            // 补丁：如果 slice 为空（不太可能），用当前
+            let low9 = Math.min(...periodSlice.map(c => c.low));
+            let high9 = Math.max(...periodSlice.map(c => c.high));
+            
+            let rsv = 50;
+            if (high9 !== low9) {
+                rsv = (close - low9) / (high9 - low9) * 100;
+            }
+
+            const k = (2/3) * this.indState.kdj.k + (1/3) * rsv;
+            const d = (2/3) * this.indState.kdj.d + (1/3) * k;
+            const j = 3 * k - 2 * d;
+
+            this.indState.kdj.k = k;
+            this.indState.kdj.d = d;
+            
+            this.kdjData.k.push({time, value: k});
+            this.kdjData.d.push({time, value: d});
+            this.kdjData.j.push({time, value: j});
+        }
+
+        // --- 主图指标计算逻辑 ---
+        
+        initSARState() {
+            const first = this.candleData[0];
+            const second = this.candleData[1];
+            this.sarState.isRising = second.close > first.close;
+            this.sarState.ep = this.sarState.isRising ? Math.max(first.high, second.high) : Math.min(first.low, second.low);
+            this.sarState.sar = this.sarState.isRising ? Math.min(first.low, second.low) : Math.max(first.high, second.high);
+            this.sarState.af = 0.02;
+            
+            for(let i=2; i<this.candleData.length; i++) {
+                this.calculateNextSAR(this.candleData[i], this.candleData[i-1]);
+            }
+        }
+
+        calculateNextSAR(current, prev) {
+            let { sar, af, ep, isRising } = this.sarState;
+            let nextSar = sar + af * (ep - sar);
+
+            if (isRising) {
+                if (prev) nextSar = Math.min(nextSar, prev.low);
+            } else {
+                if (prev) nextSar = Math.max(nextSar, prev.high);
+            }
+
+            let nextIsRising = isRising;
+            
+            if (isRising) {
+                if (current.low < nextSar) {
+                    nextIsRising = false;
+                    nextSar = ep;
+                    ep = current.low;
+                    af = 0.02;
+                } else {
+                    if (current.high > ep) {
+                        ep = current.high;
+                        af = Math.min(af + 0.02, 0.2);
+                    }
+                }
+            } else {
+                if (current.high > nextSar) {
+                    nextIsRising = true;
+                    nextSar = ep;
+                    ep = current.high;
+                    af = 0.02;
+                } else {
+                    if (current.low < ep) {
+                        ep = current.low;
+                        af = Math.min(af + 0.02, 0.2);
+                    }
+                }
+            }
+            this.sarState = { sar: nextSar, af, ep, isRising: nextIsRising };
+            return nextSar;
+        }
+
+        recalculateIndicators() {
+            this.smaData = [];
+            this.bbUpperData = [];
+            this.bbLowerData = [];
+            
+            const smaPeriod = parseInt(document.getElementById('smaPeriod').value) || 20;
+            
+            for (let i = 0; i < this.candleData.length; i++) {
+                const candle = this.candleData[i];
+                if (i >= smaPeriod - 1) {
+                    let sum = 0;
+                    for (let j = 0; j < smaPeriod; j++) sum += this.candleData[i - j].close;
+                    let sma = sum / smaPeriod;
+                    let sumSqDiff = 0;
+                    for (let j = 0; j < smaPeriod; j++) sumSqDiff += Math.pow(this.candleData[i - j].close - sma, 2);
+                    let stdDev = Math.sqrt(sumSqDiff / smaPeriod);
+
+                    this.smaData.push({ time: candle.time, value: sma });
+                    this.bbUpperData.push({ time: candle.time, value: sma + 2 * stdDev });
+                    this.bbLowerData.push({ time: candle.time, value: sma - 2 * stdDev });
+                }
+            }
+        }
+
+        initChart() {
+            if (this.chartInitialized) return;
+            const container = document.getElementById('chartDiv');
+            const subContainer = document.getElementById('indicatorDiv');
+
+            // --- 核心修复：定义统一的右侧宽度配置 ---
+            // 强制将两个图表的右侧刻度栏宽度都设为 60px，确保时间轴在像素级别对齐
+            const scaleOptions = {
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                scaleMargins: { top: 0.1, bottom: 0.1 },
+                visible: true,
+                minimumWidth: 60, // 【关键】锁定最小宽度
+                autoScale: true,
+            };
+
+            const layoutOptions = { 
+                background: { type: 'solid', color: 'transparent' }, 
+                textColor: '#a0a5b0' 
+            };
+            
+            const gridOptions = { 
+                vertLines: { color: 'rgba(255, 255, 255, 0.05)' }, 
+                horzLines: { color: 'rgba(255, 255, 255, 0.05)' } 
+            };
+            
+            const timeScaleOptions = {
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                timeVisible: true,
+                fixLeftEdge: true, // 防止左侧留白不同
+                fixRightEdge: true
+            };
+
+            // 1. 初始化主图
+            this.chart = LightweightCharts.createChart(container, {
+                layout: layoutOptions,
+                grid: gridOptions,
+                rightPriceScale: scaleOptions, // 应用统一宽度
+                timeScale: timeScaleOptions,
+                crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+                attributionLogo: false
+            });
+
+            this.candleSeries = this.chart.addCandlestickSeries({
+                upColor: '#00ff9d', downColor: '#ff3366', borderVisible: false, wickUpColor: '#00ff9d', wickDownColor: '#ff3366'
+            });
+
+            this.smaSeries = this.chart.addLineSeries({ color: '#ffaa00', lineWidth: 2, visible: false });
+            this.bbUpperSeries = this.chart.addLineSeries({ color: '#0088ff', lineWidth: 1, visible: false });
+            this.bbLowerSeries = this.chart.addLineSeries({ color: '#0088ff', lineWidth: 1, visible: false });
+            this.sarSeries = this.chart.addLineSeries({ color: '#ff00ff', lineWidth: 0, lineStyle: 2, visible: false }); // SAR样式微调
+
+            // 2. 初始化附图
+            this.subChart = LightweightCharts.createChart(subContainer, {
+                layout: layoutOptions,
+                grid: gridOptions,
+                rightPriceScale: scaleOptions, // 应用统一宽度
+                timeScale: { ...timeScaleOptions, visible: true }, // 保持时间轴可见
+                attributionLogo: false
+            });
+
+            // 初始化附图 Series
+            this.macdHistSeries = this.subChart.addHistogramSeries({ color: '#26a69a' });
+            this.macdDifSeries = this.subChart.addLineSeries({ color: '#2962FF', lineWidth: 1 });
+            this.macdDeaSeries = this.subChart.addLineSeries({ color: '#FF6D00', lineWidth: 1 });
+            
+            this.rsiSeries = this.subChart.addLineSeries({ color: '#7E57C2', lineWidth: 2 });
+            this.rsiLevel70 = this.subChart.addLineSeries({ color: 'rgba(255,255,255,0.3)', lineWidth: 1, lineStyle: 2 });
+            this.rsiLevel30 = this.subChart.addLineSeries({ color: 'rgba(255,255,255,0.3)', lineWidth: 1, lineStyle: 2 });
+
+            this.kdjKSeries = this.subChart.addLineSeries({ color: '#fff', lineWidth: 1 });
+            this.kdjDSeries = this.subChart.addLineSeries({ color: '#ffaa00', lineWidth: 1 });
+            this.kdjJSeries = this.subChart.addLineSeries({ color: '#ff00ff', lineWidth: 1 });
+
+            // 3. 同步逻辑 (带锁，防止死循环)
+            let isSyncing = false;
+            const syncHandler = (source, target) => {
+                source.timeScale().subscribeVisibleLogicalRangeChange(range => {
+                    if (isSyncing || !range) return;
+                    isSyncing = true;
+                    target.timeScale().setVisibleLogicalRange(range);
+                    // 利用 setTimeout 把解锁放到下一个事件循环，消除抖动
+                    setTimeout(() => isSyncing = false, 0); 
+                });
+            };
+            
+            syncHandler(this.chart, this.subChart);
+            syncHandler(this.subChart, this.chart);
+
+            // 去除 Logo 逻辑
+            const forceRemoveLogo = (c) => {
+                const el = c.querySelector('[id^="tv-attr"]');
+                if (el) el.style.display = 'none';
+            };
+            new MutationObserver(() => forceRemoveLogo(container)).observe(container, { childList: true, subtree: true });
+            new MutationObserver(() => forceRemoveLogo(subContainer)).observe(subContainer, { childList: true, subtree: true });
+
+            // Resize 监听
+            new ResizeObserver(entries => {
+                if (entries.length) {
+                    const w = entries[0].contentRect.width;
+                    this.chart.applyOptions({ width: w });
+                    this.subChart.applyOptions({ width: w });
+                }
+            }).observe(container);
+
+            this.chartInitialized = true;
+        }
+
+        setTradeRatio(ratio) {
+            this.tradeRatio = ratio;
+            document.getElementById('btnHalf').classList.toggle('active', ratio === 0.5);
+            document.getElementById('btnFull').classList.toggle('active', ratio === 1.0);
+            this.updateUI();
+        }
+
+        toggleIndicators() {
+            this.updateIndicatorSeries();
+        }
+
+        setSubChart(type) {
+            this.subChartType = type;
+            const container = document.getElementById('indicatorDiv');
+            const mainContainer = document.getElementById('chartDiv');
+            
+            // Toggle visibility of DOM
+            if (type === 'none') {
+                container.classList.remove('active');
+                mainContainer.style.height = '350px';
+                mainContainer.style.borderRadius = '8px';
+            } else {
+                container.classList.add('active');
+                mainContainer.style.height = '230px'; // Shrink main chart
+                mainContainer.style.borderRadius = '8px 8px 0 0';
+            }
+            
+            // Update toggle buttons UI
+            document.querySelectorAll('#subChartToggle .tog-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.innerText.toLowerCase() === type || (type === 'none' && btn.innerText === 'OFF'));
+            });
+
+            // Trigger resize to fix layout
+            this.chart.resize(mainContainer.clientWidth, mainContainer.clientHeight);
+            this.subChart.resize(container.clientWidth, container.clientHeight);
+            
+            this.updateSubChartSeries();
+        }
+        
+        updateIndicators() {
+            this.recalculateIndicators();
+            this.updateIndicatorSeries();
+        }
+
+        updateIndicatorSeries() {
+            if(!this.chart) return;
+            const smaOn = document.getElementById('smaToggle').checked;
+            const bbOn = document.getElementById('bbToggle').checked;
+            const sarOn = document.getElementById('sarToggle').checked;
+
+            this.smaSeries.applyOptions({ visible: smaOn });
+            this.bbUpperSeries.applyOptions({ visible: bbOn });
+            this.bbLowerSeries.applyOptions({ visible: bbOn });
+            this.sarSeries.applyOptions({ visible: sarOn });
+
+            this.smaSeries.setData(this.smaData);
+            this.bbUpperSeries.setData(this.bbUpperData);
+            this.bbLowerSeries.setData(this.bbLowerData);
+            this.sarSeries.setData(this.sarData);
+        }
+
+        updateSubChartSeries() {
+            if (!this.subChart) return;
+            const type = this.subChartType;
+
+            // Hide all first
+            const allSeries = [
+                this.macdHistSeries, this.macdDifSeries, this.macdDeaSeries,
+                this.rsiSeries, this.rsiLevel70, this.rsiLevel30,
+                this.kdjKSeries, this.kdjDSeries, this.kdjJSeries
+            ];
+            allSeries.forEach(s => s.applyOptions({ visible: false }));
+
+            if (type === 'macd') {
+                this.macdHistSeries.applyOptions({ visible: true });
+                this.macdDifSeries.applyOptions({ visible: true });
+                this.macdDeaSeries.applyOptions({ visible: true });
+                
+                this.macdHistSeries.setData(this.macdData.hist);
+                this.macdDifSeries.setData(this.macdData.dif);
+                this.macdDeaSeries.setData(this.macdData.dea);
+            } else if (type === 'rsi') {
+                this.rsiSeries.applyOptions({ visible: true });
+                this.rsiLevel70.applyOptions({ visible: true });
+                this.rsiLevel30.applyOptions({ visible: true });
+                
+                this.rsiSeries.setData(this.rsiData);
+                // Fill static levels
+                const dates = this.rsiData.map(d => d.time);
+                if(dates.length > 0) {
+                     // Just a straight line from start to end of data
+                     const start = dates[0];
+                     const end = dates[dates.length-1] + 100000; // Extend a bit
+                     this.rsiLevel70.setData([{time: start, value: 70}, {time: end, value: 70}]);
+                     this.rsiLevel30.setData([{time: start, value: 30}, {time: end, value: 30}]);
+                }
+            } else if (type === 'kdj') {
+                this.kdjKSeries.applyOptions({ visible: true });
+                this.kdjDSeries.applyOptions({ visible: true });
+                this.kdjJSeries.applyOptions({ visible: true });
+                
+                this.kdjKSeries.setData(this.kdjData.k);
+                this.kdjDSeries.setData(this.kdjData.d);
+                this.kdjJSeries.setData(this.kdjData.j);
+            }
+        }
+
+        nextStep() {
+            if (this.isGameOver) return;
+
+            let newTime = this.dateCounter.nextDay();
+            let open = this.price;
+            let change = marketReturn();
+            let close = open * (1 + change);
+            if (close < 0.01) close = 0.01;
+            let bodyMax = Math.max(open, close);
+            let bodyMin = Math.min(open, close);
+            let high = bodyMax + Math.abs(gaussianRandom(0, open * 0.005));
+            let low = bodyMin - Math.abs(gaussianRandom(0, open * 0.005));
+
+            this.price = close;
+            this.step++;
+
+            let newCandle = { time: newTime, open, high, low, close };
+            this.candleData.push(newCandle);
+            this.candleSeries.update(newCandle);
+
+            // --- Update Main Indicators ---
+            const smaPeriod = parseInt(document.getElementById('smaPeriod').value) || 20;
+            
+            if (this.candleData.length >= smaPeriod) {
+                let sum = 0;
+                for (let i = 0; i < smaPeriod; i++) sum += this.candleData[this.candleData.length - 1 - i].close;
+                let sma = sum / smaPeriod;
+                let sumSqDiff = 0;
+                for (let i = 0; i < smaPeriod; i++) sumSqDiff += Math.pow(this.candleData[this.candleData.length - 1 - i].close - sma, 2);
+                let stdDev = Math.sqrt(sumSqDiff / smaPeriod);
+
+                let pSma = { time: newTime, value: sma };
+                let pUpper = { time: newTime, value: sma + 2 * stdDev };
+                let pLower = { time: newTime, value: sma - 2 * stdDev };
+
+                this.smaData.push(pSma);
+                this.bbUpperData.push(pUpper);
+                this.bbLowerData.push(pLower);
+
+                this.smaSeries.update(pSma);
+                this.bbUpperSeries.update(pUpper);
+                this.bbLowerSeries.update(pLower);
+            }
+
+            let sarVal = this.calculateNextSAR(newCandle, this.candleData[this.candleData.length - 2]);
+            let pSar = { time: newTime, value: sarVal };
+            this.sarData.push(pSar);
+            this.sarSeries.update(pSar);
+
+            // --- Update Sub Indicators ---
+            this.updateSubIndicatorsOneStep(newCandle, this.candleData.length - 1);
+            
+            // Only update visible sub-charts for performance, or update all data arrays but only render visible
+            if (this.subChartType === 'macd') {
+                this.macdHistSeries.update(this.macdData.hist[this.macdData.hist.length-1]);
+                this.macdDifSeries.update(this.macdData.dif[this.macdData.dif.length-1]);
+                this.macdDeaSeries.update(this.macdData.dea[this.macdData.dea.length-1]);
+            } else if (this.subChartType === 'rsi') {
+                this.rsiSeries.update(this.rsiData[this.rsiData.length-1]);
+                // Update levels extension
+                this.rsiLevel70.update({time: newTime + 100000, value: 70});
+                this.rsiLevel30.update({time: newTime + 100000, value: 30});
+            } else if (this.subChartType === 'kdj') {
+                this.kdjKSeries.update(this.kdjData.k[this.kdjData.k.length-1]);
+                this.kdjDSeries.update(this.kdjData.d[this.kdjData.d.length-1]);
+                this.kdjJSeries.update(this.kdjData.j[this.kdjData.j.length-1]);
+            }
+
+            this.calculateEquity();
+            this.updateUI();
+
+            if (this.equity <= 0.1) this.gameOver();
+        }
+
+        // --- 核心交易逻辑 ---
+        
+        closePosition() {
+            if (this.isGameOver || this.shares === 0) return;
+            this.trade(-this.shares);
+            this.sound.playClose();
+            this.nextStep();
+        }
+
+        calculateEquity() {
+            let positionValue = this.shares * this.price;
+            this.equity = this.cash + positionValue;
+        }
+
+        executeOrder(type) {
+            if (this.isGameOver) return;
+            
+            let targetAmount = this.equity * this.tradeRatio;
+            let targetQty = Math.floor(targetAmount / this.price);
+
+            if (type === 'buy') {
+                let maxBuyable = Math.floor(this.cash / this.price);
+                targetQty = Math.min(targetQty, Math.max(0, maxBuyable));
+                
+                if (targetQty <= 0) return;
+                
+                this.trade(targetQty);
+                this.sound.playBuy();
+            } else if (type === 'sell') {
+                if (targetQty <= 0) return;
+                this.trade(-targetQty);
+                this.sound.playSell();
+            }
+            this.nextStep();
+        }
+
+        trade(qty) {
+            let cost = qty * this.price;
+            
+            if ((this.shares > 0 && qty > 0) || (this.shares < 0 && qty < 0) || this.shares === 0) {
+                let oldVal = Math.abs(this.shares) * this.avgPrice;
+                let addVal = Math.abs(qty) * this.price;
+                this.avgPrice = (oldVal + addVal) / (Math.abs(this.shares) + Math.abs(qty));
+            } else {
+                if (Math.sign(this.shares + qty) !== Math.sign(this.shares) && (this.shares + qty) !== 0) {
+                   this.avgPrice = this.price;
+                }
+            }
+
+            this.shares += qty;
+            this.cash -= cost;
+            
+            if (this.shares === 0) this.avgPrice = 0;
+        }
+
+        updateUI() {
+            const fmt = (n) => n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            document.getElementById('stepCount').innerText = this.step;
+            document.getElementById('equityDisplay').innerText = '$' + fmt(this.equity);
+            document.getElementById('priceDisplay').innerText = fmt(this.price);
+            document.getElementById('cashDisplay').innerText = '$' + fmt(this.cash);
+
+            let pnl = (this.price - this.avgPrice) * this.shares;
+            let pnlEl = document.getElementById('pnlDisplay');
+            pnlEl.innerText = (pnl >= 0 ? '+' : '') + '$' + fmt(pnl);
+            pnlEl.className = 'stat-value ' + (pnl >= 0 ? 'text-green' : 'text-red');
+
+            const posEl = document.getElementById('positionSizeDisplay');
+            posEl.innerText = this.shares;
+            posEl.style.color = this.shares > 0 ? 'var(--success-color)' : (this.shares < 0 ? 'var(--danger-color)' : '#fff');
+            document.getElementById('avgPriceDisplay').innerText = this.avgPrice > 0 ? fmt(this.avgPrice) : '-';
+
+            let targetAmt = this.equity * this.tradeRatio;
+            let rawQty = Math.floor(targetAmt / this.price);
+            
+            let maxBuyable = Math.max(0, Math.floor(this.cash / this.price));
+            let buyQty = Math.min(rawQty, maxBuyable);
+            let sellQty = rawQty;
+
+            document.getElementById('buyAmountDisplay').innerText = `Vol: ${buyQty}`;
+            document.getElementById('sellAmountDisplay').innerText = `Vol: ${sellQty}`;
+        }
+
+        gameOver() {
+            this.isGameOver = true;
+            this.sound.playGameOver();
+            document.getElementById('finalSteps').innerText = this.step;
+            document.getElementById('gameOverOverlay').style.display = 'flex';
+        }
+    }
+
+    window.onload = function() { window.game = new TradingGame(); };
+    document.addEventListener('keydown', (e) => {
+        if (!window.game) return;
+        if (e.code === 'Space') window.game.nextStep();
+        if (e.key === 'ArrowUp') window.game.executeOrder('buy');
+        if (e.key === 'ArrowDown') window.game.executeOrder('sell');
+    });
+</script>
+<script src="nav.js" defer></script>
+</body>
+</html>

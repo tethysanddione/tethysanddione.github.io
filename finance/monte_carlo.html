@@ -3,156 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <title>蒙特卡洛投资组合模拟器</title>
+    <title>MeowFin - 蒙特卡洛模拟</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <style>
-        /* --- 全局样式 (与之前文件保持一致) --- */
+        :root {
+            --bg-color: #0a0b10;
+            --card-bg: rgba(30, 35, 45, 0.6);
+            --accent-color: #00f2ff;
+            --accent-hover: #00c8d3;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a5b0;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --input-bg: rgba(0, 0, 0, 0.3);
+            
+            /* 语义化颜色 */
+            --color-optimistic: #00ff88;
+            --color-median: #00f2ff;
+            --color-pessimistic: #ff4d4d;
+        }
+
         body {
             margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-            background-color: #121212;
-            color: #E0E0E0;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
             min-height: 100vh;
-            padding: 20px;
+            padding: 40px 20px;
             box-sizing: border-box;
+            background-image: radial-gradient(circle at 50% 0%, #1a1f2e 0%, #0a0b10 60%);
         }
+
         .container {
             width: 100%;
-            max-width: 1200px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
             text-align: center;
-            padding: 40px 0;
-        }
-        h1 {
-            font-size: 2.8em;
-            font-weight: 600;
-            color: #FFFFFF;
-            margin-bottom: 10px;
-        }
-        .subtitle {
-            font-size: 1.2em;
-            color: #A0A0A0;
             margin-bottom: 50px;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
         }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #fff 0%, var(--accent-color) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1em;
+        }
+
+        /* --- 布局 --- */
         .calculator-layout {
             display: grid;
-            grid-template-columns: 1fr 2fr; /* 左侧窄，右侧宽 */
+            grid-template-columns: 350px 1fr;
             gap: 30px;
-            text-align: left;
-            align-items: flex-start;
+            align-items: start;
         }
+
+        /* --- 卡片样式 --- */
         .card {
-            background-color: #282828;
-            border: 1px solid #404040;
-            border-radius: 12px;
-            padding: 30px;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 25px;
             margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
-        .card:last-child {
-             margin-bottom: 0;
-        }
+
         .card h3 {
-            margin-top: 0;
-            margin-bottom: 20px;
-            color: #FFFFFF;
-            font-size: 1.4em;
-            border-bottom: 1px solid #404040;
+            margin: 0 0 20px 0;
+            font-size: 1.1em;
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--border-color);
             padding-bottom: 15px;
         }
+
+        /* --- 表单元素 --- */
         .input-group {
             margin-bottom: 15px;
         }
+
         .input-group label {
             display: block;
+            font-size: 0.9em;
+            color: var(--text-secondary);
             margin-bottom: 8px;
-            font-weight: 500;
-            color: #B0B0B0;
         }
-        .input-group input {
+
+        input[type="number"] {
             width: 100%;
-            padding: 10px;
-            background-color: #1E1E1E;
-            border: 1px solid #404040;
-            border-radius: 6px;
-            color: #E0E0E0;
-            font-size: 1em;
+            padding: 12px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 0.95em;
             box-sizing: border-box;
+            font-family: monospace;
+            transition: border-color 0.3s ease;
         }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        /* --- 按钮 --- */
         .calc-button {
             width: 100%;
             padding: 15px;
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #FFFFFF;
-            background-color: #007BFF;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #000;
+            background: var(--accent-color);
             border: none;
-            border-radius: 8px;
+            border-radius: 30px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
-            margin-top: 10px;
-        }
-        .calc-button:hover {
-            background-color: #0056b3;
-        }
-        .calc-button:disabled {
-             background-color: #555;
-             cursor: not-allowed;
-        }
-        .chart-container {
-            position: relative;
-            width: 100%;
-            aspect-ratio: 16 / 9;
-            min-height: 400px;
-        }
-        .results-summary {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
             margin-top: 20px;
-            text-align: center;
         }
-        .summary-item {
-            background-color: #1E1E1E;
-            padding: 15px;
-            border-radius: 8px;
-        }
-        .summary-item .label {
-            font-size: 0.9em;
-            color: #A0A0A0;
-            display: block;
-            margin-bottom: 5px;
-        }
-        .summary-item .value {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #FFFFFF;
-        }
-        .summary-item .value.optimistic { color: #28a745; }
-        .summary-item .value.pessimistic { color: #dc3545; }
 
-        @media (max-width: 900px) {
+        .calc-button:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
+        }
+        
+        .calc-button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        /* --- 结果摘要 --- */
+        .result-summary {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .summary-label {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .summary-value {
+            font-size: 1.4em;
+            font-weight: bold;
+            font-family: monospace;
+        }
+        
+        .val-opt { color: var(--color-optimistic); text-shadow: 0 0 10px rgba(0, 255, 136, 0.3); }
+        .val-med { color: var(--color-median); text-shadow: 0 0 10px rgba(0, 242, 255, 0.3); }
+        .val-pes { color: var(--color-pessimistic); text-shadow: 0 0 10px rgba(255, 77, 77, 0.3); }
+
+        /* --- 图表区域 --- */
+        .chart-wrapper {
+            position: relative;
+            height: 500px;
+            width: 100%;
+        }
+
+        /* --- 响应式 --- */
+        @media (max-width: 1000px) {
             .calculator-layout { grid-template-columns: 1fr; }
-            h1 { font-size: 2em; }
-            .subtitle { font-size: 1em; }
+            .result-summary { grid-template-columns: 1fr; gap: 10px; }
+            .chart-wrapper { height: 400px; }
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>蒙特卡洛投资组合模拟器</h1>
-        <p class="subtitle">通过数千次随机模拟，预测未来投资组合价值的概率分布</p>
+        <header>
+            <h1>蒙特卡洛模拟器</h1>
+            <div class="subtitle">通过数千次随机漫步模拟，预测投资组合在不同市场条件下的概率分布</div>
+        </header>
 
         <div class="calculator-layout">
+            
             <div class="input-section">
+                <!-- 卡片 1: 资金 -->
                 <div class="card">
-                    <h3>1. 初始参数</h3>
+                    <h3><i class="fa-solid fa-sack-dollar"></i> 资金参数</h3>
                     <div class="input-group">
                         <label>初始投资额 (元)</label>
                         <input type="number" id="initialInvestment" value="100000">
@@ -167,8 +227,9 @@
                     </div>
                 </div>
 
+                <!-- 卡片 2: 市场 -->
                 <div class="card">
-                    <h3>2. 市场回报假设</h3>
+                    <h3><i class="fa-solid fa-chart-line"></i> 市场假设</h3>
                     <div class="input-group">
                         <label>预期年均回报率 (%)</label>
                         <input type="number" id="annualReturn" value="8">
@@ -179,37 +240,44 @@
                     </div>
                 </div>
 
+                <!-- 卡片 3: 模拟 -->
                  <div class="card">
-                    <h3>3. 模拟参数</h3>
-                     <div class="input-group">
-                        <label>模拟次数</label>
+                    <h3><i class="fa-solid fa-microchip"></i> 模拟设置</h3>
+                     <div class="input-group" style="margin-bottom: 0;">
+                        <label>模拟次数 (次)</label>
                         <input type="number" id="numSimulations" value="1000">
                     </div>
                 </div>
-                <button id="runSimulationBtn" class="calc-button">运行模拟</button>
+                
+                <button id="runSimulationBtn" class="calc-button">
+                    <i class="fa-solid fa-play"></i> 运行模拟
+                </button>
             </div>
 
             <div class="output-section">
                 <div class="card">
-                    <div class="chart-container">
-                        <canvas id="mcChart"></canvas>
+                    <h3><i class="fa-solid fa-bullseye"></i> 预测结果摘要</h3>
+                    <div class="result-summary">
+                        <div class="summary-item" style="border-color: rgba(255, 77, 77, 0.3);">
+                            <span class="summary-label">悲观结果 (10%)</span>
+                            <span class="summary-value val-pes" id="pessimisticValue">--</span>
+                        </div>
+                        <div class="summary-item" style="border-color: rgba(0, 242, 255, 0.3);">
+                            <span class="summary-label">中位结果 (50%)</span>
+                            <span class="summary-value val-med" id="medianValue">--</span>
+                        </div>
+                        <div class="summary-item" style="border-color: rgba(0, 255, 136, 0.3);">
+                            <span class="summary-label">乐观结果 (90%)</span>
+                            <span class="summary-value val-opt" id="optimisticValue">--</span>
+                        </div>
                     </div>
-                    <div class="results-summary">
-                        <div class="summary-item">
-                            <span class="label">悲观结果 (10%)</span>
-                            <span class="value pessimistic" id="pessimisticValue">-</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="label">中位结果 (50%)</span>
-                            <span class="value" id="medianValue">-</span>
-                        </div>
-                         <div class="summary-item">
-                            <span class="label">乐观结果 (90%)</span>
-                            <span class="value optimistic" id="optimisticValue">-</span>
-                        </div>
+
+                    <div class="chart-wrapper">
+                        <canvas id="mcChart"></canvas>
                     </div>
                 </div>
             </div>
+            
         </div>
     </div>
 
@@ -217,26 +285,25 @@
     let mcChartInstance = null;
     const runBtn = document.getElementById('runSimulationBtn');
 
-    // Box-Muller transform to generate normally distributed random numbers
+    // Box-Muller 变换生成正态分布随机数
     function generateNormalRandom(mean, stdDev) {
         let u1 = 0, u2 = 0;
-        //Convert [0,1) to (0,1)
         while (u1 === 0) u1 = Math.random();
         while (u2 === 0) u2 = Math.random();
         
         const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
-        // z0 is now a standard normal random number (mean 0, stdDev 1)
-        // Scale it to our desired mean and standard deviation
         return z0 * stdDev + mean;
     }
 
     runBtn.addEventListener('click', function() {
+        // 按钮交互状态
+        const originalText = runBtn.innerHTML;
         runBtn.disabled = true;
-        runBtn.textContent = '正在模拟...';
+        runBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 计算中...';
         
-        // Use setTimeout to allow the UI to update before the heavy calculation starts
+        // 延时执行以渲染 UI 加载状态
         setTimeout(() => {
-            // --- 1. Get Inputs ---
+            // 1. 获取输入
             const initial = parseFloat(document.getElementById('initialInvestment').value);
             const annualAdd = parseFloat(document.getElementById('annualAddition').value);
             const years = parseInt(document.getElementById('simulationYears').value);
@@ -244,7 +311,7 @@
             const volatility = parseFloat(document.getElementById('annualVolatility').value) / 100;
             const numSims = parseInt(document.getElementById('numSimulations').value);
 
-            // --- 2. Run Simulations ---
+            // 2. 运行模拟
             const allSimulations = [];
             for (let i = 0; i < numSims; i++) {
                 const path = [initial];
@@ -252,13 +319,13 @@
                 for (let y = 0; y < years; y++) {
                     const annualReturn = generateNormalRandom(meanReturn, volatility);
                     currentValue = currentValue * (1 + annualReturn) + annualAdd;
-                    currentValue = Math.max(0, currentValue); // Cannot go below zero
+                    currentValue = Math.max(0, currentValue); // 资产不能为负
                     path.push(currentValue);
                 }
                 allSimulations.push(path);
             }
 
-            // --- 3. Process Results ---
+            // 3. 处理结果 (提取分位数)
             const path10th = [];
             const path50th = [];
             const path90th = [];
@@ -270,19 +337,29 @@
                 path90th.push(yearValues[Math.floor(numSims * 0.9)]);
             }
 
-            // --- 4. Update Summary ---
-            const formatCurrency = (value) => `¥${(value / 10000).toFixed(2)}万`;
+            // 4. 更新摘要
+            const formatCurrency = (value) => {
+                // 简单的万/亿单位转换
+                if (value > 100000000) return `¥${(value / 100000000).toFixed(2)}亿`;
+                if (value > 10000) return `¥${(value / 10000).toFixed(2)}万`;
+                return `¥${value.toFixed(0)}`;
+            };
+            
             document.getElementById('pessimisticValue').textContent = formatCurrency(path10th[years]);
             document.getElementById('medianValue').textContent = formatCurrency(path50th[years]);
             document.getElementById('optimisticValue').textContent = formatCurrency(path90th[years]);
             
-            // --- 5. Draw Chart ---
+            // 5. 绘制图表
             const ctx = document.getElementById('mcChart').getContext('2d');
             const labels = Array.from({ length: years + 1 }, (_, i) => `第${i}年`);
             
             if (mcChartInstance) {
                 mcChartInstance.destroy();
             }
+
+            // 配置 Chart.js 全局字体颜色
+            Chart.defaults.color = '#a0a5b0';
+            Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.05)';
 
             mcChartInstance = new Chart(ctx, {
                 type: 'line',
@@ -292,58 +369,67 @@
                         {
                             label: '乐观结果 (90%)',
                             data: path90th,
-                            borderColor: 'rgba(40, 167, 69, 0.8)',
-                            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                            borderColor: '#00ff88',
+                            backgroundColor: 'rgba(0, 255, 136, 0.1)',
                             borderWidth: 2,
                             pointRadius: 0,
-                            fill: '+1' // Fill to the next dataset (median)
+                            fill: '+1', // 填充到下一个数据集 (中位数)
+                            tension: 0.4
                         },
                         {
                             label: '中位结果 (50%)',
                             data: path50th,
-                            borderColor: 'rgba(54, 162, 235, 1)',
-                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            borderColor: '#00f2ff',
+                            backgroundColor: 'rgba(0, 242, 255, 0.1)',
                             borderWidth: 3,
                             pointRadius: 0,
-                            fill: false
+                            fill: false,
+                            tension: 0.4
                         },
                          {
                             label: '悲观结果 (10%)',
                             data: path10th,
-                            borderColor: 'rgba(220, 53, 69, 0.8)',
-                            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                            borderColor: '#ff4d4d',
+                            backgroundColor: 'rgba(255, 77, 77, 0.15)', // 填充到底部
                             borderWidth: 2,
                             pointRadius: 0,
-                            fill: false // Fill to origin
+                            fill: 'origin',
+                            tension: 0.4
                         }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
                     scales: {
                         x: {
-                            title: { display: true, text: '投资年限', color: '#B0B0B0' },
-                            ticks: { color: '#B0B0B0' },
-                            grid: { color: '#404040' }
+                            title: { display: true, text: '投资年限', color: '#fff' },
+                            grid: { display: false }
                         },
                         y: {
-                            title: { display: true, text: '投资组合价值 (元)', color: '#B0B0B0' },
-                            ticks: { color: '#B0B0B0', callback: (value) => `${(value / 10000).toFixed(0)}万` },
-                            grid: { color: '#404040' }
+                            title: { display: true, text: '投资组合价值 (元)', color: '#fff' },
+                            ticks: {
+                                callback: (value) => {
+                                    if(value >= 10000) return (value/10000).toFixed(0) + '万';
+                                    return value;
+                                }
+                            }
                         }
                     },
                     plugins: {
-                        title: {
-                            display: true,
-                            text: '投资组合价值概率分布',
-                            color: '#FFFFFF',
-                            font: { size: 18 }
-                        },
                         legend: {
-                            labels: { color: '#B0B0B0' }
+                            labels: { color: '#fff', usePointStyle: true }
                         },
                         tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderWidth: 1,
                             callbacks: {
                                 label: function(context) {
                                     return `${context.dataset.label}: ${formatCurrency(context.raw)}`;
@@ -354,12 +440,13 @@
                 }
             });
 
+            // 恢复按钮状态
             runBtn.disabled = false;
-            runBtn.textContent = '重新运行模拟';
-        }, 50); // 50ms delay
+            runBtn.innerHTML = originalText;
+        }, 50);
     });
 
-    // Automatically run simulation on page load
+    // 自动运行一次
     document.addEventListener('DOMContentLoaded', () => {
         runBtn.click();
     });

@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeowFin - 凯利公式计算器</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0a0b10;
+            --card-bg: rgba(30, 35, 45, 0.6);
+            --accent-color: #00f2ff;
+            --accent-hover: #00c8d3;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a5b0;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --input-bg: rgba(0, 0, 0, 0.3);
+            
+            /* 语义化颜色 */
+            --color-kelly: #00f2ff;       /* 凯利仓位 - 核心蓝 */
+            --color-half-kelly: #00ff88;  /* 半凯利 - 安全绿 */
+            --color-all-in: #ff4d4d;      /* 梭哈 - 危险红 */
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            background-image: radial-gradient(circle at 50% 0%, #1a1f2e 0%, #0a0b10 60%);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #fff 0%, var(--accent-color) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1em;
+        }
+
+        /* --- 布局 --- */
+        .calculator-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        /* --- 卡片样式 --- */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .card h3 {
+            margin: 0 0 20px 0;
+            font-size: 1.1em;
+            color: var(--accent-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+
+        /* --- 表单元素 --- */
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 0.95em;
+            box-sizing: border-box;
+            font-family: monospace;
+            transition: border-color 0.3s ease;
+        }
+        
+        .suffix {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            pointer-events: none;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        /* --- 按钮 --- */
+        .calc-button {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #000;
+            background: var(--accent-color);
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .calc-button:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
+        }
+
+        /* --- 结果摘要 --- */
+        .result-main {
+            text-align: center;
+            padding: 30px;
+            background: rgba(0, 242, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            margin-bottom: 25px;
+        }
+        
+        .result-main h2 {
+            margin: 0;
+            font-size: 3em;
+            color: var(--accent-color);
+            text-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
+        }
+        
+        .result-main p {
+            margin: 10px 0 0 0;
+            color: var(--text-secondary);
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .result-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .result-label {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+            display: block;
+        }
+        
+        .result-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        /* --- 图表区域 --- */
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+        
+        /* 提示信息 */
+        .tip-box {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-top: 15px;
+            background: rgba(255,255,255,0.05);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        /* --- 响应式 --- */
+        @media (max-width: 1000px) {
+            .calculator-layout { grid-template-columns: 1fr; }
+            .chart-wrapper { height: 350px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>凯利公式计算器</h1>
+            <div class="subtitle">资金管理的黄金法则：即使胜率很高，错误的仓位也会让你破产</div>
+        </header>
+
+        <div class="calculator-layout">
+            
+            <div class="input-section">
+                <!-- 参数输入 -->
+                <div class="card">
+                    <h3><i class="fa-solid fa-sliders"></i> 核心参数</h3>
+                    
+                    <div class="input-group">
+                        <label>胜率 (Win Rate)</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="winRate" value="60" min="1" max="99">
+                            <span class="suffix">%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>盈亏比 (Odds / Risk-Reward)</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="odds" value="1.5" step="0.1" min="0.1">
+                            <span class="suffix">: 1</span>
+                        </div>
+                        <div class="tip-box">
+                            <i class="fa-solid fa-circle-info"></i> 例如：止损$100，止盈$150，则盈亏比为 1.5。
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label>初始资金 (用于模拟)</label>
+                        <div class="input-wrapper">
+                            <input type="number" id="initialCapital" value="100000">
+                            <span class="suffix">元</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="calcBtn" class="calc-button">
+                    <i class="fa-solid fa-calculator"></i> 计算最佳仓位
+                </button>
+            </div>
+
+            <div class="output-section">
+                <div class="card">
+                    <h3><i class="fa-solid fa-flag-checkered"></i> 建议结果</h3>
+                    
+                    <div class="result-main">
+                        <h2 id="kellyResult">--%</h2>
+                        <p>建议单笔仓位 (Kelly Fraction)</p>
+                    </div>
+
+                    <div class="result-grid">
+                        <div class="result-item" style="border-color: rgba(0, 255, 136, 0.3);">
+                            <span class="result-label">半凯利 (保守)</span>
+                            <span class="result-value" id="halfKelly" style="color: var(--color-half-kelly)">--%</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">期望收益 (每笔)</span>
+                            <span class="result-value" id="expectedValue">--%</span>
+                        </div>
+                    </div>
+
+                    <div class="tip-box" id="adviceText" style="margin-bottom: 20px;">
+                        输入参数以查看资金管理建议。
+                    </div>
+
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 20px;">
+                        <h3 style="border:none; margin-bottom: 15px; font-size: 1em; color: #fff;">
+                            <i class="fa-solid fa-chart-simple"></i> 50次交易模拟推演
+                        </h3>
+                        <div class="chart-wrapper">
+                            <canvas id="kellyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+<script>
+    let chartInstance = null;
+
+    function runCalculation() {
+        const winRate = parseFloat(document.getElementById('winRate').value) / 100;
+        const odds = parseFloat(document.getElementById('odds').value);
+        const initialCap = parseFloat(document.getElementById('initialCapital').value);
+
+        if (isNaN(winRate) || isNaN(odds) || winRate <= 0 || odds <= 0) {
+            alert("请输入有效的数值");
+            return;
+        }
+
+        // 1. 计算凯利公式: f* = (bp - q) / b
+        // b = odds, p = winRate, q = 1 - winRate
+        const loseRate = 1 - winRate;
+        let kellyFraction = (odds * winRate - loseRate) / odds;
+
+        // 期望收益 (Expected Value)
+        const ev = (winRate * odds) - (loseRate * 1);
+
+        // 2. 更新 UI 文本
+        const resultEl = document.getElementById('kellyResult');
+        const halfEl = document.getElementById('halfKelly');
+        const adviceEl = document.getElementById('adviceText');
+        const evEl = document.getElementById('expectedValue');
+
+        evEl.textContent = (ev * 100).toFixed(2) + "%";
+
+        if (kellyFraction <= 0) {
+            resultEl.textContent = "0%";
+            resultEl.style.color = "#ff4d4d"; // Red
+            halfEl.textContent = "0%";
+            adviceEl.innerHTML = "<i class='fa-solid fa-triangle-exclamation'></i> 警告：这是一个负期望系统！无论怎么管理仓位，长期来看你都会亏钱。请提高胜率或盈亏比。";
+            kellyFraction = 0; // 为了画图，设为0
+        } else {
+            resultEl.textContent = (kellyFraction * 100).toFixed(2) + "%";
+            resultEl.style.color = "var(--color-kelly)";
+            halfEl.textContent = (kellyFraction * 50).toFixed(2) + "%";
+            adviceEl.innerHTML = "<i class='fa-solid fa-check-circle'></i> 策略为正期望。使用全凯利可以最大化复利增长，但波动极大；一般建议使用<b>半凯利</b>以降低心理压力。";
+        }
+
+        // 3. 生成模拟数据 (50次交易)
+        const trades = 50;
+        const labels = Array.from({length: trades + 1}, (_, i) => i);
+        
+        // 策略数组
+        const dataKelly = [initialCap];
+        const dataHalfKelly = [initialCap];
+        const dataAllIn = [initialCap]; // 100% 仓位 (满仓)
+        const dataFixed = [initialCap]; // 固定 10% 仓位作为基准
+        
+        let balKelly = initialCap;
+        let balHalf = initialCap;
+        let balAllIn = initialCap;
+        let balFixed = initialCap;
+
+        // 预生成随机序列，保证所有策略面对的是同一个市场行情
+        const marketOutcomes = [];
+        for (let i = 0; i < trades; i++) {
+            marketOutcomes.push(Math.random() < winRate ? 'win' : 'lose');
+        }
+
+        for (let i = 0; i < trades; i++) {
+            const outcome = marketOutcomes[i];
+            
+            // 策略 1: 凯利 (全仓位)
+            if (balKelly > 0) {
+                const betSize = balKelly * kellyFraction;
+                if (outcome === 'win') balKelly += betSize * odds;
+                else balKelly -= betSize;
+                balKelly = Math.max(0, balKelly); // 不会负债
+            }
+            dataKelly.push(balKelly);
+
+            // 策略 2: 半凯利
+            if (balHalf > 0) {
+                const betSize = balHalf * (kellyFraction / 2);
+                if (outcome === 'win') balHalf += betSize * odds;
+                else balHalf -= betSize;
+                balHalf = Math.max(0, balHalf);
+            }
+            dataHalfKelly.push(balHalf);
+
+            // 策略 3: 满仓梭哈 (反面教材)
+            if (balAllIn > 0.01) { // 留点精度
+                const betSize = balAllIn * 1.0; // 100%
+                if (outcome === 'win') balAllIn += betSize * odds;
+                else balAllIn -= betSize; // 输一次就归零
+                balAllIn = Math.max(0, balAllIn);
+            }
+            dataAllIn.push(balAllIn);
+        }
+
+        // 4. 绘制/更新图表
+        renderChart(labels, dataKelly, dataHalfKelly, dataAllIn);
+    }
+
+    function renderChart(labels, dKelly, dHalf, dAllIn) {
+        const ctx = document.getElementById('kellyChart').getContext('2d');
+        
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        // Chart.js 全局样式适配
+        Chart.defaults.color = '#a0a5b0';
+        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.05)';
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: '全凯利 (Optimal)',
+                        data: dKelly,
+                        borderColor: '#00f2ff',
+                        backgroundColor: 'rgba(0, 242, 255, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        pointRadius: 0
+                    },
+                    {
+                        label: '半凯利 (Safe)',
+                        data: dHalf,
+                        borderColor: '#00ff88',
+                        borderDash: [5, 5],
+                        borderWidth: 2,
+                        tension: 0.1,
+                        pointRadius: 0
+                    },
+                    {
+                        label: '满仓梭哈 (Risk)',
+                        data: dAllIn,
+                        borderColor: '#ff4d4d',
+                        backgroundColor: 'rgba(255, 77, 77, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        pointRadius: 0,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: {
+                            callback: function(value) {
+                                if (value >= 1000000) return (value/1000000).toFixed(1) + 'M';
+                                if (value >= 1000) return (value/1000).toFixed(0) + 'k';
+                                return value;
+                            }
+                        }
+                    },
+                    x: {
+                        grid: { display: false },
+                        title: { display: true, text: '交易次数' }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: { usePointStyle: true }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 初始化
+    document.getElementById('calcBtn').addEventListener('click', runCalculation);
+    // 绑定回车键
+    document.querySelectorAll('input').forEach(input => {
+        input.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') runCalculation();
+        });
+    });
+
+    // 页面加载后自动运行一次
+    document.addEventListener('DOMContentLoaded', runCalculation);
+</script>
+<script src="nav.js" defer></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6101670991692066"
+     crossorigin="anonymous"></script>
+</body>
+</html>

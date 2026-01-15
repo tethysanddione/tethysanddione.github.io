@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>行星环贴图生成器 | Planetary Ring Texture Generator</title>
+    <title>行星环贴图生成器 & 3D 预览 | Planetary Ring Texture Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -20,13 +21,38 @@
             image-rendering: pixelated;
             image-rendering: crisp-edges;
         }
+        /* Custom range slider styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #4f46e5;
+            cursor: pointer;
+            margin-top: -6px;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #374151;
+            border-radius: 2px;
+        }
+        canvas {
+            display: block; /* Removes bottom spacing for 3D canvas */
+        }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-200 flex flex-col items-center justify-center min-h-screen p-4">
+<body class="bg-gray-900 text-gray-200 flex flex-col items-center min-h-screen p-4 gap-6">
 
-    <div class="w-full max-w-2xl bg-gray-800/50 rounded-2xl shadow-2xl p-6 sm:p-8 text-center backdrop-blur-sm border border-gray-700">
+    <!-- Texture Generator Section -->
+    <div class="w-full max-w-2xl bg-gray-800/50 rounded-2xl shadow-2xl p-6 sm:p-8 text-center backdrop-blur-sm border border-gray-700 mt-4">
         <h1 class="text-2xl sm:text-3xl font-bold text-white tracking-tight">行星环贴图生成器</h1>
-        <p class="text-gray-400 mt-2 mb-6">点击按钮即可程序化生成一个 512x32 像素的行星环纹理。</p>
+        <p class="text-gray-400 mt-2 mb-6">点击按钮程序化生成 512x32 像素的纹理。</p>
 
         <div class="canvas-container w-full h-16 bg-gray-900/50 rounded-lg overflow-hidden border border-gray-700 flex items-center justify-center mb-6">
             <canvas id="ringCanvas" width="512" height="32" class="w-full h-auto"></canvas>
@@ -43,8 +69,30 @@
         <p id="infoText" class="text-gray-500 text-sm mt-4 h-5"></p>
     </div>
 
+    <!-- 3D Visualization Section -->
+    <div class="w-full max-w-2xl bg-gray-800/50 rounded-2xl shadow-2xl p-6 sm:p-8 backdrop-blur-sm border border-gray-700 flex flex-col items-center mb-8">
+        <div class="w-full flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold text-white">实时 3D 预览</h2>
+            <div class="text-xs text-gray-500">拖动鼠标旋转视角</div>
+        </div>
+        
+        <!-- 3D Container -->
+        <div id="vizContainer" class="w-full h-80 bg-black rounded-lg overflow-hidden border border-gray-700 relative mb-6 cursor-move">
+            <div id="loadingText" class="absolute inset-0 flex items-center justify-center text-gray-500">正在加载 3D 场景...</div>
+        </div>
+
+        <!-- Controls -->
+        <div class="w-full bg-gray-900/50 p-4 rounded-xl border border-gray-700/50">
+            <div class="flex items-center gap-4">
+                <span class="text-sm font-medium text-gray-300 whitespace-nowrap">环半径缩放</span>
+                <input id="scaleSlider" type="range" min="0.5" max="3.0" step="0.01" value="1.0" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+                <span id="scaleValue" class="text-sm font-mono text-indigo-400 w-12 text-right">1.00x</span>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // --- Configuration ---
+        // --- 1. Texture Generation Logic (Existing) ---
         const WIDTH = 512;
         const HEIGHT = 32;
 
@@ -54,13 +102,6 @@
         const downloadLink = document.getElementById('downloadLink');
         const infoText = document.getElementById('infoText');
 
-        /**
-         * Converts an HSV color value to RGB.
-         * @param {number} h The hue value (0-1).
-         * @param {number} s The saturation value (0-1).
-         * @param {number} v The value value (0-1).
-         * @returns {Array<number>} The RGB representation [r, g, b] from 0-255.
-         */
         function hsvToRgb(h, s, v) {
             let r, g, b;
             const i = Math.floor(h * 6);
@@ -93,13 +134,11 @@
                 const globalMaxAlpha = Math.floor(Math.random() * (220 - 150 + 1)) + 150;
                 infoText.textContent = `色调: ${hue.toFixed(2)}, 饱和度: ${saturation.toFixed(2)}, 全局最大不透明度: ${globalMaxAlpha}`;
 
-                // 3. 随机混合绘制密集条纹、渐变尘埃环和空隙
-                // 3. Randomly mix drawing dense stripes, gradient dust bands, and gaps.
                 let x = 0;
                 while (x < WIDTH) {
                     const actionRoll = Math.random();
 
-                    if (actionRoll > 0.35) { // 65% 的概率绘制密集的“条形码”条纹
+                    if (actionRoll > 0.35) {
                         const stripeWidth = Math.floor(Math.random() * 10) + 1;
                         const value = Math.random() * 0.5 + 0.5;
                         const alpha = Math.floor(Math.random() * (globalMaxAlpha - 40 + 1)) + 0;
@@ -114,7 +153,7 @@
                         }
                         x += stripeWidth;
 
-                    } else if (actionRoll > 0.20) { // 15% 的概率绘制渐变的“尘埃”环
+                    } else if (actionRoll > 0.20) {
                         const bandWidth = Math.floor(Math.random() * 60) + 30;
                         const peakValue = Math.random() * 0.4 + 0.6;
                         const peakAlpha = Math.floor(Math.random() * (globalMaxAlpha * 0.7)) + (globalMaxAlpha * 0.1);
@@ -135,14 +174,12 @@
                         }
                         x += bandWidth;
 
-                    } else { // 20% 的概率留出空隙
+                    } else {
                         const gapWidth = Math.floor(Math.random() * 80) + 1;
                         x += gapWidth;
                     }
                 }
 
-                // 4. 添加全局噪点增加细节
-                // 4. Add global noise for more detail.
                 const noiseStrength = 5;
                 for (let i = 0; i < data.length; i += 4) {
                     const noise = Math.floor(Math.random() * (2 * noiseStrength + 1)) - noiseStrength;
@@ -160,12 +197,208 @@
 
                 generateBtn.disabled = false;
                 generateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+                // Update 3D Texture
+                if (typeof updateRingMaterial === 'function') {
+                    updateRingMaterial(canvas);
+                }
             }, 50);
         }
 
         generateBtn.addEventListener('click', generateRingTexture);
-        window.addEventListener('load', generateRingTexture);
+
+        // --- 2. 3D Visualization Logic (New) ---
+        let scene, camera, renderer, ringMesh, planetMesh;
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        
+        function initThreeJS() {
+            const container = document.getElementById('vizContainer');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            // Scene setup
+            scene = new THREE.Scene();
+            
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+            camera.position.set(3.5, 2.5, 4.5);
+            camera.lookAt(0, 0, 0);
+
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+            document.getElementById('loadingText').style.display = 'none';
+
+            // 1. Generate Blank Sphere (Planet)
+            // Radius = 1.0
+            const planetGeometry = new THREE.SphereGeometry(1, 64, 64);
+            const planetMaterial = new THREE.MeshPhongMaterial({
+                color: 0xe5e7eb, // Light gray/white blank sphere
+                shininess: 10,
+                flatShading: false
+            });
+            planetMesh = new THREE.Mesh(planetGeometry, planetMaterial);
+            scene.add(planetMesh);
+
+            // 2. Generate Rings
+            // Requirement: Render at 1.5R.
+            // We use a RingGeometry. Inner Radius 1.5, Outer Radius 2.8 (arbitrary thickness)
+            const innerRadius = 1.5;
+            const outerRadius = 2.8;
+            const ringGeometry = new THREE.RingGeometry(innerRadius, outerRadius, 128, 1);
+            
+            // Fix UV mapping for RingGeometry to work with radial 1D texture
+            // By default RingGeometry maps UVs linearly on the plane (like a cutout)
+            // We want U to map to Radius (to use the texture's width), and V to map to Angle
+            const pos = ringGeometry.attributes.position;
+            const uv = ringGeometry.attributes.uv;
+            const v3 = new THREE.Vector3();
+
+            for (let i = 0; i < pos.count; i++) {
+                v3.fromBufferAttribute(pos, i);
+                const radius = v3.length();
+                // Normalize radius to 0..1 for U coordinate (matches the 512 width of texture)
+                const u = (radius - innerRadius) / (outerRadius - innerRadius);
+                
+                // Calculate angle for V coordinate
+                let angle = Math.atan2(v3.y, v3.x);
+                if (angle < 0) angle += Math.PI * 2;
+                const v = angle / (Math.PI * 2);
+
+                uv.setXY(i, u, v);
+            }
+            ringGeometry.attributes.uv.needsUpdate = true;
+
+            // Initial Material (transparent until generated)
+            const ringMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.9,
+                map: null
+            });
+
+            ringMesh = new THREE.Mesh(ringGeometry, ringMaterial);
+            ringMesh.rotation.x = -Math.PI / 2; // Lay flat
+            scene.add(ringMesh);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 1.5); // Soft white light
+            scene.add(ambientLight);
+            
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            dirLight.position.set(5, 3, 5);
+            scene.add(dirLight);
+
+            // Mouse Rotation Logic
+            container.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.offsetX, y: e.offsetY };
+            });
+
+            container.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const deltaMove = {
+                    x: e.offsetX - previousMousePosition.x,
+                    y: e.offsetY - previousMousePosition.y
+                };
+                
+                const rotationSpeed = 0.005;
+                // Rotate the whole scene container usually, but here we rotate meshes for simplicity
+                // Actually, rotating the camera around 0,0,0 is better
+                const x = camera.position.x;
+                const z = camera.position.z;
+                
+                // Simple orbital rotation around Y axis
+                const theta = -deltaMove.x * rotationSpeed;
+                camera.position.x = x * Math.cos(theta) - z * Math.sin(theta);
+                camera.position.z = x * Math.sin(theta) + z * Math.cos(theta);
+                
+                // Simple height adjustment
+                camera.position.y += deltaMove.y * rotationSpeed;
+                
+                camera.lookAt(0, 0, 0);
+                previousMousePosition = { x: e.offsetX, y: e.offsetY };
+            });
+
+            window.addEventListener('mouseup', () => isDragging = false);
+
+            // Animation Loop
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                // Slowly rotate rings and planet if not dragging (optional subtle effect)
+                if (!isDragging) {
+                    // if (ringMesh) ringMesh.rotation.z += 0.0005;
+                    // if (planetMesh) planetMesh.rotation.y += 0.0002;
+                }
+
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            // Handle Resize
+            window.addEventListener('resize', () => {
+                const w = container.clientWidth;
+                const h = container.clientHeight;
+                renderer.setSize(w, h);
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+            });
+
+            // Initial texture generation call
+            generateRingTexture();
+        }
+
+        // --- 3. Interaction Logic ---
+        
+        // Update texture from canvas
+        function updateRingMaterial(sourceCanvas) {
+            if (!ringMesh) return;
+            
+            const texture = new THREE.CanvasTexture(sourceCanvas);
+            // Texture settings for rings
+            texture.wrapS = THREE.ClampToEdgeWrapping; // Radius (U) shouldn't wrap
+            texture.wrapT = THREE.RepeatWrapping;      // Angle (V) should wrap
+            texture.repeat.set(1, 1);                 // 1:1 mapping
+            
+            // To smooth out pixelation if any
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+
+            const oldMat = ringMesh.material;
+            ringMesh.material = new THREE.MeshBasicMaterial({
+                map: texture,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.95
+            });
+            
+            if (oldMat.map) oldMat.map.dispose();
+            if (oldMat) oldMat.dispose();
+        }
+
+        // Slider Logic
+        const scaleSlider = document.getElementById('scaleSlider');
+        const scaleValue = document.getElementById('scaleValue');
+
+        scaleSlider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            scaleValue.textContent = val.toFixed(2) + 'x';
+            
+            if (ringMesh) {
+                // Scale the rings uniformly in X and Y (which corresponds to radius in world space due to rotation)
+                // Note: ringMesh is rotated -90deg on X. Its local X and Y are the plane of the ring.
+                ringMesh.scale.set(val, val, 1);
+            }
+        });
+
+        // Initialize on Load
+        window.addEventListener('load', initThreeJS);
+
     </script>
 </body>
 </html>
-
